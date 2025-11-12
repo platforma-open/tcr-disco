@@ -1,0 +1,241 @@
+wf := import("@platforma-sdk/workflow-tengo:workflow")
+assets := import("@platforma-sdk/workflow-tengo:assets")
+pframes := import("@platforma-sdk/workflow-tengo:pframes")
+render := import("@platforma-sdk/workflow-tengo:render")
+strings := import("@platforma-sdk/workflow-tengo:strings")
+json := import("json")
+
+ll := import("@platforma-sdk/workflow-tengo:ll")
+maps := import("@platforma-sdk/workflow-tengo:maps")
+
+tcrAnalysisTpl := assets.importTemplate(":tcr-analysis")
+
+wf.prepare(func(args) {
+	bundleBuilder := wf.createPBundleBuilder()
+	
+	// Load mainRef and its associated sequences
+	bundleBuilder.addAnchor("mainAlpha", args.mainRef)
+	bundleBuilder.addSingle({
+		name: "pl7.app/vdj/sequence",
+		domain: {
+			"pl7.app/alphabet": "aminoacid",
+			"pl7.app/vdj/feature": "CDR3"
+		},
+		axes: [{anchor: "mainAlpha", idx: 1}]
+	}, "mainCdr3");
+	bundleBuilder.addSingle({
+		name: "pl7.app/vdj/geneHit",
+		domain: {
+			"pl7.app/vdj/reference": "VGene"
+		},
+		axes: [{anchor: "mainAlpha", idx: 1}]
+	}, "mainVGene");
+
+	// Load other chain counts
+	// @TODO: Once override option is available in axis update code to load TCRBeta chains, we can remove this part only
+	bundleBuilder.addMulti({
+		annotations: {
+			"pl7.app/isAbundance": "true",
+			"pl7.app/abundance/normalized": "false",
+			"pl7.app/abundance/isPrimary": "true"
+		},
+		axes: [{anchor: "mainAlpha", idx: 0}],
+		partialAxesMatch: true
+	}, "mainCounts")
+
+	// Load all sequence and CDR3 columns
+	bundleBuilder.addMulti({
+		name: "pl7.app/vdj/sequence",
+		domain: {
+			"pl7.app/alphabet": "aminoacid",
+			"pl7.app/vdj/feature": "CDR3"
+		}
+	}, "otherCdr3s");
+	bundleBuilder.addMulti({
+		name: "pl7.app/vdj/geneHit",
+		domain: {
+			"pl7.app/vdj/reference": "VGene"
+		}
+	}, "otherVGenes");
+
+	// Load main metadata
+	bundleBuilder.addMulti({
+		name: "pl7.app/metadata",
+		axes: [{anchor: "mainAlpha", idx: 0}]
+	}, "mainMetadata")
+	
+
+	// If cdRef is provided, load it and its metadata
+	if args.cdRef != undefined {
+		// Get the CD4/8 dataset and its associated sequences
+		bundleBuilder.addAnchor("cdAlpha", args.cdRef)
+		bundleBuilder.addSingle({
+			name: "pl7.app/vdj/sequence",
+			domain: {
+				"pl7.app/alphabet": "aminoacid",
+				"pl7.app/vdj/feature": "CDR3"
+			},
+			axes: [{anchor: "cdAlpha", idx: 1}]
+		}, "cdCdr3");
+		bundleBuilder.addSingle({
+			name: "pl7.app/vdj/geneHit",
+			domain: {
+				"pl7.app/vdj/reference": "VGene"
+			},
+			axes: [{anchor: "cdAlpha", idx: 1}]
+		}, "cdVGene");
+
+		// Load other chain counts and relevant info
+		bundleBuilder.addMulti({
+			annotations: {
+				"pl7.app/isAbundance": "true",
+				"pl7.app/abundance/normalized": "false",
+				"pl7.app/abundance/isPrimary": "true"
+			},
+			axes: [{anchor: "cdAlpha", idx: 0}],
+			partialAxesMatch: true
+		}, "cdCounts")
+	}
+	
+	return {
+		columns: bundleBuilder.build()
+	}
+})
+
+wf.body(func(args) {
+	columns := args.columns
+	
+	//////////////// Load input data ////////////////
+	// Get the main dataset
+	mainAlpha := columns.getColumn(args.mainRef)
+	mainAlphaSpec := mainAlpha.spec
+	// Get counts block id from mainAlpha key
+	countsBlockId := mainAlphaSpec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
+	
+	// Build TSV file for main dataset (Alpha)
+	mainAlphaTable := pframes.tsvFileBuilder()
+	mainAlphaTable.setAxisHeader("pl7.app/sampleId", "sampleId")
+	mainAlphaTable.setAxisHeader("pl7.app/vdj/clonotypeKey", "clonotypeKey")
+	mainAlphaTable.add(mainAlpha, {header: "count"})
+	mainAlphaTable.add(columns.getColumn("mainCdr3"), {header: "CDR3"})
+	mainAlphaTable.add(columns.getColumn("mainVGene"), {header: "VGene"})
+	mainAlphaTable.mem("16GiB")
+	mainAlphaTable.cpu(1)
+	mainAlphaTsv := mainAlphaTable.build()
+	
+	// Build TSV file for main dataset (Beta)
+	// Load beta chain using subtemplate
+	mainBetaTable := pframes.tsvFileBuilder()
+	mainBetaTable.setAxisHeader("pl7.app/sampleId", "sampleId")
+	mainBetaTable.setAxisHeader("pl7.app/vdj/clonotypeKey", "clonotypeKey")
+	prefix := "mainCounts"
+	mainCountCols := columns.getColumns(prefix)
+	for countCol in mainCountCols {
+		colChain := countCol.spec.axesSpec[1].domain["pl7.app/vdj/chain"]
+		colBlockId := countCol.spec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
+		if colChain == "TCRBeta" && colBlockId == countsBlockId {
+			mainBetaTable.add(countCol, {header: "count"})
+		}
+	}
+	for cdr3Col in columns.getColumns("otherCdr3s") {
+		colChain := cdr3Col.spec.axesSpec[0].domain["pl7.app/vdj/chain"]
+		colBlockId := cdr3Col.spec.axesSpec[0].domain["pl7.app/vdj/clonotypingRunId"]
+		if colChain == "TCRBeta" && colBlockId == countsBlockId {
+			mainBetaTable.add(cdr3Col, {header: "CDR3"})
+		}
+	}
+	for vGeneCol in columns.getColumns("otherVGenes") {
+		colChain := vGeneCol.spec.axesSpec[0].domain["pl7.app/vdj/chain"]
+		colBlockId := vGeneCol.spec.axesSpec[0].domain["pl7.app/vdj/clonotypingRunId"]
+		if colChain == "TCRBeta" && colBlockId == countsBlockId {
+			mainBetaTable.add(vGeneCol, {header: "VGene"})
+		}
+	}
+	mainBetaTable.mem("16GiB")
+	mainBetaTable.cpu(1)
+	mainBetaTsv := mainBetaTable.build()
+
+	// Load main metadata
+	mainMetadataTable := pframes.tsvFileBuilder()
+	mainMetadataTable.setAxisHeader("pl7.app/sampleId", "sampleId")
+	mainMetadata := columns.getColumns("mainMetadata")
+	for metadataCol in mainMetadata {
+		mainMetadataTable.add(metadataCol, {header: metadataCol.spec.annotations["pl7.app/label"]})
+	}
+	mainMetadataTable.mem("16GiB")
+	mainMetadataTable.cpu(1)
+	mainMetadataTsv := mainMetadataTable.build()
+	
+	// Get CD info and its beta alternative (if available)
+	cdAlphaTsv := undefined
+	cdBetaTsv := undefined
+	if args.cdRef != undefined {
+		cdAlpha := columns.getColumn(args.cdRef)
+		cdAlphaSpec := cdAlpha.spec
+		// Get counts block id from mainAlpha key
+		cdCountsBlockId := cdAlphaSpec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
+		
+		// Build TSV file for CD dataset (Alpha)
+		cdAlphaTable := pframes.tsvFileBuilder()
+		cdAlphaTable.setAxisHeader("pl7.app/sampleId", "sampleId")
+		cdAlphaTable.setAxisHeader("pl7.app/vdj/clonotypeKey", "clonotypeKey")
+		cdAlphaTable.add(cdAlpha, {header: "count"})
+		cdAlphaTable.add(columns.getColumn("cdCdr3"), {header: "CDR3"})
+		cdAlphaTable.add(columns.getColumn("cdVGene"), {header: "VGene"})
+		cdAlphaTable.mem("16GiB")
+		cdAlphaTable.cpu(1)
+		cdAlphaTsv = cdAlphaTable.build()
+		
+		// Build TSV file for CD dataset (Beta)
+		cdBetaTable := pframes.tsvFileBuilder()
+		cdBetaTable.setAxisHeader("pl7.app/sampleId", "sampleId")
+		cdBetaTable.setAxisHeader("pl7.app/vdj/clonotypeKey", "clonotypeKey")
+		prefix = "cdCounts"
+		cdCountCols := columns.getColumns(prefix)
+		for countCol in cdCountCols {
+			colChain := countCol.spec.axesSpec[1].domain["pl7.app/vdj/chain"]
+			colBlockId := countCol.spec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
+			if colChain == "TCRBeta" && colBlockId == cdCountsBlockId {
+				cdBetaTable.add(countCol, {header: "count"})
+			}
+		}
+		for cdr3Col in columns.getColumns("otherCdr3s") {
+			colChain := cdr3Col.spec.axesSpec[0].domain["pl7.app/vdj/chain"]
+			colBlockId := cdr3Col.spec.axesSpec[0].domain["pl7.app/vdj/clonotypingRunId"]
+			if colChain == "TCRBeta" && colBlockId == cdCountsBlockId {
+				cdBetaTable.add(cdr3Col, {header: "CDR3"})
+			}
+		}
+		for vGeneCol in columns.getColumns("otherVGenes") {
+			colChain := vGeneCol.spec.axesSpec[0].domain["pl7.app/vdj/chain"]
+			colBlockId := vGeneCol.spec.axesSpec[0].domain["pl7.app/vdj/clonotypingRunId"]
+			if colChain == "TCRBeta" && colBlockId == cdCountsBlockId {
+				cdBetaTable.add(vGeneCol, {header: "VGene"})
+			}
+		}
+		cdBetaTable.mem("16GiB")
+		cdBetaTable.cpu(1)
+		cdBetaTsv = cdBetaTable.build()
+	}
+
+	//////////////// Run TCR Disco ////////////////
+	tcrAnalysis := render.create(tcrAnalysisTpl, {
+		mainAlphaTsv: mainAlphaTsv,
+		mainBetaTsv: mainBetaTsv,
+		mainMetadataTsv: mainMetadataTsv,
+		cdAlphaTsv: cdAlphaTsv,
+		cdBetaTsv: cdBetaTsv,
+		metrics: args.metrics
+	})
+	
+	tcrAnalysisResult := tcrAnalysis.output("resultsFile")
+
+	return {
+		outputs: {
+			resultsPf: {},
+			tcrAnalysisResult: tcrAnalysisResult
+		},
+		exports: {}
+	}
+})
+

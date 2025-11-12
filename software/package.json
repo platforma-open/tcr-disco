@@ -1,0 +1,65 @@
+{
+  "name": "@platforma-open/milaboratories.run-tcrdisco-enrichment.software",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Block Software: Run TCR Disco Enrichment with R",
+  "scripts": {
+    "build": "pl-pkg build",
+    "prepublishOnly": "pl-pkg prepublish",
+    "do-pack": "rm -f *.tgz && pl-pkg build && pnpm pack && mv platforma-open*.tgz package.tgz",
+    "changeset": "changeset",
+    "version-packages": "changeset version"
+  },
+  "block-software": {
+    "entrypoints": {
+      "tcr-disco": {
+        "binary": {
+          "artifact": {
+            "type": "R",
+            "registry": "platforma-open",
+            "environment": "@platforma-open/milaboratories.runenv-r:main",
+            "root": "./src/tcr-disco"
+          },
+          "cmd": [
+            "Rscript",
+            "{pkg}/main.R"
+          ]
+        },
+        "docker": {
+          "artifact": {
+            "type": "docker",
+            "context": "./src/tcr-disco",
+            "dockerfile": "Dockerfile"
+          },
+          "cmd": [
+            "/app/main.R"
+          ]
+        }
+      },
+      "test": {
+        "binary": {
+          "artifact": {
+            "type": "python",
+            "registry": "platforma-open",
+            "environment": "@platforma-open/milaboratories.runenv-python-3:3.12.10",
+            "dependencies": {
+              "toolset": "pip",
+              "requirements": "requirements.txt"
+            },
+            "root": "./src/test"
+          },
+          "cmd": [
+            "python",
+            "{pkg}/main.py"
+          ]
+        }
+      }
+    }
+  },
+  "devDependencies": {
+    "@platforma-open/milaboratories.runenv-r": "catalog:",
+    "@platforma-open/milaboratories.runenv-python-3": "catalog:",
+    "@platforma-sdk/package-builder": "catalog:"
+  }
+}
+
