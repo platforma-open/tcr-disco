@@ -1,0 +1,46 @@
+self := import("@platforma-sdk/workflow-tengo:tpl")
+exec := import("@platforma-sdk/workflow-tengo:exec")
+assets := import("@platforma-sdk/workflow-tengo:assets")
+
+tcrdisco := assets.importSoftware("@platforma-open/milaboratories.run-tcrdisco-enrichment.software:tcr-disco")
+test := assets.importSoftware("@platforma-open/milaboratories.run-tcrdisco-enrichment.software:test")
+
+self.validateInputs({
+    "__options__,closed": "",
+	"mainAlphaTsv": "any",
+	"mainBetaTsv": "any",
+	"mainMetadataTsv": "any",
+	"cdAlphaTsv,?": "any",
+	"cdBetaTsv,?": "any",
+	"cdMetadataTsv,?": "any"
+})
+
+self.defineOutputs("resultsFile")
+
+self.body(func(inputs) {
+	
+	builder := exec.builder().
+		software(test).
+		addFile("mainAlphaTsv.tsv", inputs.mainAlphaTsv).
+		addFile("mainBetaTsv.tsv", inputs.mainBetaTsv).
+		addFile("mainMetadataTsv.tsv", inputs.mainMetadataTsv)
+	
+	if !is_undefined(inputs.cdAlphaTsv) {
+		builder = builder.addFile("cdAlphaTsv.tsv", inputs.cdAlphaTsv)
+	}
+	
+	if !is_undefined(inputs.cdBetaTsv) {
+		builder = builder.addFile("cdBetaTsv.tsv", inputs.cdBetaTsv)
+	}
+	
+	tcrdiscoResult := builder.
+		arg("-i").arg("mainAlphaTsv.tsv").
+		arg("-o").arg("results.tsv").
+		saveFile("results.tsv").
+		run()
+	
+	return {
+		resultsFile: tcrdiscoResult.getFile("results.tsv")
+	}
+})
+
