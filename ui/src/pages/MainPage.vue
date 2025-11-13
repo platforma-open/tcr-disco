@@ -5,12 +5,13 @@ import {
   PlAgDataTableV2,
   PlBlockPage,
   PlBtnGhost,
+  PlDropdown,
   PlDropdownRef,
   PlMaskIcon24,
   PlSlideModal,
   usePlDataTableSettingsV2,
 } from '@platforma-sdk/ui-vue';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useApp } from '../app';
 
 const app = useApp();
@@ -34,6 +35,13 @@ function setInput(inputRef?: PlRef) {
       app.model.ui.title = 'TCR Disco Enrichment - ' + mainLabel;
   }
 }
+
+const metadataOptions = computed(() => {
+  return app.model.outputs.metadataOptions?.map((v: { ref: PlRef; label: string }) => ({
+    value: v.label,
+    label: v.label,
+  })) ?? [];
+});
 
 </script>
 
@@ -71,6 +79,14 @@ function setInput(inputRef?: PlRef) {
       v-model="app.model.args.cdRef"
       :options="app.model.outputs.inputOptions"
       label="Select CD4/8 dataset (optional)"
+      clearable
+    />
+
+    <PlDropdown
+      v-if="app.model.args.cdRef"
+      v-model="app.model.args.cdSubsetCol"
+      :options="metadataOptions"
+      label="Metadata column with CD4/8 information"
       clearable
     />
   </PlSlideModal>

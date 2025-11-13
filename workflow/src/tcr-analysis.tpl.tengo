@@ -9,10 +9,11 @@ self.validateInputs({
     "__options__,closed": "",
 	"mainAlphaTsv": "any",
 	"mainBetaTsv": "any",
-	"mainMetadataTsv": "any",
+	"metadataTsv": "any",
 	"cdAlphaTsv,?": "any",
 	"cdBetaTsv,?": "any",
-	"cdMetadataTsv,?": "any"
+	"cdMetadataTsv,?": "any",
+	"cdSubsetCol,?": "string"
 })
 
 self.defineOutputs("resultsFile")
@@ -21,20 +22,20 @@ self.body(func(inputs) {
 	
 	builder := exec.builder().
 		software(test).
-		addFile("mainAlphaTsv.tsv", inputs.mainAlphaTsv).
-		addFile("mainBetaTsv.tsv", inputs.mainBetaTsv).
-		addFile("mainMetadataTsv.tsv", inputs.mainMetadataTsv)
+		addFile("mainAlpha.tsv", inputs.mainAlphaTsv).
+		addFile("mainBeta.tsv", inputs.mainBetaTsv).
+		addFile("metadata.tsv", inputs.metadataTsv)
 	
 	if !is_undefined(inputs.cdAlphaTsv) {
-		builder = builder.addFile("cdAlphaTsv.tsv", inputs.cdAlphaTsv)
+		builder = builder.addFile("cdAlpha.tsv", inputs.cdAlphaTsv)
 	}
 	
 	if !is_undefined(inputs.cdBetaTsv) {
-		builder = builder.addFile("cdBetaTsv.tsv", inputs.cdBetaTsv)
+		builder = builder.addFile("cdBeta.tsv", inputs.cdBetaTsv)
 	}
 	
 	tcrdiscoResult := builder.
-		arg("-i").arg("mainAlphaTsv.tsv").
+		arg("-i").arg("mainAlpha.tsv").
 		arg("-o").arg("results.tsv").
 		saveFile("results.tsv").
 		run()
