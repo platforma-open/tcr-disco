@@ -9,6 +9,7 @@ import {
   createPlDataTableStateV2,
   createPlDataTableV2,
   getUniquePartitionKeys,
+  isPColumnSpec,
 } from '@platforma-sdk/model';
 
 export type UiState = {
@@ -20,6 +21,7 @@ export type BlockArgs = {
   name?: string;
   mainRef?: PlRef;
   cdRef?: PlRef;
+  cdSubsetCol?: string;
 };
 
 export const model = BlockModel.create()
@@ -54,6 +56,10 @@ export const model = BlockModel.create()
     ], { label: { includeNativeLabel: true, addLabelAsSuffix: true },
       refsWithEnrichments: false });
   })
+
+  .output('metadataOptions', (ctx) =>
+    ctx.resultPool.getOptions((spec) => isPColumnSpec(spec) && spec.name === 'pl7.app/metadata'),
+  )
 
   .output('pt', (ctx) => {
     const pCols = ctx.outputs?.resolve('resultsPf')?.getPColumns();

@@ -16,20 +16,25 @@ wf.prepare(func(args) {
 	// Load mainRef and its associated sequences
 	bundleBuilder.addAnchor("mainAlpha", args.mainRef)
 	bundleBuilder.addSingle({
+		annotations: {
+			"pl7.app/isAbundance": "true",
+			"pl7.app/abundance/normalized": "true",
+			"pl7.app/abundance/isPrimary": "true"
+		},
+		axes: [{anchor: "mainAlpha", idx: 0},
+				{anchor: "mainAlpha", idx: 1}]
+	}, "mainAlphaFraction");
+	bundleBuilder.addMulti({
 		name: "pl7.app/vdj/sequence",
 		domain: {
-			"pl7.app/alphabet": "aminoacid",
 			"pl7.app/vdj/feature": "CDR3"
 		},
 		axes: [{anchor: "mainAlpha", idx: 1}]
-	}, "mainCdr3");
-	bundleBuilder.addSingle({
+	}, "mainCdr3s");
+	bundleBuilder.addMulti({
 		name: "pl7.app/vdj/geneHit",
-		domain: {
-			"pl7.app/vdj/reference": "VGene"
-		},
 		axes: [{anchor: "mainAlpha", idx: 1}]
-	}, "mainVGene");
+	}, "mainVDJGenes");
 
 	// Load other chain counts
 	// @TODO: Once override option is available in axis update code to load TCRBeta chains, we can remove this part only
@@ -41,34 +46,47 @@ wf.prepare(func(args) {
 		},
 		axes: [{anchor: "mainAlpha", idx: 0}],
 		partialAxesMatch: true
-	}, "mainCounts")
+	}, "mainCounts");
+	bundleBuilder.addMulti({
+		annotations: {
+			"pl7.app/isAbundance": "true",
+			"pl7.app/abundance/normalized": "true",
+			"pl7.app/abundance/isPrimary": "true"
+		},
+		axes: [{anchor: "mainAlpha", idx: 0}]
+	}, "mainFractions");
 
 	// Load all sequence and CDR3 columns
 	bundleBuilder.addMulti({
 		name: "pl7.app/vdj/sequence",
 		domain: {
-			"pl7.app/alphabet": "aminoacid",
 			"pl7.app/vdj/feature": "CDR3"
 		}
 	}, "otherCdr3s");
 	bundleBuilder.addMulti({
-		name: "pl7.app/vdj/geneHit",
-		domain: {
-			"pl7.app/vdj/reference": "VGene"
-		}
-	}, "otherVGenes");
+		name: "pl7.app/vdj/geneHit"
+	}, "otherVDJGenes");
 
-	// Load main metadata
+	// Load all metadata columns
 	bundleBuilder.addMulti({
 		name: "pl7.app/metadata",
 		axes: [{anchor: "mainAlpha", idx: 0}]
-	}, "mainMetadata")
+	}, "allMetadata");
 	
 
 	// If cdRef is provided, load it and its metadata
 	if args.cdRef != undefined {
 		// Get the CD4/8 dataset and its associated sequences
 		bundleBuilder.addAnchor("cdAlpha", args.cdRef)
+		bundleBuilder.addSingle({
+			axes: [{anchor: "cdAlpha", idx: 0},
+				{anchor: "cdAlpha", idx: 1}],
+			annotations: {
+				"pl7.app/isAbundance": "true",
+				"pl7.app/abundance/normalized": "true",
+				"pl7.app/abundance/isPrimary": "true"
+			}
+		}, "cdAlphaFraction");
 		bundleBuilder.addSingle({
 			name: "pl7.app/vdj/sequence",
 			domain: {
@@ -84,17 +102,6 @@ wf.prepare(func(args) {
 			},
 			axes: [{anchor: "cdAlpha", idx: 1}]
 		}, "cdVGene");
-
-		// Load other chain counts and relevant info
-		bundleBuilder.addMulti({
-			annotations: {
-				"pl7.app/isAbundance": "true",
-				"pl7.app/abundance/normalized": "false",
-				"pl7.app/abundance/isPrimary": "true"
-			},
-			axes: [{anchor: "cdAlpha", idx: 0}],
-			partialAxesMatch: true
-		}, "cdCounts")
 	}
 	
 	return {
@@ -104,6 +111,7 @@ wf.prepare(func(args) {
 
 wf.body(func(args) {
 	columns := args.columns
+	cdSubsetCol := args.cdSubsetCol
 	
 	//////////////// Load input data ////////////////
 	// Get the main dataset
@@ -114,11 +122,24 @@ wf.body(func(args) {
 	
 	// Build TSV file for main dataset (Alpha)
 	mainAlphaTable := pframes.tsvFileBuilder()
-	mainAlphaTable.setAxisHeader("pl7.app/sampleId", "sampleId")
+	mainAlphaTable.setAxisHeader("pl7.app/sampleId", "internalSampleId")
 	mainAlphaTable.setAxisHeader("pl7.app/vdj/clonotypeKey", "clonotypeKey")
 	mainAlphaTable.add(mainAlpha, {header: "count"})
-	mainAlphaTable.add(columns.getColumn("mainCdr3"), {header: "CDR3"})
-	mainAlphaTable.add(columns.getColumn("mainVGene"), {header: "VGene"})
+	mainAlphaTable.add(columns.getColumn("mainAlphaFraction"), {header: "fraction"})
+	for cdr3Col in columns.getColumns("mainCdr3s") {
+		if cdr3Col.spec.domain["pl7.app/alphabet"] == "aminoacid" {
+			mainAlphaTable.add(cdr3Col, {header: "CDR3aa"})
+		} else if cdr3Col.spec.domain["pl7.app/alphabet"] == "nucleotide" {
+			mainAlphaTable.add(cdr3Col, {header: "CDR3nt"})
+		}
+	}
+	for geneCol in columns.getColumns("mainVDJGenes") {
+		if geneCol.spec.domain["pl7.app/vdj/reference"] == "VGene" {
+			mainAlphaTable.add(geneCol, {header: "VGene"})
+		} else if geneCol.spec.domain["pl7.app/vdj/reference"] == "JGene" {
+			mainAlphaTable.add(geneCol, {header: "JGene"})
+		}
+	}
 	mainAlphaTable.mem("16GiB")
 	mainAlphaTable.cpu(1)
 	mainAlphaTsv := mainAlphaTable.build()
@@ -126,7 +147,7 @@ wf.body(func(args) {
 	// Build TSV file for main dataset (Beta)
 	// Load beta chain using subtemplate
 	mainBetaTable := pframes.tsvFileBuilder()
-	mainBetaTable.setAxisHeader("pl7.app/sampleId", "sampleId")
+	mainBetaTable.setAxisHeader("pl7.app/sampleId", "internalSampleId")
 	mainBetaTable.setAxisHeader("pl7.app/vdj/clonotypeKey", "clonotypeKey")
 	prefix := "mainCounts"
 	mainCountCols := columns.getColumns(prefix)
@@ -137,18 +158,33 @@ wf.body(func(args) {
 			mainBetaTable.add(countCol, {header: "count"})
 		}
 	}
+	for fractionCol in columns.getColumns("mainFractions") {
+		colChain := fractionCol.spec.axesSpec[1].domain["pl7.app/vdj/chain"]
+		colBlockId := fractionCol.spec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
+		if colChain == "TCRBeta" && colBlockId == countsBlockId {
+			mainBetaTable.add(fractionCol, {header: "fraction"})
+		}
+	}
 	for cdr3Col in columns.getColumns("otherCdr3s") {
 		colChain := cdr3Col.spec.axesSpec[0].domain["pl7.app/vdj/chain"]
 		colBlockId := cdr3Col.spec.axesSpec[0].domain["pl7.app/vdj/clonotypingRunId"]
 		if colChain == "TCRBeta" && colBlockId == countsBlockId {
-			mainBetaTable.add(cdr3Col, {header: "CDR3"})
+			if cdr3Col.spec.domain["pl7.app/alphabet"] == "aminoacid" {
+				mainBetaTable.add(cdr3Col, {header: "CDR3aa"})
+			} else if cdr3Col.spec.domain["pl7.app/alphabet"] == "nucleotide" {
+				mainBetaTable.add(cdr3Col, {header: "CDR3nt"})
+			}
 		}
 	}
-	for vGeneCol in columns.getColumns("otherVGenes") {
+	for vGeneCol in columns.getColumns("otherVDJGenes") {
 		colChain := vGeneCol.spec.axesSpec[0].domain["pl7.app/vdj/chain"]
 		colBlockId := vGeneCol.spec.axesSpec[0].domain["pl7.app/vdj/clonotypingRunId"]
 		if colChain == "TCRBeta" && colBlockId == countsBlockId {
-			mainBetaTable.add(vGeneCol, {header: "VGene"})
+			if vGeneCol.spec.domain["pl7.app/vdj/reference"] == "VGene" {
+				mainBetaTable.add(vGeneCol, {header: "VGene"})
+			} else if vGeneCol.spec.domain["pl7.app/vdj/reference"] == "JGene" {
+				mainBetaTable.add(vGeneCol, {header: "JGene"})
+			}
 		}
 	}
 	mainBetaTable.mem("16GiB")
@@ -156,15 +192,14 @@ wf.body(func(args) {
 	mainBetaTsv := mainBetaTable.build()
 
 	// Load main metadata
-	mainMetadataTable := pframes.tsvFileBuilder()
-	mainMetadataTable.setAxisHeader("pl7.app/sampleId", "sampleId")
-	mainMetadata := columns.getColumns("mainMetadata")
-	for metadataCol in mainMetadata {
-		mainMetadataTable.add(metadataCol, {header: metadataCol.spec.annotations["pl7.app/label"]})
+	metadataTable := pframes.tsvFileBuilder()
+	metadataTable.setAxisHeader("pl7.app/sampleId", "internalSampleId")
+	for metadataCol in columns.getColumns("allMetadata") {
+		metadataTable.add(metadataCol, {header: metadataCol.spec.annotations["pl7.app/label"]})
 	}
-	mainMetadataTable.mem("16GiB")
-	mainMetadataTable.cpu(1)
-	mainMetadataTsv := mainMetadataTable.build()
+	metadataTable.mem("16GiB")
+	metadataTable.cpu(1)
+	metadataTsv := metadataTable.build()
 	
 	// Get CD info and its beta alternative (if available)
 	cdAlphaTsv := undefined
@@ -177,10 +212,11 @@ wf.body(func(args) {
 		
 		// Build TSV file for CD dataset (Alpha)
 		cdAlphaTable := pframes.tsvFileBuilder()
-		cdAlphaTable.setAxisHeader("pl7.app/sampleId", "sampleId")
+		cdAlphaTable.setAxisHeader("pl7.app/sampleId", "internalSampleId")
 		cdAlphaTable.setAxisHeader("pl7.app/vdj/clonotypeKey", "clonotypeKey")
 		cdAlphaTable.add(cdAlpha, {header: "count"})
-		cdAlphaTable.add(columns.getColumn("cdCdr3"), {header: "CDR3"})
+		cdAlphaTable.add(columns.getColumn("cdAlphaFraction"), {header: "fraction"})
+		cdAlphaTable.add(columns.getColumn("cdCdr3"), {header: "CDR3aa"})
 		cdAlphaTable.add(columns.getColumn("cdVGene"), {header: "VGene"})
 		cdAlphaTable.mem("16GiB")
 		cdAlphaTable.cpu(1)
@@ -188,29 +224,38 @@ wf.body(func(args) {
 		
 		// Build TSV file for CD dataset (Beta)
 		cdBetaTable := pframes.tsvFileBuilder()
-		cdBetaTable.setAxisHeader("pl7.app/sampleId", "sampleId")
+		cdBetaTable.setAxisHeader("pl7.app/sampleId", "internalSampleId")
 		cdBetaTable.setAxisHeader("pl7.app/vdj/clonotypeKey", "clonotypeKey")
-		prefix = "cdCounts"
-		cdCountCols := columns.getColumns(prefix)
-		for countCol in cdCountCols {
+		for countCol in columns.getColumns("mainCounts") {
 			colChain := countCol.spec.axesSpec[1].domain["pl7.app/vdj/chain"]
 			colBlockId := countCol.spec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
 			if colChain == "TCRBeta" && colBlockId == cdCountsBlockId {
 				cdBetaTable.add(countCol, {header: "count"})
 			}
 		}
+		for fractionCol in columns.getColumns("mainFractions") {
+			colChain := fractionCol.spec.axesSpec[1].domain["pl7.app/vdj/chain"]
+			colBlockId := fractionCol.spec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
+			if colChain == "TCRBeta" && colBlockId == cdCountsBlockId {
+				cdBetaTable.add(fractionCol, {header: "fraction"})
+			}
+		}
 		for cdr3Col in columns.getColumns("otherCdr3s") {
 			colChain := cdr3Col.spec.axesSpec[0].domain["pl7.app/vdj/chain"]
 			colBlockId := cdr3Col.spec.axesSpec[0].domain["pl7.app/vdj/clonotypingRunId"]
 			if colChain == "TCRBeta" && colBlockId == cdCountsBlockId {
-				cdBetaTable.add(cdr3Col, {header: "CDR3"})
+				if cdr3Col.spec.domain["pl7.app/alphabet"] == "aminoacid" {
+					cdBetaTable.add(cdr3Col, {header: "CDR3aa"})
+				} 
 			}
 		}
-		for vGeneCol in columns.getColumns("otherVGenes") {
+		for vGeneCol in columns.getColumns("otherVDJGenes") {
 			colChain := vGeneCol.spec.axesSpec[0].domain["pl7.app/vdj/chain"]
 			colBlockId := vGeneCol.spec.axesSpec[0].domain["pl7.app/vdj/clonotypingRunId"]
 			if colChain == "TCRBeta" && colBlockId == cdCountsBlockId {
+				if vGeneCol.spec.domain["pl7.app/vdj/reference"] == "VGene" {
 				cdBetaTable.add(vGeneCol, {header: "VGene"})
+				}
 			}
 		}
 		cdBetaTable.mem("16GiB")
@@ -222,10 +267,10 @@ wf.body(func(args) {
 	tcrAnalysis := render.create(tcrAnalysisTpl, {
 		mainAlphaTsv: mainAlphaTsv,
 		mainBetaTsv: mainBetaTsv,
-		mainMetadataTsv: mainMetadataTsv,
+		metadataTsv: metadataTsv,
 		cdAlphaTsv: cdAlphaTsv,
 		cdBetaTsv: cdBetaTsv,
-		metrics: args.metrics
+		cdSubsetCol: cdSubsetCol
 	})
 	
 	tcrAnalysisResult := tcrAnalysis.output("resultsFile")
