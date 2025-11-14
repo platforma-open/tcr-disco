@@ -1,17 +1,22 @@
 <script setup lang="ts">
 import type { PlRef } from '@platforma-sdk/model';
-import { plRefsEqual } from '@platforma-sdk/model';
+import { PFrameImpl, plRefsEqual } from '@platforma-sdk/model';
 import {
+  PlAccordionSection,
   PlAgDataTableV2,
   PlBlockPage,
   PlBtnGhost,
   PlDropdown,
+  PlDropdownMulti,
   PlDropdownRef,
   PlMaskIcon24,
+  PlNumberField,
+  PlRow,
   PlSlideModal,
   usePlDataTableSettingsV2,
+  useWatchFetch,
 } from '@platforma-sdk/ui-vue';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useApp } from '../app';
 
 const app = useApp();
@@ -38,9 +43,55 @@ function setInput(inputRef?: PlRef) {
 
 const metadataOptions = computed(() => {
   return app.model.outputs.metadataOptions?.map((v: { ref: PlRef; label: string }) => ({
+    value: v.ref,
+    label: v.label,
+  })) ?? [];
+});
+
+const metadataLabelOptions = computed(() => {
+  return app.model.outputs.metadataOptions?.map((v: { ref: PlRef; label: string }) => ({
     value: v.label,
     label: v.label,
   })) ?? [];
+});
+
+const contrastFactorOptions = computed(() => {
+  return app.model.args.covariateRefs.map((ref) => ({
+    value: ref,
+    label: metadataOptions.value.find((m) => m.value.name === ref.name)?.label ?? '',
+  }));
+});
+
+// Get all possible numerator/denominator values
+const numeratorOptions = useWatchFetch(() => app.model.outputs.denominatorOptions, async (pframeHandle) => {
+  if (!pframeHandle) {
+    return undefined;
+  }
+  // Get ID of first pcolumn in the pframe (the only one we will access)
+  const pFrame = new PFrameImpl(pframeHandle);
+  const list = await pFrame.listColumns();
+  const id = list?.[0].columnId;
+  if (!id) {
+    return undefined;
+  }
+  // Get unique values of that first pcolumn
+  const response = await pFrame.getUniqueValues({ columnId: id, filters: [], limit: 1000000 });
+  if (!response) {
+    return undefined;
+  }
+  return [...response.values.data].map((v) => ({ value: String(v), label: String(v) }));
+});
+
+// Only options not selected as numerators[] are accepted as denominator
+const denominatorOptions = computed(() => {
+  return numeratorOptions.value?.filter((op) =>
+    !app.model.args.numerators.includes(op.value));
+});
+
+// Make sure numerator and denominator are reset when contrast factor is changed
+watch(() => [app.model.args.contrastFactor], (_) => {
+  app.model.args.numerators = [];
+  app.model.args.denominator = undefined;
 });
 
 </script>
@@ -75,19 +126,65 @@ const metadataOptions = computed(() => {
       @update:model-value="setInput"
     />
 
-    <PlDropdownRef
-      v-model="app.model.args.cdRef"
-      :options="app.model.outputs.inputOptions"
-      label="Select CD4/8 dataset (optional)"
-      clearable
+    <PlDropdownMulti
+      v-model="app.model.args.covariateRefs"
+      :options="metadataOptions"
+      label="Design"
+      required
+    />
+    <PlDropdown
+      v-model="app.model.args.contrastFactor"
+      :options="contrastFactorOptions"
+      label="Contrast factor"
+      required
+    />
+    <PlDropdownMulti v-model="app.model.args.numerators" :options="numeratorOptions.value" label="Numerator" >
+      <template #tooltip>
+        Calculate a contrast per each one of the selected Numerators versus the selected control/baseline
+      </template>
+    </PlDropdownMulti>
+    <PlDropdown
+      v-model="app.model.args.denominator"
+      :options="denominatorOptions"
+      label="Denominator"
+      required
     />
 
-    <PlDropdown
-      v-if="app.model.args.cdRef"
-      v-model="app.model.args.cdSubsetCol"
-      :options="metadataOptions"
-      label="Metadata column with CD4/8 information"
-      clearable
-    />
+    <!-- Content hidden until you click -->
+    <PlAccordionSection label="CD4/8 subset assignment">
+      <PlDropdownRef
+        v-model="app.model.args.cdRef"
+        :options="app.model.outputs.inputOptions"
+        label="Select CD4/8 dataset (optional)"
+        clearable
+      />
+
+      <PlDropdown
+        v-if="app.model.args.cdRef"
+        v-model="app.model.args.cdSubsetCol"
+        :options="metadataLabelOptions"
+        label="Metadata column with CD4/8 information"
+        clearable
+      />
+    </PlAccordionSection>
+    <!-- Content hidden until you click THRESHOLD PARAMETERS -->
+    <PlAccordionSection label="THRESHOLD PARAMETERS">
+      <PlRow>
+        <PlNumberField
+          v-model="app.model.args.thresholdCounts"
+          label="Minimum counts"
+          :minValue="0"
+          :step="1"
+          placeholder="0"
+        />
+        <PlNumberField
+          v-model="app.model.args.thresholdSamples"
+          label="Minimum samples"
+          :minValue="0"
+          :step="1"
+          placeholder="0"
+        />
+      </PlRow>
+    </PlAccordionSection>
   </PlSlideModal>
 </template>

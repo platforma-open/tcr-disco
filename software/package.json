@@ -12,6 +12,30 @@
   },
   "block-software": {
     "entrypoints": {
+      "subset-assignment": {
+        "binary": {
+          "artifact": {
+            "type": "R",
+            "registry": "platforma-open",
+            "environment": "@platforma-open/milaboratories.runenv-r-differential-expression:main",
+            "root": "./src/tcr-disco"
+          },
+          "cmd": [
+            "Rscript",
+            "{pkg}/subset-assignment.R"
+          ]
+        },
+        "docker": {
+          "artifact": {
+            "type": "docker",
+            "context": "./src/tcr-disco",
+            "dockerfile": "Dockerfile"
+          },
+          "cmd": [
+            "/app/main.R"
+          ]
+        }
+      },
       "tcr-disco": {
         "binary": {
           "artifact": {
@@ -58,6 +82,7 @@
   },
   "devDependencies": {
     "@platforma-open/milaboratories.runenv-r": "catalog:",
+    "@platforma-open/milaboratories.runenv-r-differential-expression": "catalog:",
     "@platforma-open/milaboratories.runenv-python-3": "catalog:",
     "@platforma-sdk/package-builder": "catalog:"
   }

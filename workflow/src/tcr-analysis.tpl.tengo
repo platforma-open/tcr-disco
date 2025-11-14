@@ -1,47 +1,166 @@
 self := import("@platforma-sdk/workflow-tengo:tpl")
 exec := import("@platforma-sdk/workflow-tengo:exec")
 assets := import("@platforma-sdk/workflow-tengo:assets")
+pt := import("@platforma-sdk/workflow-tengo:pt")
 
-tcrdisco := assets.importSoftware("@platforma-open/milaboratories.run-tcrdisco-enrichment.software:tcr-disco")
+subsetAssignment := assets.importSoftware("@platforma-open/milaboratories.run-tcrdisco-enrichment.software:subset-assignment")
+diffSoftware := assets.importSoftware("@platforma-open/milaboratories.run-tcrdisco-enrichment.software:tcr-disco")
 test := assets.importSoftware("@platforma-open/milaboratories.run-tcrdisco-enrichment.software:test")
 
 self.validateInputs({
     "__options__,closed": "",
+	"numerators": "any",
+	"denominator": "string",
 	"mainAlphaTsv": "any",
 	"mainBetaTsv": "any",
 	"metadataTsv": "any",
 	"cdAlphaTsv,?": "any",
 	"cdBetaTsv,?": "any",
 	"cdMetadataTsv,?": "any",
-	"cdSubsetCol,?": "string"
+	"cdSubsetCol,?": "string",
+	"covariatesTsv": "any",
+	"contrastColLabel": "string",
+	"thresholdCounts": "number",
+	"thresholdSamples": "number"
 })
 
-self.defineOutputs("resultsFile")
+self.defineOutputs("degPF", "topDegPF", "regDirPF")
 
 self.body(func(inputs) {
-	
-	builder := exec.builder().
-		software(test).
-		addFile("mainAlpha.tsv", inputs.mainAlphaTsv).
-		addFile("mainBeta.tsv", inputs.mainBetaTsv).
-		addFile("metadata.tsv", inputs.metadataTsv)
-	
-	if !is_undefined(inputs.cdAlphaTsv) {
-		builder = builder.addFile("cdAlpha.tsv", inputs.cdAlphaTsv)
+
+	denominator := inputs.denominator
+	covariatesTsv := inputs.covariatesTsv
+	contrastColLabel := inputs.contrastColLabel
+	thresholdCounts := inputs.thresholdCounts
+	thresholdSamples := inputs.thresholdSamples
+
+	mainAlphaTsv := undefined
+	mainBetaTsv := undefined
+	// Assiggn CD4/CD8 subsets to main data
+	if !is_undefined(inputs.cdAlphaTsv) && !is_undefined(inputs.cdBetaTsv) {
+		builder := exec.builder().
+			software(subsetAssignment).
+			addFile("mainAlpha.tsv", inputs.mainAlphaTsv).
+			addFile("mainBeta.tsv", inputs.mainBetaTsv).
+			addFile("metadata.tsv", inputs.metadataTsv).
+			addFile("cdAlpha.tsv", inputs.cdAlphaTsv).
+			addFile("cdBeta.tsv", inputs.cdBetaTsv).
+			addFile("covariates.tsv", covariatesTsv).
+			arg("--main_alpha").arg("mainAlpha.tsv").
+			arg("--main_beta").arg("mainBeta.tsv").
+			arg("--metadata").arg("metadata.tsv").
+			arg("--cd_alpha").arg("cdAlpha.tsv").
+			arg("--cd_beta").arg("cdBeta.tsv").
+			arg("--cd_subset_col").arg(inputs.cdSubsetCol).
+			arg("-o").arg(".").
+			saveFile("main_alpha_table.tsv").
+			saveFile("main_beta_table.tsv").
+			run()
+		mainAlphaTsv = builder.getFile("main_alpha_table.tsv")
+		mainBetaTsv = builder.getFile("main_beta_table.tsv")
+	} else {
+		mainAlphaTsv = inputs.mainAlphaTsv
+		mainBetaTsv = inputs.mainBetaTsv
+	}
+
+	// run differential analysis per numerator
+	dfsDeg := []
+	dfsTopTable := []
+	for numerator in inputs.numerators {
+		numerator = string(numerator)
+		diffExec := exec.builder().
+			software(diffSoftware).
+			addFile("mainAlpha.tsv", mainAlphaTsv).
+			addFile("mainBeta.tsv", mainBetaTsv).
+			addFile("covariates.tsv", covariatesTsv).
+			arg("--main_alpha").arg("mainAlpha.tsv").
+			arg("--main_beta").arg("mainBeta.tsv").
+			arg("--covariates").arg("covariates.tsv").
+			arg("-t").arg(contrastColLabel).
+			arg("-n").arg(numerator).
+			arg("-d").arg(denominator).	
+			arg("-o").arg(".").
+			saveFile("DEG.csv").
+			saveFile("topTable.csv").
+			run()
+
+		dfsDeg += [wf.frame(diffExec.getFile("DEG.csv"), {xsvType: "csv", inferSchema: false})]
+		dfsTopTable += [wf.frame(diffExec.getFile("topTable.csv"), {xsvType: "csv", inferSchema: false})]
+	}
+	// Concatenate all DEG and topTable files
+	concatenatedDeg := pt.concat(dfsDeg)
+	concatenatedDeg.save("concatenated_output_Deg.csv")
+	concatenatedTopTable := pt.concat(dfsTopTable)
+	concatenatedTopTable.save("concatenated_output_topTable.csv")
+	ptablerResult := wf.run()
+
+	topTableImportParams := topTablePfconvParamsLib.getColumns(copy(countsSpec), inputType,
+															log2FcThreshold,
+															pAdjThreshold)
+	topTablePf := xsv.importFile(ptablerResult.getFile("concatenated_output_topTable.csv"), "csv", topTableImportParams, 
+														// This changes output format from default to per column
+														// So key will be column name and values spec and data
+														{splitDataAndSpec: true, mem: defaultConvMem, cpu: defaultConvCpu})
+
+	// Add DEG export with specific import params. Adding new csv output to script with only DEGs and logFC
+	degImportParams = generalDaPfconvLib.getColumns(countsSpec, blockId, species, inputType)
+	DegPf := xsv.importFile(ptablerResult.getFile("concatenated_output_Deg.csv"), "csv", degImportParams, {mem: defaultConvMem, cpu: defaultConvCpu})
+
+	// Create contrast label Pcolumn
+	contrastExport := {
+		spec: {
+			kind: "PColumn",
+			name: "pl7.app/label",
+			valueType: "String",
+			annotations: {
+				"pl7.app/label": "Contrast",
+				"pl7.app/isLabel": "true"
+			},
+			axesSpec: [{
+					name: "pl7.app/" + field + "/contrastGroup",
+					type: "String",
+					domain: {
+						"pl7.app/blockId": blockId
+					},
+					annotations: {
+						"pl7.app/label": "Contrast"
+					}
+			}]
+		},
+		data: createJsonPColumnData(json.encode(mapToPValueData(contrastMap)))
 	}
 	
-	if !is_undefined(inputs.cdBetaTsv) {
-		builder = builder.addFile("cdBeta.tsv", inputs.cdBetaTsv)
+	for columnName, value in topTablePf { 
+		columnData := value.data
+		topDegPframeBuilder.add(
+			columnName,
+			trace.inject(value.spec),
+			columnData
+		)
 	}
-	
-	tcrdiscoResult := builder.
-		arg("-i").arg("mainAlpha.tsv").
-		arg("-o").arg("results.tsv").
-		saveFile("results.tsv").
-		run()
+
+	degPframeBuilder.add(
+		"Log2FC",
+		trace.inject(DegPf["log2foldchange.spec"]),
+		DegPf["log2foldchange.data"]
+	)
+
+	regDirPframeBuilder.add(
+		"Regulation Direction",
+		trace.inject(DegPf["regulationDirection.spec"]),
+		DegPf["regulationDirection.data"]
+	)
+
+	// Build the final PFrames
+	degPF = degPframeBuilder.build()
+	topDegPF = topDegPframeBuilder.build()
+	regDirPF = regDirPframeBuilder.build()
 	
 	return {
-		resultsFile: tcrdiscoResult.getFile("results.tsv")
+		degPF: degPF,
+		regDirPF: regDirPF,
+		topDegPF: pframes.exportFrame(topDegPF),
+		contrastExport: contrastExport
 	}
 })
 
