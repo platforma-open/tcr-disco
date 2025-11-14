@@ -3,10 +3,9 @@ assets := import("@platforma-sdk/workflow-tengo:assets")
 pframes := import("@platforma-sdk/workflow-tengo:pframes")
 render := import("@platforma-sdk/workflow-tengo:render")
 strings := import("@platforma-sdk/workflow-tengo:strings")
-json := import("json")
-
+xsv := import("@platforma-sdk/workflow-tengo:pframes.xsv")
 ll := import("@platforma-sdk/workflow-tengo:ll")
-maps := import("@platforma-sdk/workflow-tengo:maps")
+json := import("json")
 
 tcrAnalysisTpl := assets.importTemplate(":tcr-analysis")
 
@@ -103,16 +102,45 @@ wf.prepare(func(args) {
 			axes: [{anchor: "cdAlpha", idx: 1}]
 		}, "cdVGene");
 	}
+
+	metaRefs := {}
+	i := 0
+	for metaRef in args.covariateRefs {
+		metaRefs["metaRef" + i ] = wf.resolve(metaRef, { errIfMissing: true })
+		i = i + 1
+	}
 	
 	return {
-		columns: bundleBuilder.build()
+		columns: bundleBuilder.build(),
+		resolvedContrastFactor: wf.resolve(args.contrastFactor),
+		metaRefs: metaRefs
 	}
 })
 
 wf.body(func(args) {
 	columns := args.columns
 	cdSubsetCol := args.cdSubsetCol
-	
+	thresholdCounts := args.thresholdCounts
+	if thresholdCounts == undefined {
+		thresholdCounts = 0
+	}
+	thresholdSamples := args.thresholdSamples
+	if thresholdSamples == undefined {
+		thresholdSamples = 0
+	}
+	contrastColLabel := args.resolvedContrastFactor.spec.annotations["pl7.app/label"]
+
+	// Set default conversion memory and CPU
+	defaultConvMem := "16GiB"
+	defaultConvCpu := 1
+
+	covariates := []
+	for _, v in args.metaRefs {
+		covariates = append(covariates, v)
+	}
+	// convert PColumns to csv
+	covariatesTsv := xsv.exportFrame(covariates, "tsv", {mem: defaultConvMem, cpu: defaultConvCpu})
+
 	//////////////// Load input data ////////////////
 	// Get the main dataset
 	mainAlpha := columns.getColumn(args.mainRef)
@@ -140,8 +168,8 @@ wf.body(func(args) {
 			mainAlphaTable.add(geneCol, {header: "JGene"})
 		}
 	}
-	mainAlphaTable.mem("16GiB")
-	mainAlphaTable.cpu(1)
+	mainAlphaTable.mem(defaultConvMem)
+	mainAlphaTable.cpu(defaultConvCpu)
 	mainAlphaTsv := mainAlphaTable.build()
 	
 	// Build TSV file for main dataset (Beta)
@@ -187,8 +215,8 @@ wf.body(func(args) {
 			}
 		}
 	}
-	mainBetaTable.mem("16GiB")
-	mainBetaTable.cpu(1)
+	mainBetaTable.mem(defaultConvMem)
+	mainBetaTable.cpu(defaultConvCpu)
 	mainBetaTsv := mainBetaTable.build()
 
 	// Load main metadata
@@ -197,8 +225,8 @@ wf.body(func(args) {
 	for metadataCol in columns.getColumns("allMetadata") {
 		metadataTable.add(metadataCol, {header: metadataCol.spec.annotations["pl7.app/label"]})
 	}
-	metadataTable.mem("16GiB")
-	metadataTable.cpu(1)
+	metadataTable.mem(defaultConvMem)
+	metadataTable.cpu(defaultConvCpu)
 	metadataTsv := metadataTable.build()
 	
 	// Get CD info and its beta alternative (if available)
@@ -218,8 +246,8 @@ wf.body(func(args) {
 		cdAlphaTable.add(columns.getColumn("cdAlphaFraction"), {header: "fraction"})
 		cdAlphaTable.add(columns.getColumn("cdCdr3"), {header: "CDR3aa"})
 		cdAlphaTable.add(columns.getColumn("cdVGene"), {header: "VGene"})
-		cdAlphaTable.mem("16GiB")
-		cdAlphaTable.cpu(1)
+		cdAlphaTable.mem(defaultConvMem)
+		cdAlphaTable.cpu(defaultConvCpu)
 		cdAlphaTsv = cdAlphaTable.build()
 		
 		// Build TSV file for CD dataset (Beta)
@@ -258,19 +286,25 @@ wf.body(func(args) {
 				}
 			}
 		}
-		cdBetaTable.mem("16GiB")
-		cdBetaTable.cpu(1)
+		cdBetaTable.mem(defaultConvMem)
+		cdBetaTable.cpu(defaultConvCpu)
 		cdBetaTsv = cdBetaTable.build()
 	}
 
 	//////////////// Run TCR Disco ////////////////
 	tcrAnalysis := render.create(tcrAnalysisTpl, {
+		numerators: args.numerators,
+		denominator: string(args.denominator),
 		mainAlphaTsv: mainAlphaTsv,
 		mainBetaTsv: mainBetaTsv,
 		metadataTsv: metadataTsv,
 		cdAlphaTsv: cdAlphaTsv,
 		cdBetaTsv: cdBetaTsv,
-		cdSubsetCol: cdSubsetCol
+		cdSubsetCol: cdSubsetCol,
+		covariatesTsv: covariatesTsv,
+		contrastColLabel: contrastColLabel,
+		thresholdCounts: thresholdCounts,
+		thresholdSamples: thresholdSamples
 	})
 	
 	tcrAnalysisResult := tcrAnalysis.output("resultsFile")

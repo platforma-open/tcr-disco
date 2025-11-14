@@ -22,11 +22,22 @@ export type BlockArgs = {
   mainRef?: PlRef;
   cdRef?: PlRef;
   cdSubsetCol?: string;
+  covariateRefs: PlRef[];
+  contrastFactor?: PlRef;
+  numerators: string[];
+  denominator?: string;
+  thresholdCounts: number;
+  thresholdSamples: number;
 };
 
 export const model = BlockModel.create()
 
-  .withArgs<BlockArgs>({})
+  .withArgs<BlockArgs>({
+    covariateRefs: [],
+    numerators: [],
+    thresholdCounts: 0,
+    thresholdSamples: 0,
+  })
 
   .withUiState<UiState>({
     title: 'TCR Disco Enrichment',
@@ -60,6 +71,15 @@ export const model = BlockModel.create()
   .output('metadataOptions', (ctx) =>
     ctx.resultPool.getOptions((spec) => isPColumnSpec(spec) && spec.name === 'pl7.app/metadata'),
   )
+
+  .output('denominatorOptions', (ctx) => {
+    if (!ctx.args.contrastFactor) return undefined;
+
+    const pColumn = ctx.resultPool.getPColumnByRef(ctx.args.contrastFactor);
+    if (!pColumn) return undefined;
+
+    return ctx.createPFrame([pColumn]);
+  })
 
   .output('pt', (ctx) => {
     const pCols = ctx.outputs?.resolve('resultsPf')?.getPColumns();
