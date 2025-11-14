@@ -84,25 +84,34 @@ compare_one_vs_each = function(ag, edgeR_output, number_of_comparisons=3){
   return(independ.exp)
 }
 
-compare_numerators_vs_denominator = function(contrast_col, numerators, 
+select_numerators_vs_denominator = function(contrast_col, numerators, 
                                              denominator, edger) {
-  # Build patterns for valid comparisons (numerator vs denominator/all, or reverse)
-  num_prefixes <- paste0("(", contrast_col, ")?", numerators)
-  denom_pattern <-  paste0("(", contrast_col, ")?", denominator)
-  valid_pattern <- paste0("^(", paste(num_prefixes, collapse = "|"), ") vs ", denom_pattern, "$")
-  reverse_pattern <- paste0("^", denom_pattern, " vs (", paste(num_prefixes, collapse = "|"), ")$")
+  # Build comparison strings with proper prefix handling
+  build_str <- function(val) if(val == "all") "all" else paste0(contrast_col, val)
   
+  # Generate all valid combinations (forward and reverse)
+  forward_comps <- c()
+  reverse_comps <- c()
+  denom_str <- build_str(denominator)
+  for (num in numerators) {
+    num_str <- build_str(num)
+    forward_comps <- c(forward_comps, paste0(num_str, " vs ", denom_str))
+    reverse_comps <- c(reverse_comps, paste0(denom_str, " vs ", num_str))
+  }
+  valid_comps <- c(forward_comps, reverse_comps)
+  
+  # Filter to valid comparisons and reorder if needed
   edger %>%
-    filter(grepl(valid_pattern, comparison) | grepl(reverse_pattern, comparison)) %>%
+    filter(comparison %in% valid_comps) %>%
     mutate(
-      # Check if numerator is after "vs" (needs reordering) - same logic as compare_one_vs_each
-      needs_reorder = grepl(paste0("vs.*(", paste(num_prefixes, collapse = "|"), ")$"), comparison),
-      # Reorder comparison and flip logFC when needed
+      needs_reorder = comparison %in% reverse_comps,
       comparison = if_else(needs_reorder, sub("^(.+) vs (.+)$", "\\2 vs \\1", comparison), comparison),
       logFC = if_else(needs_reorder, logFC * -1, logFC)
     ) %>%
-    # Keep only numerator-first format
-    filter(grepl(paste0("^(", paste(num_prefixes, collapse = "|"), ") vs"), comparison)) %>%
+    filter(comparison %in% forward_comps) %>%
+    mutate(
+      numerator = sub(paste0("^", contrast_col), "", sub(" vs .+$", "", comparison))
+    ) %>%
     select(-needs_reorder)
 }
 
@@ -120,6 +129,43 @@ apply_threshold_filtering = function(ctable, antigen, metadata, antigen_column,
   count_table <- ctable[rownames(ctable) %in% rownames(sub_count_table),]
 
   return(count_table)
+}
+
+# Function to filter features by threshold for both numerator and denominator
+filter_features_by_threshold = function(edger_table, ct, metadata_tcr, contrast_col,
+                                        sample_id_col, numerators, denominator,
+                                        threshold_counts = 10, threshold_samples = 3) {
+  check_threshold <- function(features, antigen) {
+    pos <- metadata_tcr[[contrast_col]] == antigen
+    sub_ct <- ct[features, metadata_tcr[pos, sample_id_col], drop = FALSE]
+    rownames(sub_ct)[rowSums(sub_ct >= threshold_counts) >= threshold_samples]
+  }
+  
+  # Initialize passThreshold column
+  edger_table$passThreshold <- 'false'
+  
+  # Check thresholds for each numerator group separately
+  unique(edger_table$numerator) %>%
+    lapply(function(num) {
+      # Get features for this specific numerator
+      num_rows <- edger_table$numerator == num
+      features <- edger_table$feature[num_rows]
+      
+      # Determine which antigens to check for numerator
+      num_antigens <- if(num == "all") numerators else num
+      
+      # Check threshold for numerator(s)
+      num_passing <- unique(unlist(lapply(num_antigens, function(ag) check_threshold(features, ag))))
+      
+      # Check threshold for denominator
+      denom_passing <- check_threshold(num_passing, denominator)
+      
+      # Mark only rows for this numerator that pass both thresholds
+      passing_mask <- num_rows & (edger_table$feature %in% denom_passing)
+      edger_table$passThreshold[passing_mask] <<- 'true'
+    })
+  
+  return(edger_table)
 }
 
 # 4.  *run_TCRdisco(clonotypes_folder, clonotypes_metadata, chain, output_folder)*
@@ -194,66 +240,26 @@ run_TCRdisco = function(merged_table, metadata_table, subsets_tcr,
   ct <- count_table(TCRgrCounts) %>%
     filter(!grepl("\\*|\\_", rownames(.))) #filter non-functional clonotypes
 
-  #export dataframes
-  write.table(ct, paste0(output_folder, "count_table_full_", chain, ".tsv"), sep = "\t", row.names = T, quote = F)
-  write.table(edger, paste0(output_folder, "edger_", chain, ".tsv"), sep = "\t", row.names = F, quote = F)
-
   #start post-edgeR filtering
   cat("\n Performing additional post-edgeR filtering...")
   #define list of antigens from the clonotypes metadata
   list_of_antigens = unique(metadata(TCRgrCounts)[[contrast_col]])
   cat("\n all pairwise comparisons...")
   #go through conditions for edger
-  # Get for each "ag" a list of all clonotypes that have FC > 0 against all the other "ag"s 
-  edger_list = numerators %>%
-    set_names() %>%
-    map(~ compare_numerators_vs_denominator(.x, edger, 
-    number_of_comparisons = (length(list_of_antigens)-1)))
-
-  edger_table = compare_numerators_vs_denominator(contrast_col, numerators, denominator,
+  # Get only the comparisons for the selected numerators and denominator
+  edger_table = select_numerators_vs_denominator(contrast_col, numerators, denominator,
                                                   edger)
   cat("Done")
-  #blank list of count and frequency tables
-  ct_list <- list()
-  ft_list <- list()
   
-  #convert counts into frequency
-  ft = ct %>%
-    mutate(across(everything(.), ~ .x / sum(.x, na.rm = TRUE)))
-  
-  #fill count and frequency tables with detected clonotypes by antigen
-  cat("\n additional UMI threshold...")
-  for (ag in list_of_antigens) {
-    #fill count table per each Ag
-    ct_list[[ag]] <- ct[rownames(ct) %in% edger_list[[ag]],]
-    # Keep only clonotypes that pass minimum threshold counts for relevant ag samples
-    ct_list[[ag]] <- apply_threshold_filtering(ctable = ct_list[[ag]], 
-                                               antigen = ag,
-                                               metadata = metadata(TCRgrCounts),
-                                               antigen_column = contrast_col,
-                                               sample_id_col = sample_id_col,
-                                               threshold_counts = threshold_counts,
-                                               threshold_samples = threshold_samples)    
-    #fill frequency table per each Ag
-    ft_list[[ag]] <- ft[rownames(ft) %in% rownames(ct_list[[ag]]),]
-    
-    #exporting results
-    # REMOVED DATA CONDITION. Even if they are empty, we need to allways have all outputs for platforma
-    #if (nrow(ft_list[[ag]]) != 0) {
-    cat(paste0("\n", ag, " - saving ct & ft tables \n ct location: ", 
-               output_folder, "ct_filt_", ag, "_", chain, ".tsv",
-               "\n ft location: ", output_folder, "ft_filt_", ag, "_", chain, ".tsv"))
-    
-    #save ft_ and ct_filtered in the output_folder
-    write.table(ct_list[[ag]], paste0(output_folder, 
-                                      "ct_filt_", ag, "_", chain, ".tsv"), 
-                sep = "\t", quote = F)
-    write.table(ft_list[[ag]], paste0(output_folder, 
-                                      "ft_filt_", ag, "_", chain, ".tsv"), 
-                sep = "\t", quote = F)
-    cat("\nDone \n")
-    #} 
-  }
+  # Filter edger results by given thresholds applied to the count table
+  edger_table = filter_features_by_threshold(edger_table, ct, metadata_tcr, contrast_col,
+                                          sample_id_col, numerators, denominator,
+                                          threshold_counts = threshold_counts,
+                                          threshold_samples = threshold_samples)
+  #export dataframes
+  write.table(ct, paste0(output_folder, "count_table_full_", chain, ".tsv"), sep = "\t", row.names = T, quote = F)
+  write.table(edger_table, paste0(output_folder, "edger_", chain, ".tsv"), sep = "\t", row.names = F, quote = F)
+
 }
 
 # 5.  *find_pairs2(ag, clonotypes_tra, clonotypes_trb)*
@@ -399,8 +405,19 @@ run_TCRdisco(main_beta_table, metadata_table, subsets_trb,
         numerators, denominator, chain="trb", fdr_cut=fdr_cut,
         threshold_counts=threshold_counts, threshold_samples=threshold_samples)
 
+# TCR Ab pair prediction
+# First validate that both have the same sample columns
+metadata_table$internalSampleId %in% unique(main_alpha_table[,"internalSampleId"])
+== sort(unique(main_beta_table[,"internalSampleId"]))
 
 
+
+pos <- toupper(metadata_table[,subset]) == population
+    list_samples = metadata_table[pos, "internalSampleId"]
+
+    # Combine all files in metadata_location with information for the same subset/population
+    # and reformat them
+    cdt_subset = clonotypes[clonotypes[,"internalSampleId"] %in% list_samples,]
 
 # Validate required arguments
 if (is.null(opt$input)) {
