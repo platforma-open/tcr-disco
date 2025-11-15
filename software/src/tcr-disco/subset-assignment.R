@@ -1,8 +1,6 @@
 #!/usr/bin/env Rscript
 
 # Load required libraries
-suppressMessages(library(tidyverse))
-suppressMessages(library(data.table))
 suppressMessages(library("optparse"))
 #----------------------------------------
 
@@ -41,18 +39,31 @@ create_subsets_df = function(metadata_table, subset, clonotypes, clonotypeKeyCol
   cd8_subset = make_subset(metadata_table, subset, clonotypes, "CD8", clonotypeKeyCol)
 
   #merge two subset by internalSampleId column and define clonotype subset
-  subsets = merge(cd4_subset, cd8_subset, by = clonotypeKeyCol, all = T) %>%
-    distinct(.data[[clonotypeKeyCol]], .keep_all = TRUE) %>%   #keep only unique clonotypes
-    # filter(!grepl("\\*|\\_", internalSampleId)) %>%   #filter-out stopcodons and frameshifts
-    mutate(subset = case_when(subset.x == "CD4" & is.na(subset.y) ~ "CD4",
-                              count.x / count.y >= 5 ~ "CD4",   #assign to CD4 by 5-to-1 ratio
-                              subset.y == "CD8" & is.na(subset.x) ~ "CD8",
-                              count.y / count.x >= 5 ~ "CD8")) %>%   #assign to CD8 by 5-to-1 ratio
-    select(clonotypeKeyCol, umi_count_CD4 = "count.x", umi_freq_CD4 = "fraction.x",
-           umi_count_CD8 = "count.y", umi_freq_CD8 = "fraction.y", subset) %>%
-    mutate(subset_frequency = case_when(subset=="CD4" ~ log10(umi_freq_CD4),
-                                      subset=="CD8" ~ log10(umi_freq_CD8),
-                                      T ~ 0))
+  subsets = merge(cd4_subset, cd8_subset, by = clonotypeKeyCol, all = T)
+  # Keep only unique clonotypes
+  subsets = subsets[!duplicated(subsets[[clonotypeKeyCol]]), ]
+  # filter(!grepl("\\*|\\_", internalSampleId)) %>%   #filter-out stopcodons and frameshifts
+  
+  # Define subset based on conditions
+  # Handle NA values in counts (set to 0 for comparison)
+  count_x = ifelse(is.na(subsets$count.x), 0, subsets$count.x)
+  count_y = ifelse(is.na(subsets$count.y), 0, subsets$count.y)
+  
+  subsets$subset = ifelse(subsets$subset.x == "CD4" & is.na(subsets$subset.y), "CD4",
+                   ifelse(count_x > 0 & count_y > 0 & count_x / count_y >= 5, "CD4",   #assign to CD4 by 5-to-1 ratio
+                   ifelse(subsets$subset.y == "CD8" & is.na(subsets$subset.x), "CD8",
+                   ifelse(count_y > 0 & (count_x == 0 | (count_x > 0 & count_y / count_x >= 5)), "CD8", NA))))   #assign to CD8 by 5-to-1 ratio
+  
+  # Select and rename columns
+  subsets = subsets[, c(clonotypeKeyCol, "count.x", "fraction.x", "count.y", "fraction.y", "subset")]
+  colnames(subsets)[colnames(subsets) == "count.x"] = "umi_count_CD4"
+  colnames(subsets)[colnames(subsets) == "fraction.x"] = "umi_freq_CD4"
+  colnames(subsets)[colnames(subsets) == "count.y"] = "umi_count_CD8"
+  colnames(subsets)[colnames(subsets) == "fraction.y"] = "umi_freq_CD8"
+  
+  # Calculate subset_frequency
+  subsets$subset_frequency = ifelse(!is.na(subsets$subset) & subsets$subset == "CD4", log10(subsets$umi_freq_CD4),
+                             ifelse(!is.na(subsets$subset) & subsets$subset == "CD8", log10(subsets$umi_freq_CD8), 0))
 
   return(subsets)
 }
@@ -77,18 +88,15 @@ option_list <- list(
   ),
   make_option(c("--cd_alpha"),
     type = "character", default = "cdAlpha.tsv",
-    help = "Path to CD alpha clonotypes TSV file", metavar = "character",
-    optional = TRUE
+    help = "Path to CD alpha clonotypes TSV file", metavar = "character"
   ),
   make_option(c("--cd_beta"),
     type = "character", default = "cdBeta.tsv",
-    help = "Path to CD beta clonotypes TSV file", metavar = "character",
-    optional = TRUE
+    help = "Path to CD beta clonotypes TSV file", metavar = "character"
   ),
   make_option(c("--cd_subset_col"),
     type = "character", default = "subset",
-    help = "Metadata column with CD4/8 information", metavar = "character",
-    optional = TRUE
+    help = "Metadata column with CD4/8 information", metavar = "character"
   ),
   make_option(c("-o", "--output"),
     type = "character",
@@ -139,10 +147,15 @@ main_beta_table <- read.table(main_beta, header = TRUE, sep = "\t", stringsAsFac
 # Assign T cell subset to main data
 if (!is.null(cd_alpha) && !is.null(cd_beta)) {
   cat("\n Assigning T cell subset...")
-  main_alpha_table = merge(main_alpha_table, subsets_tra, by = clonotypeKeyCol, all.x = T) %>%
-    relocate(clonotypeKeyCol, .after = internalSampleId)
-  main_beta_table = merge(main_beta_table, subsets_trb, by = clonotypeKeyCol, all.x = T) %>%
-    relocate(clonotypeKeyCol, .after = internalSampleId)
+  reorder_cols = function(tbl) {
+    cols = colnames(tbl)
+    # Remove clonotypeKeyCol if it exists to avoid duplicates
+    cols = cols[cols != clonotypeKeyCol]
+    idx = match("internalSampleId", cols)
+    tbl[, c(cols[1:idx], clonotypeKeyCol, cols[(idx+1):length(cols)])]
+  }
+  main_alpha_table = reorder_cols(merge(main_alpha_table, subsets_tra, by = clonotypeKeyCol, all.x = T))
+  main_beta_table = reorder_cols(merge(main_beta_table, subsets_trb, by = clonotypeKeyCol, all.x = T))
   cat("Done")
 } else {
   cat("\n No CD4/CD8 T cell subset available")

@@ -28,6 +28,8 @@ export type BlockArgs = {
   denominator?: string;
   thresholdCounts: number;
   thresholdSamples: number;
+  log2FcThreshold: number;
+  pAdjThreshold: number;
 };
 
 export const model = BlockModel.create()
@@ -37,6 +39,8 @@ export const model = BlockModel.create()
     numerators: [],
     thresholdCounts: 0,
     thresholdSamples: 0,
+    log2FcThreshold: 0.5,
+    pAdjThreshold: 0.05,
   })
 
   .withUiState<UiState>({
@@ -45,7 +49,15 @@ export const model = BlockModel.create()
   })
 
   .argsValid((ctx) => (
-    ctx.args.mainRef !== undefined
+    ((ctx.args.mainRef !== undefined)
+      && (ctx.args.covariateRefs !== undefined)
+      && (ctx.args.contrastFactor !== undefined)
+      && (ctx.args.numerators.length > 0)
+      && (ctx.args.denominator !== undefined)
+      && (ctx.args.log2FcThreshold !== undefined)
+      && (ctx.args.pAdjThreshold !== undefined)
+      && (ctx.args.thresholdCounts !== undefined)
+      && (ctx.args.thresholdSamples !== undefined))
   ))
 
   // Allow user to choose Alpha chain, will pick beta if available
@@ -82,7 +94,7 @@ export const model = BlockModel.create()
   })
 
   .output('pt', (ctx) => {
-    const pCols = ctx.outputs?.resolve('resultsPf')?.getPColumns();
+    const pCols = ctx.outputs?.resolve('topDegPF')?.getPColumns();
     if (pCols === undefined) {
       return undefined;
     }
@@ -91,7 +103,7 @@ export const model = BlockModel.create()
   })
 
   .output('sheets', (ctx) => {
-    const pCols = ctx.outputs?.resolve('resultsPf')?.getPColumns();
+    const pCols = ctx.outputs?.resolve('topDegPF')?.getPColumns();
     if (pCols === undefined || pCols.length === 0) {
       return undefined;
     }
@@ -101,14 +113,6 @@ export const model = BlockModel.create()
     if (!partitionKeys) return undefined;
 
     return [createPlDataTableSheet(ctx, pCols[0].spec.axesSpec[0], partitionKeys)];
-  })
-
-  .output('resultsFile', (ctx) => {
-    const resultsFile = ctx.outputs?.resolve('tcrAnalysisResult');
-    if (resultsFile === undefined) {
-      return undefined;
-    }
-    return resultsFile;
   })
 
   .title((ctx) => ctx.uiState?.title ?? 'TCR Disco Enrichment')

@@ -41,7 +41,7 @@
           "artifact": {
             "type": "R",
             "registry": "platforma-open",
-            "environment": "@platforma-open/milaboratories.runenv-r:main",
+            "environment": "@platforma-open/milaboratories.runenv-r-differential-expression:main",
             "root": "./src/tcr-disco"
           },
           "cmd": [
@@ -59,31 +59,11 @@
             "/app/main.R"
           ]
         }
-      },
-      "test": {
-        "binary": {
-          "artifact": {
-            "type": "python",
-            "registry": "platforma-open",
-            "environment": "@platforma-open/milaboratories.runenv-python-3:3.12.10",
-            "dependencies": {
-              "toolset": "pip",
-              "requirements": "requirements.txt"
-            },
-            "root": "./src/test"
-          },
-          "cmd": [
-            "python",
-            "{pkg}/main.py"
-          ]
-        }
       }
     }
   },
   "devDependencies": {
-    "@platforma-open/milaboratories.runenv-r": "catalog:",
     "@platforma-open/milaboratories.runenv-r-differential-expression": "catalog:",
-    "@platforma-open/milaboratories.runenv-python-3": "catalog:",
     "@platforma-sdk/package-builder": "catalog:"
   }
 }

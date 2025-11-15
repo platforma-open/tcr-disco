@@ -185,6 +185,26 @@ watch(() => [app.model.args.contrastFactor], (_) => {
           placeholder="0"
         />
       </PlRow>
+      <PlRow>
+        <PlNumberField
+          v-model="app.model.args.log2FcThreshold"
+          label="Log2(FC)"
+          :minValue="0"
+          :step="0.1"
+        >
+          <template #tooltip>
+            Select a valid absolute log2(FC) threshold for identifying
+            significantly enriched clonotypes.
+          </template>
+        </PlNumberField>
+        <PlNumberField
+          v-model="app.model.args.pAdjThreshold"
+          label="Adjusted p-value"
+          :minValue="0"
+          :maxValue="1"
+          :step="0.01"
+        />
+      </PlRow>
     </PlAccordionSection>
   </PlSlideModal>
 </template>
