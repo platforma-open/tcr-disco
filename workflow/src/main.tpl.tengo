@@ -5,9 +5,29 @@ render := import("@platforma-sdk/workflow-tengo:render")
 strings := import("@platforma-sdk/workflow-tengo:strings")
 xsv := import("@platforma-sdk/workflow-tengo:pframes.xsv")
 ll := import("@platforma-sdk/workflow-tengo:ll")
+smart := import("@platforma-sdk/workflow-tengo:smart")
+pSpec := import("@platforma-sdk/workflow-tengo:pframes.spec")
 json := import("json")
 
 tcrAnalysisTpl := assets.importTemplate(":tcr-analysis")
+
+topTablePfconvParamsLib := import(":libs.top_table_pfconv_params")
+generalDaPfconvLib := import(":libs.general_da_pfconv")
+
+mapToPValueData := func(map) {
+	data := {}
+	for key, value in map {
+		data[json.encode([key])] = value
+	}
+	result := {
+		keyLength: 1,
+		data: data
+	}
+	return result
+}
+createJsonPColumnData := func(data) {
+	return smart.createValueResource({ Name: "PColumnData/Json", Version: "1" }, data)
+}
 
 wf.prepare(func(args) {
 	bundleBuilder := wf.createPBundleBuilder()
@@ -118,16 +138,14 @@ wf.prepare(func(args) {
 })
 
 wf.body(func(args) {
+	blockId := wf.blockId().getDataAsJson()
 	columns := args.columns
+	denominator := string(args.denominator)
 	cdSubsetCol := args.cdSubsetCol
 	thresholdCounts := args.thresholdCounts
-	if thresholdCounts == undefined {
-		thresholdCounts = 0
-	}
 	thresholdSamples := args.thresholdSamples
-	if thresholdSamples == undefined {
-		thresholdSamples = 0
-	}
+	log2FcThreshold := args.log2FcThreshold
+	pAdjThreshold := args.pAdjThreshold
 	contrastColLabel := args.resolvedContrastFactor.spec.annotations["pl7.app/label"]
 
 	// Set default conversion memory and CPU
@@ -151,7 +169,7 @@ wf.body(func(args) {
 	// Build TSV file for main dataset (Alpha)
 	mainAlphaTable := pframes.tsvFileBuilder()
 	mainAlphaTable.setAxisHeader("pl7.app/sampleId", "internalSampleId")
-	mainAlphaTable.setAxisHeader("pl7.app/vdj/clonotypeKey", "clonotypeKey")
+	mainAlphaTable.setAxisHeader(mainAlphaSpec.axesSpec[1].name, "clonotypeKey")
 	mainAlphaTable.add(mainAlpha, {header: "count"})
 	mainAlphaTable.add(columns.getColumn("mainAlphaFraction"), {header: "fraction"})
 	for cdr3Col in columns.getColumns("mainCdr3s") {
@@ -176,7 +194,7 @@ wf.body(func(args) {
 	// Load beta chain using subtemplate
 	mainBetaTable := pframes.tsvFileBuilder()
 	mainBetaTable.setAxisHeader("pl7.app/sampleId", "internalSampleId")
-	mainBetaTable.setAxisHeader("pl7.app/vdj/clonotypeKey", "clonotypeKey")
+	mainBetaTable.setAxisHeader(mainAlphaSpec.axesSpec[1].name, "clonotypeKey")
 	prefix := "mainCounts"
 	mainCountCols := columns.getColumns(prefix)
 	for countCol in mainCountCols {
@@ -241,7 +259,7 @@ wf.body(func(args) {
 		// Build TSV file for CD dataset (Alpha)
 		cdAlphaTable := pframes.tsvFileBuilder()
 		cdAlphaTable.setAxisHeader("pl7.app/sampleId", "internalSampleId")
-		cdAlphaTable.setAxisHeader("pl7.app/vdj/clonotypeKey", "clonotypeKey")
+		cdAlphaTable.setAxisHeader(mainAlphaSpec.axesSpec[1].name, "clonotypeKey")
 		cdAlphaTable.add(cdAlpha, {header: "count"})
 		cdAlphaTable.add(columns.getColumn("cdAlphaFraction"), {header: "fraction"})
 		cdAlphaTable.add(columns.getColumn("cdCdr3"), {header: "CDR3aa"})
@@ -253,7 +271,7 @@ wf.body(func(args) {
 		// Build TSV file for CD dataset (Beta)
 		cdBetaTable := pframes.tsvFileBuilder()
 		cdBetaTable.setAxisHeader("pl7.app/sampleId", "internalSampleId")
-		cdBetaTable.setAxisHeader("pl7.app/vdj/clonotypeKey", "clonotypeKey")
+		cdBetaTable.setAxisHeader(mainAlphaSpec.axesSpec[1].name, "clonotypeKey")
 		for countCol in columns.getColumns("mainCounts") {
 			colChain := countCol.spec.axesSpec[1].domain["pl7.app/vdj/chain"]
 			colBlockId := countCol.spec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
@@ -294,7 +312,7 @@ wf.body(func(args) {
 	//////////////// Run TCR Disco ////////////////
 	tcrAnalysis := render.create(tcrAnalysisTpl, {
 		numerators: args.numerators,
-		denominator: string(args.denominator),
+		denominator: denominator,
 		mainAlphaTsv: mainAlphaTsv,
 		mainBetaTsv: mainBetaTsv,
 		metadataTsv: metadataTsv,
@@ -304,15 +322,98 @@ wf.body(func(args) {
 		covariatesTsv: covariatesTsv,
 		contrastColLabel: contrastColLabel,
 		thresholdCounts: thresholdCounts,
-		thresholdSamples: thresholdSamples
+		thresholdSamples: thresholdSamples,
+		log2FcThreshold: log2FcThreshold,
+		pAdjThreshold: pAdjThreshold
 	})
 	
-	tcrAnalysisResult := tcrAnalysis.output("resultsFile")
+	topTableFile := tcrAnalysis.output("topTableFile")
+	daFile := tcrAnalysis.output("daFile")
+
+	////////////////// Spec preparation ////////////////
+	degPframeBuilder := pframes.pFrameBuilder()
+	regDirPframeBuilder := pframes.pFrameBuilder()
+	topDegPframeBuilder := pframes.pFrameBuilder()
+
+	trace := pSpec.makeTrace(mainAlphaSpec,
+			{type: "milaboratories.tcr-disco-enrichment", importance: 30, 
+			label: "DA - Denominator: " + denominator + " (log2FC: " + log2FcThreshold + ", pAdj: " + pAdjThreshold + ", threshold counts: " + thresholdCounts + ", threshold samples: " + thresholdSamples + ")"}
+		)
+	// Get type of input
+	inputType := undefined
+	if (mainAlphaSpec.axesSpec[1].name == "pl7.app/vdj/clonotypeKey" || mainAlphaSpec.axesSpec[1].name == "pl7.app/vdj/scClonotypeKey") {
+		inputType = "Clonotype"
+	// } else if (mainAlphaSpec.axesSpec[1].name == "pl7.app/vdj/clusterId") {
+	// 	inputType = "Cluster"
+	} else {
+		ll.panic("\n\nNot yet supported input data. Please contact Milaboratories to include it:\n%v\n", mainAlphaSpec)
+	}
+
+	topTableImportParams := topTablePfconvParamsLib.getColumns(copy(mainAlphaSpec), inputType,
+															log2FcThreshold,
+															pAdjThreshold)
+	topTablePf := xsv.importFile(topTableFile, "csv", topTableImportParams, 
+														// This changes output format from default to per column
+														// So key will be column name and values spec and data
+														{splitDataAndSpec: true, mem: defaultConvMem, cpu: defaultConvCpu})
+
+	// Add DEG export with specific import params. Adding new csv output to script with only DEGs and logFC
+	degImportParams := generalDaPfconvLib.getColumns(mainAlphaSpec, blockId, inputType)
+	DegPf := xsv.importFile(daFile, "csv", degImportParams, {mem: defaultConvMem, cpu: defaultConvCpu})
+
+	// Create contrast label Pcolumn
+	contrastExport := {
+		spec: {
+			kind: "PColumn",
+			name: "pl7.app/label",
+			valueType: "String",
+			annotations: {
+				"pl7.app/label": "Contrast",
+				"pl7.app/isLabel": "true"
+			},
+			axesSpec: [{
+					name: "pl7.app/" + "differentialAbundance" + "/contrastGroup",
+					type: "String",
+					domain: {
+						"pl7.app/blockId": blockId
+					},
+					annotations: {
+						"pl7.app/label": "Contrast"
+					}
+			}]
+		},
+		data: createJsonPColumnData(json.encode(mapToPValueData(tcrAnalysis.output("contrastMap"))))
+	}
+	
+	for columnName, value in topTablePf { 
+		columnData := value.data
+		topDegPframeBuilder.add(
+			columnName,
+			trace.inject(value.spec),
+			columnData
+		)
+	}
+
+	degPframeBuilder.add(
+		"Log2FC",
+		trace.inject(DegPf["log2foldchange.spec"]),
+		DegPf["log2foldchange.data"]
+	)
+
+	regDirPframeBuilder.add(
+		"Regulation Direction",
+		trace.inject(DegPf["regulationDirection.spec"]),
+		DegPf["regulationDirection.data"]
+	)
+
+	// Build the final PFrames
+	degPF := degPframeBuilder.build()
+	topDegPF := topDegPframeBuilder.build()
+	regDirPF := regDirPframeBuilder.build()
 
 	return {
 		outputs: {
-			resultsPf: {},
-			tcrAnalysisResult: tcrAnalysisResult
+			topDegPF: pframes.exportFrame(topDegPF)
 		},
 		exports: {}
 	}

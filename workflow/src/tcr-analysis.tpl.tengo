@@ -5,7 +5,6 @@ pt := import("@platforma-sdk/workflow-tengo:pt")
 
 subsetAssignment := assets.importSoftware("@platforma-open/milaboratories.run-tcrdisco-enrichment.software:subset-assignment")
 diffSoftware := assets.importSoftware("@platforma-open/milaboratories.run-tcrdisco-enrichment.software:tcr-disco")
-test := assets.importSoftware("@platforma-open/milaboratories.run-tcrdisco-enrichment.software:test")
 
 self.validateInputs({
     "__options__,closed": "",
@@ -21,10 +20,12 @@ self.validateInputs({
 	"covariatesTsv": "any",
 	"contrastColLabel": "string",
 	"thresholdCounts": "number",
-	"thresholdSamples": "number"
+	"thresholdSamples": "number",
+	"log2FcThreshold": "number",
+	"pAdjThreshold": "number"
 })
 
-self.defineOutputs("degPF", "topDegPF", "regDirPF")
+self.defineOutputs("topTableFile","daFile","contrastMap")
 
 self.body(func(inputs) {
 
@@ -33,6 +34,8 @@ self.body(func(inputs) {
 	contrastColLabel := inputs.contrastColLabel
 	thresholdCounts := inputs.thresholdCounts
 	thresholdSamples := inputs.thresholdSamples
+	log2FcThreshold := inputs.log2FcThreshold
+	pAdjThreshold := inputs.pAdjThreshold
 
 	mainAlphaTsv := undefined
 	mainBetaTsv := undefined
@@ -64,10 +67,13 @@ self.body(func(inputs) {
 	}
 
 	// run differential analysis per numerator
+	wf := pt.workflow().cpu(1).mem("2GiB")
 	dfsDeg := []
 	dfsTopTable := []
+	contrastMap := {}
 	for numerator in inputs.numerators {
 		numerator = string(numerator)
+		contrastMap[numerator + " vs " + denominator] = numerator + " vs " + denominator
 		diffExec := exec.builder().
 			software(diffSoftware).
 			addFile("mainAlpha.tsv", mainAlphaTsv).
@@ -79,88 +85,29 @@ self.body(func(inputs) {
 			arg("-t").arg(contrastColLabel).
 			arg("-n").arg(numerator).
 			arg("-d").arg(denominator).	
+			arg("-f").arg(string(log2FcThreshold)).
+			arg("-p").arg(string(pAdjThreshold)).
+			arg("--threshold_counts").arg(string(thresholdCounts)).
+			arg("-s").arg(string(thresholdSamples)).
 			arg("-o").arg(".").
-			saveFile("DEG.csv").
+			saveFile("DA.csv").
 			saveFile("topTable.csv").
 			run()
 
-		dfsDeg += [wf.frame(diffExec.getFile("DEG.csv"), {xsvType: "csv", inferSchema: false})]
+		dfsDeg += [wf.frame(diffExec.getFile("DA.csv"), {xsvType: "csv", inferSchema: false})]
 		dfsTopTable += [wf.frame(diffExec.getFile("topTable.csv"), {xsvType: "csv", inferSchema: false})]
 	}
 	// Concatenate all DEG and topTable files
 	concatenatedDeg := pt.concat(dfsDeg)
-	concatenatedDeg.save("concatenated_output_Deg.csv")
+	concatenatedDeg.save("concatenated_output_DA.csv")
 	concatenatedTopTable := pt.concat(dfsTopTable)
 	concatenatedTopTable.save("concatenated_output_topTable.csv")
 	ptablerResult := wf.run()
 
-	topTableImportParams := topTablePfconvParamsLib.getColumns(copy(countsSpec), inputType,
-															log2FcThreshold,
-															pAdjThreshold)
-	topTablePf := xsv.importFile(ptablerResult.getFile("concatenated_output_topTable.csv"), "csv", topTableImportParams, 
-														// This changes output format from default to per column
-														// So key will be column name and values spec and data
-														{splitDataAndSpec: true, mem: defaultConvMem, cpu: defaultConvCpu})
-
-	// Add DEG export with specific import params. Adding new csv output to script with only DEGs and logFC
-	degImportParams = generalDaPfconvLib.getColumns(countsSpec, blockId, species, inputType)
-	DegPf := xsv.importFile(ptablerResult.getFile("concatenated_output_Deg.csv"), "csv", degImportParams, {mem: defaultConvMem, cpu: defaultConvCpu})
-
-	// Create contrast label Pcolumn
-	contrastExport := {
-		spec: {
-			kind: "PColumn",
-			name: "pl7.app/label",
-			valueType: "String",
-			annotations: {
-				"pl7.app/label": "Contrast",
-				"pl7.app/isLabel": "true"
-			},
-			axesSpec: [{
-					name: "pl7.app/" + field + "/contrastGroup",
-					type: "String",
-					domain: {
-						"pl7.app/blockId": blockId
-					},
-					annotations: {
-						"pl7.app/label": "Contrast"
-					}
-			}]
-		},
-		data: createJsonPColumnData(json.encode(mapToPValueData(contrastMap)))
-	}
-	
-	for columnName, value in topTablePf { 
-		columnData := value.data
-		topDegPframeBuilder.add(
-			columnName,
-			trace.inject(value.spec),
-			columnData
-		)
-	}
-
-	degPframeBuilder.add(
-		"Log2FC",
-		trace.inject(DegPf["log2foldchange.spec"]),
-		DegPf["log2foldchange.data"]
-	)
-
-	regDirPframeBuilder.add(
-		"Regulation Direction",
-		trace.inject(DegPf["regulationDirection.spec"]),
-		DegPf["regulationDirection.data"]
-	)
-
-	// Build the final PFrames
-	degPF = degPframeBuilder.build()
-	topDegPF = topDegPframeBuilder.build()
-	regDirPF = regDirPframeBuilder.build()
-	
 	return {
-		degPF: degPF,
-		regDirPF: regDirPF,
-		topDegPF: pframes.exportFrame(topDegPF),
-		contrastExport: contrastExport
+		topTableFile: ptablerResult.getFile("concatenated_output_topTable.csv"),
+		daFile: ptablerResult.getFile("concatenated_output_DA.csv"),
+		contrastMap: contrastMap
 	}
 })
 

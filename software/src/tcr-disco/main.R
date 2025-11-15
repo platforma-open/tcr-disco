@@ -1,9 +1,6 @@
 #!/usr/bin/env Rscript
 
 # Load required libraries
-suppressMessages(library(tidyverse))
-suppressMessages(library(data.table))
-suppressMessages(library(edgeR))
 suppressMessages(library("DESeq2"))
 suppressMessages(library("optparse"))
 #----------------------------------------
@@ -13,19 +10,31 @@ suppressMessages(library("optparse"))
 run_deseq = function(main_beta_table, covariates_table, contrast_col,
   numerator, denominator, output_folder, fraction_for_filter, min_counts, threshold_counts,
   fdr_cut, fc_cut) {
-  count_matrix <- main_beta_table %>%
-    group_by(internalSampleId, clonotypeKey) %>%
-    summarise(count = sum(count), .groups = "drop") %>%
-    ungroup() %>%
-    # left_join(metadata_table[, c("internalSampleId", sample_id_col)], by = "internalSampleId") %>%
-    # mutate(internalSampleId = .data[[sample_id_col]]) %>%
-    # select(-all_of(sample_id_col)) %>%
-    pivot_wider(names_from = internalSampleId, values_from = count, values_fill = 0) %>%
-    column_to_rownames("clonotypeKey") %>%
-    as.matrix()
 
-  # Convert NA values to zero
+  # Aggregate counts by internalSampleId and clonotypeKey
+  # Use clonotypeKey first to match group_by order
+  aggregated <- aggregate(count ~ clonotypeKey + internalSampleId, 
+                          data = main_beta_table, FUN = sum)
+  
+  # Get unique values in the order they first appear in aggregated (matches group_by + summarise order)
+  unique_clonotypes <- unique(aggregated$clonotypeKey)
+  unique_samples <- unique(aggregated$internalSampleId)
+  
+  # Create matrix with proper dimensions and fill with 0
+  count_matrix <- matrix(0, 
+                        nrow = length(unique_clonotypes), 
+                        ncol = length(unique_samples),
+                        dimnames = list(unique_clonotypes, unique_samples))
+  
+  # Fill matrix with aggregated values using match for efficiency
+  row_indices <- match(aggregated$clonotypeKey, unique_clonotypes)
+  col_indices <- match(aggregated$internalSampleId, unique_samples)
+  count_matrix[cbind(row_indices, col_indices)] <- aggregated$count
+  
+  # Ensure it's a numeric matrix
+  count_matrix <- as.matrix(count_matrix)
   count_matrix[is.na(count_matrix)] <- 0
+
   # Apply filter by low counts (at least filter by values in one sample)
   # Filters prior to DE analysis to have minimum data quality
   min_samples <- max(floor(ncol(count_matrix) * fraction_for_filter), 1)
@@ -139,6 +148,22 @@ option_list <- list(
     type = "character", default = "Control",
     help = "Denominator for contrast", metavar = "character"
   ),
+  make_option(c("-f", "--fc_threshold"),
+    type = "double", default = 0.5,
+    help = "Log2(FC) threshold for significance"
+  ),
+  make_option(c("-p", "--p_threshold"),
+    type = "double", default = 0.05,
+    help = "Adjusted p-value threshold for significance"
+  ),
+  make_option(c("--threshold_counts"),
+    type = "integer", default = 10,
+    help = "Minimum number of counts for a clonotype to be considered significant"
+  ),
+  make_option(c("-s", "--threshold_samples"),
+    type = "integer", default = 3,
+    help = "Minimum number of samples for a clonotype to be considered significant"
+  ),
   make_option(c("-o", "--output"),
     type = "character",
     default = ".",
@@ -157,8 +182,10 @@ contrast_col <- opt$contrast_factor
 numerator <- opt$numerator
 denominator <- opt$denominator
 output_folder <- opt$output
-cd_subset_col <- "subset"
-
+fc_cut <- opt$fc_threshold
+fdr_cut <- opt$p_threshold
+threshold_counts <- opt$threshold_counts
+threshold_samples <- opt$threshold_samples
 # test
 # covariates <- "/Users/julen/Downloads/miltenyi_test/oncolumn_TCR_discovery/platforma/0x5B60C6/covariates.tsv"
 # main_alpha <- "/Users/julen/Downloads/miltenyi_test/oncolumn_TCR_discovery/platforma/0x5B60C6/results/main_alpha_table.tsv"
@@ -173,10 +200,10 @@ cd_subset_col <- "subset"
 fraction_for_filter <- 0.01
 min_counts <- 1
 # Adjustments to clean up DA results
-threshold_counts <- 10
-threshold_samples <- 3
-fc_cut <- 0
-fdr_cut <- 0.05
+# threshold_counts <- 10
+# threshold_samples <- 3
+# fc_cut <- 0
+# fdr_cut <- 0.05
 
 
 
@@ -209,4 +236,4 @@ if (!dir.exists(output_folder)) {
   dir.create(output_folder, recursive = TRUE)
 }
 write.csv(res_merged, paste0(output_folder, "/topTable.csv"), row.names = FALSE)
-write.csv(deg_merged, paste0(output_folder, "/DEG.csv"), row.names = FALSE)
+write.csv(deg_merged, paste0(output_folder, "/DA.csv"), row.names = FALSE)
