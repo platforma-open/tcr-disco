@@ -67,6 +67,7 @@ const selection = ref<PlSelectionModel>({
   selectedKeys: [],
 });
 
+// @TODO: Pending to improve this
 // Reset graph maker state to allow new selection of defaults
 watch(() => app.model.ui.selectedChain, (_) => {
   delete app.model.ui.graphState.optionsState;
