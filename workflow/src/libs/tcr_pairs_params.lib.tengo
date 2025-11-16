@@ -1,0 +1,84 @@
+ll := import("@platforma-sdk/workflow-tengo:ll")
+math := import("math")
+
+getColumns := func(countsSpecAlpha, countsSpecBeta, inputType) {
+	field := "differentialTCRAbundance"
+	degName := "log2foldchange"
+
+	axes := [
+			{
+				column: "Contrast",
+				id: "contrast",
+				allowNA: false,
+				spec: {
+					name: "pl7.app/" + field + "/contrastGroup",
+					type: "String",
+					annotations: {
+						"pl7.app/label": inputType + " Contrast"
+					}
+				}
+			},
+			{
+				column: "tra",
+				spec: countsSpecAlpha.axesSpec[1]
+			},
+			{
+				column: "trb",
+				spec: countsSpecBeta.axesSpec[1]
+			}
+			]
+
+	columns := [
+			{
+				column: "estimate",
+				id: "estimate",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/" + field + "/estimate",
+					valueType: "Double",
+					annotations: {
+						"pl7.app/label": inputType + " Estimate",
+						"pl7.app/table/orderPriority": "70"
+					}
+				}
+			},
+			{
+				column: "p.value",
+				id: "pvalue",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/" + field + "/pvalue",
+					valueType: "Double",
+					annotations: {
+						"pl7.app/label": inputType + " P-value",
+						"pl7.app/table/orderPriority": "60",
+						"pl7.app/graph/axis/symmetricRange": "0"
+					}
+				}
+			},
+			{
+				column: "p.adj",
+				id: "padj",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/" + field + "/padj",
+					valueType: "Double",
+					annotations: {
+						"pl7.app/label": inputType + " Adjusted p-value",
+						"pl7.app/table/orderPriority": "50"
+					}
+				}
+			}
+			]
+
+	return {
+		axes: axes,
+		columns: columns,
+		"storageFormat": "Parquet",
+		"partitionKeyLength": 1
+	}
+}
+
+export ll.toStrict({
+	getColumns: getColumns
+})

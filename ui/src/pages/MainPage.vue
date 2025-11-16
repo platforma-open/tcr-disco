@@ -158,6 +158,12 @@ watch(() => [app.model.args.contrastFactor], (_) => {
       label="Denominator"
       required
     />
+    <PlDropdown
+      v-model="app.model.args.sampleIdCol"
+      :options="metadataLabelOptions"
+      label="Select Sample ID column"
+      clearable
+    />
     <PlCheckbox v-model="app.model.args.findTcrAbPairs">
       Find TCR AB pairs
     </PlCheckbox>
