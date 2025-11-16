@@ -59,6 +59,30 @@
             "/app/main.R"
           ]
         }
+      },
+      "tcr-ab-pairs": {
+        "binary": {
+          "artifact": {
+            "type": "R",
+            "registry": "platforma-open",
+            "environment": "@platforma-open/milaboratories.runenv-r-differential-expression:main",
+            "root": "./src/tcr-disco"
+          },
+          "cmd": [
+            "Rscript",
+            "{pkg}/find-pairs.R"
+          ]
+        },
+        "docker": {
+          "artifact": {
+            "type": "docker",
+            "context": "./src/tcr-disco",
+            "dockerfile": "Dockerfile"
+          },
+          "cmd": [
+            "/app/find-pairs.R"
+          ]
+        }
       }
     }
   },

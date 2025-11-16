@@ -21,6 +21,7 @@ import {
 
 export type UiState = {
   tableState: PlDataTableStateV2;
+  pairsTableState: PlDataTableStateV2;
   title?: string;
   selectedChain?: 'alpha' | 'beta';
   graphState: GraphMakerState;
@@ -51,6 +52,7 @@ export type BlockArgs = {
   contrastFactor?: PlRef;
   numerators: string[];
   denominator?: string;
+  sampleIdCol?: string;
   findTcrAbPairs: boolean;
   thresholdCounts: number;
   thresholdSamples: number;
@@ -73,8 +75,13 @@ export const model = BlockModel.create()
   .withUiState<UiState>({
     title: 'TCR Disco Enrichment',
     tableState: createPlDataTableStateV2(),
+    pairsTableState: createPlDataTableStateV2(),
     selectedChain: 'alpha',
-    graphState: {},
+    graphState: {
+      title: 'TCR Volcano',
+      template: 'dots',
+      currentTab: null,
+    },
     alignmentModel: {},
   })
 
@@ -87,7 +94,8 @@ export const model = BlockModel.create()
       && (ctx.args.log2FcThreshold !== undefined)
       && (ctx.args.pAdjThreshold !== undefined)
       && (ctx.args.thresholdCounts !== undefined)
-      && (ctx.args.thresholdSamples !== undefined))
+      && (ctx.args.thresholdSamples !== undefined)
+      && (ctx.args.sampleIdCol !== undefined))
   ))
 
   // Allow user to choose Alpha chain, will pick beta if available
@@ -138,6 +146,28 @@ export const model = BlockModel.create()
     const selectedChain = ctx.uiState?.selectedChain ?? 'alpha';
     const outputName = selectedChain === 'alpha' ? 'topDegPFAlpha' : 'topDegPFBeta';
     const pCols = ctx.outputs?.resolve(outputName)?.getPColumns();
+    if (pCols === undefined || pCols.length === 0) {
+      return undefined;
+    }
+
+    // Get unique partition keys if available
+    const partitionKeys = getUniquePartitionKeys(pCols[0].data)?.[0];
+    if (!partitionKeys) return undefined;
+
+    return [createPlDataTableSheet(ctx, pCols[0].spec.axesSpec[0], partitionKeys)];
+  })
+
+  .output('pairsPt', (ctx) => {
+    const pCols = ctx.outputs?.resolve('pairsPF')?.getPColumns();
+    if (pCols === undefined) {
+      return undefined;
+    }
+
+    return createPlDataTableV2(ctx, pCols, ctx.uiState?.pairsTableState);
+  })
+
+  .output('pairsSheets', (ctx) => {
+    const pCols = ctx.outputs?.resolve('pairsPF')?.getPColumns();
     if (pCols === undefined || pCols.length === 0) {
       return undefined;
     }
@@ -202,10 +232,18 @@ export const model = BlockModel.create()
 
   .title((ctx) => ctx.uiState?.title ?? 'TCR Disco Enrichment')
 
-  .sections((_ctx) => [
-    { type: 'link', href: '/', label: 'Main' },
-    { type: 'link', href: '/graph', label: 'Volcano plot' },
-  ])
+  .sections((ctx) => {
+    const sections: Array<{ type: 'link'; href: `/${string}`; label: string }> = [
+      { type: 'link' as const, href: '/' as const, label: 'Main' },
+      { type: 'link' as const, href: '/graph' as const, label: 'Volcano plot' },
+    ];
+
+    if (ctx.args.findTcrAbPairs) {
+      sections.push({ type: 'link' as const, href: '/pairs' as const, label: 'TCR AB Pairs' });
+    }
+
+    return sections;
+  })
 
   .done(2);
 

@@ -7,14 +7,14 @@ suppressMessages(library("optparse"))
 
 # Required functions
 # 1.  *run DESeq2*
-run_deseq = function(main_beta_table, covariates_table, contrast_col,
+run_deseq = function(main_table, covariates_table, contrast_col,
   numerator, denominator, output_folder, fraction_for_filter, min_counts, threshold_counts,
   fdr_cut, fc_cut) {
 
   # Aggregate counts by internalSampleId and clonotypeKey
   # Use clonotypeKey first to match group_by order
   aggregated <- aggregate(count ~ clonotypeKey + internalSampleId, 
-                          data = main_beta_table, FUN = sum)
+                          data = main_table, FUN = sum)
   
   # Get unique values in the order they first appear in aggregated (matches group_by + summarise order)
   unique_clonotypes <- unique(aggregated$clonotypeKey)
@@ -104,7 +104,7 @@ run_deseq = function(main_beta_table, covariates_table, contrast_col,
   # Also filter by threshold: only keep clonotypes that pass threshold criteria
   deg_df <- res_df[
     res_df$padj <= fdr_cut & abs(res_df$log2FoldChange) >= fc_cut & res_df$clonotypeKey %in% passing_clonotypes,
-    c("clonotypeKey", "Contrast", "log2FoldChange", "Regulation")
+    c("clonotypeKey", "Contrast", "log2FoldChange", "Regulation", "Numerator")
   ]
   # Filter out counts without ID
   deg_df <- deg_df[!is.na(deg_df["clonotypeKey"]), ]

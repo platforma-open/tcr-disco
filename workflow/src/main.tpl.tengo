@@ -10,9 +10,11 @@ pSpec := import("@platforma-sdk/workflow-tengo:pframes.spec")
 json := import("json")
 
 tcrAnalysisTpl := assets.importTemplate(":tcr-analysis")
+tcrAbPairsTpl := assets.importTemplate(":tcr-ab-pairs")
 
 topTablePfconvParamsLib := import(":libs.top_table_pfconv_params")
 generalDaPfconvLib := import(":libs.general_da_pfconv")
+tcrPairsParamsLib := import(":libs.tcr_pairs_params")
 
 mapToPValueData := func(map) {
 	data := {}
@@ -180,6 +182,7 @@ wf.body(func(args) {
 	columns := args.columns
 	denominator := string(args.denominator)
 	cdSubsetCol := args.cdSubsetCol
+	sampleIdCol := args.sampleIdCol
 	thresholdCounts := args.thresholdCounts
 	thresholdSamples := args.thresholdSamples
 	log2FcThreshold := args.log2FcThreshold
@@ -201,6 +204,7 @@ wf.body(func(args) {
 	// Get the main dataset
 	mainAlpha := columns.getColumn(args.mainRef)
 	mainAlphaSpec := mainAlpha.spec
+	ll.print("__THE_LOG__: mainAlphaSpec: %v", mainAlphaSpec)
 	mainAlphaClonoStructure := mainAlphaSpec.axesSpec[1].domain["pl7.app/vdj/clonotypeKey/structure"]
 	// Get counts block id from mainAlpha key
 	countsBlockId := mainAlphaSpec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
@@ -242,6 +246,7 @@ wf.body(func(args) {
 		if colChain == "TCRBeta" && colBlockId == countsBlockId && clonoStructure == mainAlphaClonoStructure {
 			mainBetaTable.add(countCol, {header: "count"})
 			mainBetaSpec = countCol.spec
+			ll.print("__THE_LOG__: mainBetaSpec: %v", mainBetaSpec)
 		}
 	}
 	for fractionCol in columns.getColumns("mainFractions") {
@@ -402,6 +407,46 @@ wf.body(func(args) {
 		ll.panic("\n\nNot yet supported input data. Please contact Milaboratories to include it:\n%v\n", mainAlphaSpec)
 	}
 
+	// Run TCR AB pairing if stated
+	pairsTsvFile := undefined
+	pairsPF := undefined
+	if args.findTcrAbPairs && mainBetaSpec != undefined {
+		tcrAbPairs := render.create(tcrAbPairsTpl, {
+			mainAlphaTsv: mainAlphaTsv,
+			mainBetaTsv: mainBetaTsv,
+			daFileAlphaCsv: daFileAlpha,
+			daFileBetaCsv: daFileBeta,
+			metadataTsv: metadataTsv,
+			contrastColLabel: contrastColLabel,
+			sampleIdCol: sampleIdCol,
+			log2FcThreshold: log2FcThreshold,
+			pAdjThreshold: pAdjThreshold
+		})
+		pairsTsvFile = tcrAbPairs.output("pairsTsvFile")
+		
+		// Convert pairs TSV to PFrame
+		pairsImportParams := tcrPairsParamsLib.getColumns(copy(mainAlphaSpec), copy(mainBetaSpec), inputType)
+		pairsPf := xsv.importFile(pairsTsvFile, "tsv", pairsImportParams, 
+			{splitDataAndSpec: true, mem: defaultConvMem, cpu: defaultConvCpu})
+		
+		// Build PFrame for pairs
+		pairsPframeBuilder := pframes.pFrameBuilder()
+		pairsTrace := pSpec.makeTrace(mainAlphaSpec,
+			{type: "milaboratories.tcr-disco-enrichment", importance: 30, 
+			label: "TCR AB Pairs - Denominator: " + denominator + " (log2FC: " + log2FcThreshold + ", pAdj: " + pAdjThreshold + ")"}
+		)
+		
+		for columnName, value in pairsPf {
+			columnData := value.data
+			pairsPframeBuilder.add(
+				columnName,
+				pairsTrace.inject(value.spec),
+				columnData
+			)
+		}
+		pairsPF = pairsPframeBuilder.build()
+	}
+
 	// Process alpha chain results
 	processChainResults(mainAlphaSpec, inputType, log2FcThreshold, pAdjThreshold,
 						trace, blockId, topTableFileAlpha, daFileAlpha, defaultConvMem, defaultConvCpu, 
@@ -448,7 +493,8 @@ wf.body(func(args) {
 	return {
 		outputs: {
 			topDegPFAlpha: pframes.exportFrame(topDegPFAlpha),
-			topDegPFBeta: pframes.exportFrame(topDegPFBeta)
+			topDegPFBeta: pframes.exportFrame(topDegPFBeta),
+			pairsPF: pframes.exportFrame(pairsPF)
 		},
 		exports: {}
 	}
