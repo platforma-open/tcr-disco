@@ -7,6 +7,7 @@ import {
   PlBlockPage,
   PlBtnGhost,
   PlBtnGroup,
+  PlCheckbox,
   PlDropdown,
   PlDropdownMulti,
   PlDropdownRef,
@@ -157,6 +158,9 @@ watch(() => [app.model.args.contrastFactor], (_) => {
       label="Denominator"
       required
     />
+    <PlCheckbox v-model="app.model.args.findTcrAbPairs">
+      Find TCR AB pairs
+    </PlCheckbox>
 
     <!-- Content hidden until you click -->
     <PlAccordionSection label="CD4/8 subset assignment">

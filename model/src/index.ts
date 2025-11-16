@@ -51,6 +51,7 @@ export type BlockArgs = {
   contrastFactor?: PlRef;
   numerators: string[];
   denominator?: string;
+  findTcrAbPairs: boolean;
   thresholdCounts: number;
   thresholdSamples: number;
   log2FcThreshold: number;
@@ -62,6 +63,7 @@ export const model = BlockModel.create()
   .withArgs<BlockArgs>({
     covariateRefs: [],
     numerators: [],
+    findTcrAbPairs: false,
     thresholdCounts: 0,
     thresholdSamples: 0,
     log2FcThreshold: 0.5,
