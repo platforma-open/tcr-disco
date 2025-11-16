@@ -6,6 +6,7 @@ import {
   PlAgDataTableV2,
   PlBlockPage,
   PlBtnGhost,
+  PlBtnGroup,
   PlDropdown,
   PlDropdownMulti,
   PlDropdownRef,
@@ -100,6 +101,13 @@ watch(() => [app.model.args.contrastFactor], (_) => {
   <PlBlockPage>
     <template #title>{{ app.model.ui.title }}</template>
     <template #append>
+      <PlBtnGroup
+        v-model="app.model.ui.selectedChain"
+        :options="[
+          { value: 'alpha', label: 'Alpha' },
+          { value: 'beta', label: 'Beta' },
+        ]"
+      />
       <PlBtnGhost @click.stop="showSettings">
         Settings
         <template #append>
