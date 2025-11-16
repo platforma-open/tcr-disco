@@ -225,15 +225,11 @@ deseq_results_beta <- run_deseq(main_beta_table, covariates_table, contrast_col,
 res_beta <- deseq_results_beta$res_df
 deg_beta <- deseq_results_beta$deg_df
 
-# Merge results from both chains adding a chain column
-res_merged <- rbind(res_alpha, res_beta)
-res_merged$Chain <- c(rep("alpha", nrow(res_alpha)), rep("beta", nrow(res_beta)))
-deg_merged <- rbind(deg_alpha, deg_beta)
-deg_merged$Chain <- c(rep("alpha", nrow(deg_alpha)), rep("beta", nrow(deg_beta)))
-
 # Save merged results
 if (!dir.exists(output_folder)) {
   dir.create(output_folder, recursive = TRUE)
 }
-write.csv(res_merged, paste0(output_folder, "/topTable.csv"), row.names = FALSE)
-write.csv(deg_merged, paste0(output_folder, "/DA.csv"), row.names = FALSE)
+write.csv(res_alpha, paste0(output_folder, "/topTable_alpha.csv"), row.names = FALSE)
+write.csv(deg_alpha, paste0(output_folder, "/DA_alpha.csv"), row.names = FALSE)
+write.csv(res_beta, paste0(output_folder, "/topTable_beta.csv"), row.names = FALSE)
+write.csv(deg_beta, paste0(output_folder, "/DA_beta.csv"), row.names = FALSE)

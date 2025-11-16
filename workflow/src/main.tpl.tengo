@@ -29,6 +29,44 @@ createJsonPColumnData := func(data) {
 	return smart.createValueResource({ Name: "PColumnData/Json", Version: "1" }, data)
 }
 
+// Helper function to process results for one chain type
+processChainResults := func(mainSpec, inputType, log2FcThreshold, pAdjThreshold, trace,
+blockId, topTableFile, daFile, defaultConvMem, defaultConvCpu, degBuilder, 
+							regDirBuilder, topDegBuilder) {
+	topTableImportParams := topTablePfconvParamsLib.getColumns(copy(mainSpec), inputType,
+															log2FcThreshold,
+															pAdjThreshold)
+	topTablePf := xsv.importFile(topTableFile, "csv", topTableImportParams, 
+														// This changes output format from default to per column
+														// So key will be column name and values spec and data
+														{splitDataAndSpec: true, mem: defaultConvMem, cpu: defaultConvCpu})
+
+	// Add DEG export with specific import params. Adding new csv output to script with only DEGs and logFC
+	degImportParams := generalDaPfconvLib.getColumns(mainSpec, blockId, inputType)
+	degPf := xsv.importFile(daFile, "csv", degImportParams, {mem: defaultConvMem, cpu: defaultConvCpu})
+	
+	for columnName, value in topTablePf { 
+		columnData := value.data
+		topDegBuilder.add(
+			columnName,
+			trace.inject(value.spec),
+			columnData
+		)
+	}
+
+	degBuilder.add(
+		"Log2FC",
+		trace.inject(degPf["log2foldchange.spec"]),
+		degPf["log2foldchange.data"]
+	)
+
+	regDirBuilder.add(
+		"Regulation Direction",
+		trace.inject(degPf["regulationDirection.spec"]),
+		degPf["regulationDirection.data"]
+	)
+}
+
 wf.prepare(func(args) {
 	bundleBuilder := wf.createPBundleBuilder()
 	
@@ -163,6 +201,7 @@ wf.body(func(args) {
 	// Get the main dataset
 	mainAlpha := columns.getColumn(args.mainRef)
 	mainAlphaSpec := mainAlpha.spec
+	mainAlphaClonoStructure := mainAlphaSpec.axesSpec[1].domain["pl7.app/vdj/clonotypeKey/structure"]
 	// Get counts block id from mainAlpha key
 	countsBlockId := mainAlphaSpec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
 	
@@ -195,26 +234,29 @@ wf.body(func(args) {
 	mainBetaTable := pframes.tsvFileBuilder()
 	mainBetaTable.setAxisHeader("pl7.app/sampleId", "internalSampleId")
 	mainBetaTable.setAxisHeader(mainAlphaSpec.axesSpec[1].name, "clonotypeKey")
-	prefix := "mainCounts"
-	mainCountCols := columns.getColumns(prefix)
-	for countCol in mainCountCols {
+	mainBetaSpec := undefined
+	for countCol in columns.getColumns("mainCounts") {
 		colChain := countCol.spec.axesSpec[1].domain["pl7.app/vdj/chain"]
 		colBlockId := countCol.spec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
-		if colChain == "TCRBeta" && colBlockId == countsBlockId {
+		clonoStructure := countCol.spec.axesSpec[1].domain["pl7.app/vdj/clonotypeKey/structure"]
+		if colChain == "TCRBeta" && colBlockId == countsBlockId && clonoStructure == mainAlphaClonoStructure {
 			mainBetaTable.add(countCol, {header: "count"})
+			mainBetaSpec = countCol.spec
 		}
 	}
 	for fractionCol in columns.getColumns("mainFractions") {
 		colChain := fractionCol.spec.axesSpec[1].domain["pl7.app/vdj/chain"]
 		colBlockId := fractionCol.spec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
-		if colChain == "TCRBeta" && colBlockId == countsBlockId {
+		clonoStructure := fractionCol.spec.axesSpec[1].domain["pl7.app/vdj/clonotypeKey/structure"]
+		if colChain == "TCRBeta" && colBlockId == countsBlockId && clonoStructure == mainAlphaClonoStructure {
 			mainBetaTable.add(fractionCol, {header: "fraction"})
 		}
 	}
 	for cdr3Col in columns.getColumns("otherCdr3s") {
 		colChain := cdr3Col.spec.axesSpec[0].domain["pl7.app/vdj/chain"]
 		colBlockId := cdr3Col.spec.axesSpec[0].domain["pl7.app/vdj/clonotypingRunId"]
-		if colChain == "TCRBeta" && colBlockId == countsBlockId {
+		clonoStructure := cdr3Col.spec.axesSpec[0].domain["pl7.app/vdj/clonotypeKey/structure"]
+		if colChain == "TCRBeta" && colBlockId == countsBlockId && clonoStructure == mainAlphaClonoStructure {
 			if cdr3Col.spec.domain["pl7.app/alphabet"] == "aminoacid" {
 				mainBetaTable.add(cdr3Col, {header: "CDR3aa"})
 			} else if cdr3Col.spec.domain["pl7.app/alphabet"] == "nucleotide" {
@@ -225,7 +267,8 @@ wf.body(func(args) {
 	for vGeneCol in columns.getColumns("otherVDJGenes") {
 		colChain := vGeneCol.spec.axesSpec[0].domain["pl7.app/vdj/chain"]
 		colBlockId := vGeneCol.spec.axesSpec[0].domain["pl7.app/vdj/clonotypingRunId"]
-		if colChain == "TCRBeta" && colBlockId == countsBlockId {
+		clonoStructure := vGeneCol.spec.axesSpec[0].domain["pl7.app/vdj/clonotypeKey/structure"]
+		if colChain == "TCRBeta" && colBlockId == countsBlockId && clonoStructure == mainAlphaClonoStructure {
 			if vGeneCol.spec.domain["pl7.app/vdj/reference"] == "VGene" {
 				mainBetaTable.add(vGeneCol, {header: "VGene"})
 			} else if vGeneCol.spec.domain["pl7.app/vdj/reference"] == "JGene" {
@@ -253,6 +296,7 @@ wf.body(func(args) {
 	if args.cdRef != undefined {
 		cdAlpha := columns.getColumn(args.cdRef)
 		cdAlphaSpec := cdAlpha.spec
+		cdAlphaClonoStructure := cdAlphaSpec.axesSpec[1].domain["pl7.app/vdj/clonotypeKey/structure"]
 		// Get counts block id from mainAlpha key
 		cdCountsBlockId := cdAlphaSpec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
 		
@@ -275,21 +319,24 @@ wf.body(func(args) {
 		for countCol in columns.getColumns("mainCounts") {
 			colChain := countCol.spec.axesSpec[1].domain["pl7.app/vdj/chain"]
 			colBlockId := countCol.spec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
-			if colChain == "TCRBeta" && colBlockId == cdCountsBlockId {
+			clonoStructure := countCol.spec.axesSpec[1].domain["pl7.app/vdj/clonotypeKey/structure"]
+			if colChain == "TCRBeta" && colBlockId == cdCountsBlockId && clonoStructure == cdAlphaClonoStructure {
 				cdBetaTable.add(countCol, {header: "count"})
 			}
 		}
 		for fractionCol in columns.getColumns("mainFractions") {
 			colChain := fractionCol.spec.axesSpec[1].domain["pl7.app/vdj/chain"]
 			colBlockId := fractionCol.spec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
-			if colChain == "TCRBeta" && colBlockId == cdCountsBlockId {
+			clonoStructure := fractionCol.spec.axesSpec[1].domain["pl7.app/vdj/clonotypeKey/structure"]
+			if colChain == "TCRBeta" && colBlockId == cdCountsBlockId && clonoStructure == cdAlphaClonoStructure {
 				cdBetaTable.add(fractionCol, {header: "fraction"})
 			}
 		}
 		for cdr3Col in columns.getColumns("otherCdr3s") {
 			colChain := cdr3Col.spec.axesSpec[0].domain["pl7.app/vdj/chain"]
 			colBlockId := cdr3Col.spec.axesSpec[0].domain["pl7.app/vdj/clonotypingRunId"]
-			if colChain == "TCRBeta" && colBlockId == cdCountsBlockId {
+			clonoStructure := cdr3Col.spec.axesSpec[0].domain["pl7.app/vdj/clonotypeKey/structure"]
+			if colChain == "TCRBeta" && colBlockId == cdCountsBlockId && clonoStructure == cdAlphaClonoStructure {
 				if cdr3Col.spec.domain["pl7.app/alphabet"] == "aminoacid" {
 					cdBetaTable.add(cdr3Col, {header: "CDR3aa"})
 				} 
@@ -298,7 +345,8 @@ wf.body(func(args) {
 		for vGeneCol in columns.getColumns("otherVDJGenes") {
 			colChain := vGeneCol.spec.axesSpec[0].domain["pl7.app/vdj/chain"]
 			colBlockId := vGeneCol.spec.axesSpec[0].domain["pl7.app/vdj/clonotypingRunId"]
-			if colChain == "TCRBeta" && colBlockId == cdCountsBlockId {
+			clonoStructure := vGeneCol.spec.axesSpec[0].domain["pl7.app/vdj/clonotypeKey/structure"]
+			if colChain == "TCRBeta" && colBlockId == cdCountsBlockId && clonoStructure == cdAlphaClonoStructure {
 				if vGeneCol.spec.domain["pl7.app/vdj/reference"] == "VGene" {
 				cdBetaTable.add(vGeneCol, {header: "VGene"})
 				}
@@ -327,13 +375,18 @@ wf.body(func(args) {
 		pAdjThreshold: pAdjThreshold
 	})
 	
-	topTableFile := tcrAnalysis.output("topTableFile")
-	daFile := tcrAnalysis.output("daFile")
+	topTableFileAlpha := tcrAnalysis.output("topTableFileAlpha")
+	topTableFileBeta := tcrAnalysis.output("topTableFileBeta")
+	daFileAlpha := tcrAnalysis.output("daFileAlpha")
+	daFileBeta := tcrAnalysis.output("daFileBeta")
 
 	////////////////// Spec preparation ////////////////
-	degPframeBuilder := pframes.pFrameBuilder()
-	regDirPframeBuilder := pframes.pFrameBuilder()
-	topDegPframeBuilder := pframes.pFrameBuilder()
+	degPframeBuilderAlpha := pframes.pFrameBuilder()
+	degPframeBuilderBeta := pframes.pFrameBuilder()
+	regDirPframeBuilderAlpha := pframes.pFrameBuilder()
+	regDirPframeBuilderBeta := pframes.pFrameBuilder()
+	topDegPframeBuilderAlpha := pframes.pFrameBuilder()
+	topDegPframeBuilderBeta := pframes.pFrameBuilder()
 
 	trace := pSpec.makeTrace(mainAlphaSpec,
 			{type: "milaboratories.tcr-disco-enrichment", importance: 30, 
@@ -349,17 +402,17 @@ wf.body(func(args) {
 		ll.panic("\n\nNot yet supported input data. Please contact Milaboratories to include it:\n%v\n", mainAlphaSpec)
 	}
 
-	topTableImportParams := topTablePfconvParamsLib.getColumns(copy(mainAlphaSpec), inputType,
-															log2FcThreshold,
-															pAdjThreshold)
-	topTablePf := xsv.importFile(topTableFile, "csv", topTableImportParams, 
-														// This changes output format from default to per column
-														// So key will be column name and values spec and data
-														{splitDataAndSpec: true, mem: defaultConvMem, cpu: defaultConvCpu})
+	// Process alpha chain results
+	processChainResults(mainAlphaSpec, inputType, log2FcThreshold, pAdjThreshold,
+						trace, blockId, topTableFileAlpha, daFileAlpha, defaultConvMem, defaultConvCpu, 
+						degPframeBuilderAlpha, regDirPframeBuilderAlpha, topDegPframeBuilderAlpha)
 
-	// Add DEG export with specific import params. Adding new csv output to script with only DEGs and logFC
-	degImportParams := generalDaPfconvLib.getColumns(mainAlphaSpec, blockId, inputType)
-	DegPf := xsv.importFile(daFile, "csv", degImportParams, {mem: defaultConvMem, cpu: defaultConvCpu})
+	// Process beta chain results (only if beta data exists)
+	if mainBetaSpec != undefined {
+		processChainResults(mainBetaSpec, inputType, log2FcThreshold, pAdjThreshold,
+							trace, blockId, topTableFileBeta, daFileBeta, defaultConvMem, defaultConvCpu, 
+							degPframeBuilderBeta, regDirPframeBuilderBeta, topDegPframeBuilderBeta)
+	}
 
 	// Create contrast label Pcolumn
 	contrastExport := {
@@ -384,36 +437,18 @@ wf.body(func(args) {
 		},
 		data: createJsonPColumnData(json.encode(mapToPValueData(tcrAnalysis.output("contrastMap"))))
 	}
-	
-	for columnName, value in topTablePf { 
-		columnData := value.data
-		topDegPframeBuilder.add(
-			columnName,
-			trace.inject(value.spec),
-			columnData
-		)
+
+	// Build separate PFrames for alpha and beta
+	topDegPFAlpha := topDegPframeBuilderAlpha.build()
+	topDegPFBeta := undefined
+	if mainBetaSpec != undefined {
+		topDegPFBeta = topDegPframeBuilderBeta.build()
 	}
-
-	degPframeBuilder.add(
-		"Log2FC",
-		trace.inject(DegPf["log2foldchange.spec"]),
-		DegPf["log2foldchange.data"]
-	)
-
-	regDirPframeBuilder.add(
-		"Regulation Direction",
-		trace.inject(DegPf["regulationDirection.spec"]),
-		DegPf["regulationDirection.data"]
-	)
-
-	// Build the final PFrames
-	degPF := degPframeBuilder.build()
-	topDegPF := topDegPframeBuilder.build()
-	regDirPF := regDirPframeBuilder.build()
 
 	return {
 		outputs: {
-			topDegPF: pframes.exportFrame(topDegPF)
+			topDegPFAlpha: pframes.exportFrame(topDegPFAlpha),
+			topDegPFBeta: pframes.exportFrame(topDegPFBeta)
 		},
 		exports: {}
 	}

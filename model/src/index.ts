@@ -15,6 +15,7 @@ import {
 export type UiState = {
   tableState: PlDataTableStateV2;
   title?: string;
+  selectedChain?: 'alpha' | 'beta';
 };
 
 export type BlockArgs = {
@@ -46,6 +47,7 @@ export const model = BlockModel.create()
   .withUiState<UiState>({
     title: 'TCR Disco Enrichment',
     tableState: createPlDataTableStateV2(),
+    selectedChain: 'alpha',
   })
 
   .argsValid((ctx) => (
@@ -94,7 +96,9 @@ export const model = BlockModel.create()
   })
 
   .output('pt', (ctx) => {
-    const pCols = ctx.outputs?.resolve('topDegPF')?.getPColumns();
+    const selectedChain = ctx.uiState?.selectedChain ?? 'alpha';
+    const outputName = selectedChain === 'alpha' ? 'topDegPFAlpha' : 'topDegPFBeta';
+    const pCols = ctx.outputs?.resolve(outputName)?.getPColumns();
     if (pCols === undefined) {
       return undefined;
     }
@@ -103,7 +107,9 @@ export const model = BlockModel.create()
   })
 
   .output('sheets', (ctx) => {
-    const pCols = ctx.outputs?.resolve('topDegPF')?.getPColumns();
+    const selectedChain = ctx.uiState?.selectedChain ?? 'alpha';
+    const outputName = selectedChain === 'alpha' ? 'topDegPFAlpha' : 'topDegPFBeta';
+    const pCols = ctx.outputs?.resolve(outputName)?.getPColumns();
     if (pCols === undefined || pCols.length === 0) {
       return undefined;
     }

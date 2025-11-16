@@ -25,16 +25,6 @@ getColumns := func(countsSpec, inputType, log2FCThreshold, pAdjFCThreshold) {
 				}
 			},
 			{
-				column: "Chain",
-				spec: {
-					name: "pl7.app/" + field + "/chain",
-					type: "String",
-					annotations: {
-						"pl7.app/label": "Chain"
-					}
-				}
-			},
-			{
 				column: "clonotypeKey",
 				spec: countsSpec.axesSpec[1]
 			}
@@ -153,7 +143,7 @@ getColumns := func(countsSpec, inputType, log2FCThreshold, pAdjFCThreshold) {
 		axes: axes,
 		columns: columns,
 		"storageFormat": "Parquet",
-		"partitionKeyLength": 2
+		"partitionKeyLength": 1
 	}
 }
 

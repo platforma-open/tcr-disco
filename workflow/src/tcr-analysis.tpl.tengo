@@ -25,7 +25,7 @@ self.validateInputs({
 	"pAdjThreshold": "number"
 })
 
-self.defineOutputs("topTableFile","daFile","contrastMap")
+self.defineOutputs("topTableFileAlpha","topTableFileBeta","daFileAlpha","daFileBeta","contrastMap")
 
 self.body(func(inputs) {
 
@@ -68,8 +68,10 @@ self.body(func(inputs) {
 
 	// run differential analysis per numerator
 	wf := pt.workflow().cpu(1).mem("2GiB")
-	dfsDeg := []
-	dfsTopTable := []
+	dfsDegAlpha := []
+	dfsDegBeta := []
+	dfsTopTableAlpha := []
+	dfsTopTableBeta := []
 	contrastMap := {}
 	for numerator in inputs.numerators {
 		numerator = string(numerator)
@@ -90,23 +92,33 @@ self.body(func(inputs) {
 			arg("--threshold_counts").arg(string(thresholdCounts)).
 			arg("-s").arg(string(thresholdSamples)).
 			arg("-o").arg(".").
-			saveFile("DA.csv").
-			saveFile("topTable.csv").
+			saveFile("DA_alpha.csv").
+			saveFile("topTable_alpha.csv").
+			saveFile("DA_beta.csv").
+			saveFile("topTable_beta.csv").
 			run()
 
-		dfsDeg += [wf.frame(diffExec.getFile("DA.csv"), {xsvType: "csv", inferSchema: false})]
-		dfsTopTable += [wf.frame(diffExec.getFile("topTable.csv"), {xsvType: "csv", inferSchema: false})]
+		dfsDegAlpha += [wf.frame(diffExec.getFile("DA_alpha.csv"), {xsvType: "csv", inferSchema: false})]
+		dfsTopTableAlpha += [wf.frame(diffExec.getFile("topTable_alpha.csv"), {xsvType: "csv", inferSchema: false})]
+		dfsDegBeta += [wf.frame(diffExec.getFile("DA_beta.csv"), {xsvType: "csv", inferSchema: false})]
+		dfsTopTableBeta += [wf.frame(diffExec.getFile("topTable_beta.csv"), {xsvType: "csv", inferSchema: false})]
 	}
 	// Concatenate all DEG and topTable files
-	concatenatedDeg := pt.concat(dfsDeg)
-	concatenatedDeg.save("concatenated_output_DA.csv")
-	concatenatedTopTable := pt.concat(dfsTopTable)
-	concatenatedTopTable.save("concatenated_output_topTable.csv")
+	concatenatedDegAlpha := pt.concat(dfsDegAlpha)
+	concatenatedDegAlpha.save("concatenated_output_DA_alpha.csv")
+	concatenatedTopTableAlpha := pt.concat(dfsTopTableAlpha)
+	concatenatedTopTableAlpha.save("concatenated_output_topTable_alpha.csv")
+	concatenatedDegBeta := pt.concat(dfsDegBeta)
+	concatenatedDegBeta.save("concatenated_output_DA_beta.csv")
+	concatenatedTopTableBeta := pt.concat(dfsTopTableBeta)
+	concatenatedTopTableBeta.save("concatenated_output_topTable_beta.csv")
 	ptablerResult := wf.run()
 
 	return {
-		topTableFile: ptablerResult.getFile("concatenated_output_topTable.csv"),
-		daFile: ptablerResult.getFile("concatenated_output_DA.csv"),
+		topTableFileAlpha: ptablerResult.getFile("concatenated_output_topTable_alpha.csv"),
+		topTableFileBeta: ptablerResult.getFile("concatenated_output_topTable_beta.csv"),
+		daFileAlpha: ptablerResult.getFile("concatenated_output_DA_alpha.csv"),
+		daFileBeta: ptablerResult.getFile("concatenated_output_DA_beta.csv"),
 		contrastMap: contrastMap
 	}
 })
