@@ -1,10 +1,17 @@
+import type { GraphMakerState } from '@milaboratories/graph-maker';
 import type {
   InferOutputsType,
+  PColumn,
+  PColumnIdAndSpec,
+  PFrameHandle,
   PlDataTableStateV2,
+  PlMultiSequenceAlignmentModel,
   PlRef,
+  TreeNodeAccessor,
 } from '@platforma-sdk/model';
 import {
   BlockModel,
+  createPFrameForGraphs,
   createPlDataTableSheet,
   createPlDataTableStateV2,
   createPlDataTableV2,
@@ -16,7 +23,24 @@ export type UiState = {
   tableState: PlDataTableStateV2;
   title?: string;
   selectedChain?: 'alpha' | 'beta';
+  graphState: GraphMakerState;
+  alignmentModel: PlMultiSequenceAlignmentModel;
 };
+
+// Filter columns for volcano plot
+function filterPCols(
+  pCols: PColumn<TreeNodeAccessor>[]):
+  PColumn<TreeNodeAccessor>[] {
+  // Allow only log2 FC and -log10 Padjust as options for volcano axis
+  pCols = pCols.filter(
+    (col) => col.spec.name === 'pl7.app/differentialTCRAbundance/log2foldchange'
+      || col.spec.name === 'pl7.app/differentialTCRAbundance/minlog10padj'
+      || col.spec.name === 'pl7.app/differentialTCRAbundance/regulationDirection'
+      || col.spec.name === 'pl7.app/differentialTCRAbundance/contrastGroup'
+      || col.spec.name === 'pl7.app/differentialTCRAbundance/chain',
+  );
+  return pCols;
+}
 
 export type BlockArgs = {
   name?: string;
@@ -48,6 +72,8 @@ export const model = BlockModel.create()
     title: 'TCR Disco Enrichment',
     tableState: createPlDataTableStateV2(),
     selectedChain: 'alpha',
+    graphState: {},
+    alignmentModel: {},
   })
 
   .argsValid((ctx) => (
@@ -121,9 +147,63 @@ export const model = BlockModel.create()
     return [createPlDataTableSheet(ctx, pCols[0].spec.axesSpec[0], partitionKeys)];
   })
 
+  .output('topTablePf', (ctx): PFrameHandle | undefined => {
+    const selectedChain = ctx.uiState?.selectedChain ?? 'alpha';
+    const outputName = selectedChain === 'alpha' ? 'topDegPFAlpha' : 'topDegPFBeta';
+    let pCols = ctx.outputs?.resolve(outputName)?.getPColumns();
+    if (pCols === undefined) {
+      return undefined;
+    }
+
+    pCols = filterPCols(pCols);
+
+    return createPFrameForGraphs(ctx, pCols);
+  })
+
+  .output('topTablePcols', (ctx) => {
+    const selectedChain = ctx.uiState?.selectedChain ?? 'alpha';
+    const outputName = selectedChain === 'alpha' ? 'topDegPFAlpha' : 'topDegPFBeta';
+    let pCols = ctx.outputs?.resolve(outputName)?.getPColumns();
+    if (pCols === undefined) {
+      return undefined;
+    }
+    pCols = filterPCols(pCols);
+
+    return pCols.map(
+      (c) =>
+        ({
+          columnId: c.id,
+          spec: c.spec,
+        } satisfies PColumnIdAndSpec),
+    );
+  })
+
+  .output('msaPf', (ctx) => {
+    const selectedChain = ctx.uiState?.selectedChain ?? 'alpha';
+    const outputName = selectedChain === 'alpha' ? 'topDegPFAlpha' : 'topDegPFBeta';
+    const msaCols = ctx.outputs?.resolve(outputName)?.getPColumns();
+    if (!msaCols) return undefined;
+
+    const datasetRef = ctx.args.mainRef;
+    if (datasetRef === undefined)
+      return undefined;
+
+    const seqCols = ctx.resultPool.getAnchoredPColumns(
+      { main: datasetRef },
+      [{ axes: [{ anchor: 'main', idx: 1 }] }],
+    );
+    if (seqCols === undefined)
+      return undefined;
+
+    return createPFrameForGraphs(ctx, [...msaCols, ...seqCols]);
+  })
+
   .title((ctx) => ctx.uiState?.title ?? 'TCR Disco Enrichment')
 
-  .sections((_ctx) => [{ type: 'link', href: '/', label: 'Main' }])
+  .sections((_ctx) => [
+    { type: 'link', href: '/', label: 'Main' },
+    { type: 'link', href: '/graph', label: 'Volcano plot' },
+  ])
 
   .done(2);
 

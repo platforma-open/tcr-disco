@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@platforma-open/milaboratories.tcrdisco-enrichment.model": "workspace:*",
+    "@milaboratories/graph-maker": "catalog:",
     "@platforma-sdk/ui-vue": "catalog:",
     "@platforma-sdk/model": "catalog:",
     "vue": "catalog:"
