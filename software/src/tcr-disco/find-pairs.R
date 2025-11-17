@@ -8,14 +8,14 @@ suppressMessages(library("optparse"))
 # 1.  generate fraction matrices
 get_fraction_matrix = function(main_table) {
   # Generate frequency matrices for both alpha and beta
-  # Aggregate fractions by originalSampleId and clonotypeKey
+  # Aggregate fractions by useSampleId and clonotypeKey
   # Use clonotypeKey first to match group_by order
-  aggregated <- aggregate(fraction ~ clonotypeKey + originalSampleId, 
+  aggregated <- aggregate(fraction ~ clonotypeKey + useSampleId, 
                           data = main_table, FUN = sum)
 
   # Get unique values in the order they first appear in aggregated (matches group_by + summarise order)
   unique_clonotypes <- unique(aggregated$clonotypeKey)
-  unique_samples <- unique(aggregated$originalSampleId)
+  unique_samples <- unique(aggregated$useSampleId)
 
   # Create matrix with proper dimensions and fill with 0
   fraction_matrix <- matrix(0, 
@@ -25,7 +25,7 @@ get_fraction_matrix = function(main_table) {
 
   # Fill matrix with aggregated values using match for efficiency
   row_indices <- match(aggregated$clonotypeKey, unique_clonotypes)
-  col_indices <- match(aggregated$originalSampleId, unique_samples)
+  col_indices <- match(aggregated$useSampleId, unique_samples)
   fraction_matrix[cbind(row_indices, col_indices)] <- aggregated$fraction
 
   # Ensure it's a numeric matrix
@@ -37,12 +37,12 @@ get_fraction_matrix = function(main_table) {
 
 # 2.  find pairs
 find_pairs = function(deg_alpha_table, deg_beta_table, metadata_table, 
-      contrast_col, alpha_matrix, beta_matrix, num, sample_id_col) {
+      contrast_col, alpha_matrix, beta_matrix, num) {
   # samples related to the selected numerator
   alpha_clonotypes <- deg_alpha_table[deg_alpha_table$Numerator == num, "clonotypeKey"]
   beta_clonotypes <- deg_beta_table[deg_beta_table$Numerator == num, "clonotypeKey"]
   contrast_label <- unique(deg_alpha_table[deg_alpha_table$Numerator == num, "Contrast"])
-  numerator_samples <- metadata_table[metadata_table[,contrast_col] == num, sample_id_col]
+  numerator_samples <- metadata_table[metadata_table[,contrast_col] == num, "useSampleId"]
   alpha_matrix <- alpha_matrix[alpha_clonotypes, 
       colnames(alpha_matrix)[colnames(alpha_matrix) %in% numerator_samples], drop = FALSE]
   beta_matrix <- beta_matrix[beta_clonotypes, 
@@ -161,9 +161,8 @@ output_folder <- opt$output
 # da_alpha <- "/Users/julen/Downloads/miltenyi_test/oncolumn_TCR_discovery/platforma/0x5B60C6/forPairing/daAlpha.csv"
 # da_beta <- "/Users/julen/Downloads/miltenyi_test/oncolumn_TCR_discovery/platforma/0x5B60C6/forPairing/daBeta.csv"
 # contrast_col <- "ag"
-# output_folder <- "/Users/julen/Downloads/miltenyi_test/oncolumn_TCR_discovery/platforma/0x5B60C6/results"
-# contrast_col <- "ag"
-
+# output_folder <- "/Users/julen/Downloads/miltenyi_test/oncolumn_TCR_discovery/platforma/0x5B60C6/resultsPairing"
+# sample_id_col <- "Barcode ID"
 
 # Get from platforma
 # @TODO: Filters are not yet sued, implement them
@@ -172,13 +171,22 @@ estimate_cut <- 0.95
 
 ## 1.1. TCR Discovery
 # Load metadata
-metadata_table <- read.table(metadata, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+metadata_table <- read.table(metadata, header = TRUE, sep = "\t", stringsAsFactors = FALSE, check.names = FALSE)
 main_alpha_table <- read.table(main_alpha, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 main_beta_table <- read.table(main_beta, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 
-# Add original sample ID to the alpha and beta tables
-main_alpha_table$originalSampleId <- metadata_table[match(main_alpha_table$internalSampleId, metadata_table$internalSampleId), sample_id_col]
-main_beta_table$originalSampleId <- metadata_table[match(main_beta_table$internalSampleId, metadata_table$internalSampleId), sample_id_col]
+# check if sample_id_col is in metadata_table and if it has less values than internalSampleId
+main_alpha_table$useSampleId <- main_alpha_table$internalSampleId
+main_beta_table$useSampleId <- main_beta_table$internalSampleId
+if (sample_id_col %in% colnames(metadata_table)) {
+  if (length(unique(metadata_table[, sample_id_col])) < length(unique(metadata_table$internalSampleId))) {
+    # Add original sample ID to the alpha and beta tables
+    main_alpha_table$useSampleId <- metadata_table[match(main_alpha_table$internalSampleId, metadata_table$internalSampleId), sample_id_col]
+    main_beta_table$useSampleId <- metadata_table[match(main_beta_table$internalSampleId, metadata_table$internalSampleId), sample_id_col]
+
+    metadata_table$useSampleId <- metadata_table[, sample_id_col]
+  } 
+}
 
 print(paste("metadata file: ", metadata))
 print(paste("main alpha file: ", main_alpha))
@@ -191,7 +199,7 @@ print(paste("fc threshold: ", fc_cut))
 print(paste("fdr threshold: ", fdr_cut))
 print(paste("output folder: ", output_folder))
 # Make sure we have the same set of samples to compare
-if (!identical(sort(unique(main_alpha_table$originalSampleId)), sort(unique(main_beta_table$originalSampleId)))) {
+if (!identical(sort(unique(main_alpha_table$useSampleId)), sort(unique(main_beta_table$useSampleId)))) {
   stop("Error: The sets of samples in the alpha and beta tables are not the same")
 }
 # Get alpha/beta fraction matrices
@@ -208,10 +216,12 @@ numerators <- unique(c(deg_alpha_table$Numerator, deg_beta_table$Numerator))
 predicted_pairs_all <- data.frame()
 for (num in numerators) {
   predicted_pairs <- find_pairs(deg_alpha_table, deg_beta_table, metadata_table, 
-      contrast_col, alpha_matrix, beta_matrix, num, sample_id_col)
+      contrast_col, alpha_matrix, beta_matrix, num)
   predicted_pairs_all <- rbind(predicted_pairs_all, predicted_pairs)
 }
 
+# Filter out negative correlations
+predicted_pairs_all <- predicted_pairs_all[predicted_pairs_all$estimate >= 0, ]
 
 #save ft_ and ct_filtered in the output_folder
 write.table(predicted_pairs_all, paste0(output_folder, "/ab_pairs.tsv"), 

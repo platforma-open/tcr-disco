@@ -41,26 +41,14 @@ getColumns := func(countsSpec, blockId, inputType) {
 						"pl7.app/vdj/clonotypingRunId": countsSpec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
 					},
 					annotations: {
-						"pl7.app/label": inputType + " Log2FC",
+						"pl7.app/label": "Log2FC",
 						"pl7.app/table/hValue": "true",
 						// This allows us to select this Pcolumn to use it as filtering
 						// in this case to keep only genes appearing in this list
 						"pl7.app/isSubset": "true",
 						"pl7.app/table/orderPriority": "60",
-						"pl7.app/format": ".2f"
-					}
-				}
-			}
-	colSymbol := {
-				column: "SYMBOL",
-				id: "genesymbol",
-				allowNA: true,
-				spec: {
-					name: "pl7.app/rna-seq/genesymbol",
-					valueType: "String",
-					annotations: {
-						"pl7.app/label": "Gene symbol",
-						"pl7.app/table/orderPriority": "80"
+						"pl7.app/format": ".2f",
+						"pl7.app/table/visibility": "default"
 					}
 				}
 			}
@@ -74,8 +62,9 @@ getColumns := func(countsSpec, blockId, inputType) {
 						"pl7.app/vdj/clonotypingRunId": countsSpec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
 					},
 					annotations: {
-						"pl7.app/label": inputType + " Regulation direction (Up\\Down\\NS)",
-						"pl7.app/table/orderPriority": "5"
+						"pl7.app/label": "Regulation direction (Up\\Down\\NS)",
+						"pl7.app/table/orderPriority": "5",
+						"pl7.app/table/visibility": "default"
 					}
 				}
 			}

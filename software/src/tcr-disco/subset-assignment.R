@@ -17,26 +17,26 @@ suppressMessages(library("optparse"))
 # |---------------------------------|-----------------|--------|-------|
 # | filename_x\_CD4.clones_TRAD.tsv | filename_x\_CD4 | CD4    | tra   |
 # | filename_y\_CD8.clones_TRAD.tsv | filename_y\_CD8 | CD8    | tra   |
-create_subsets_df = function(metadata_table, subset, clonotypes, clonotypeKeyCol){
+create_subsets_df = function(metadata_table, cd_subset_col, clonotypes, clonotypeKeyCol){
   # additional function to create separate subsets (for CD4 and CD8)
-  make_subset = function(metadata_table, subset, clonotypes, population, clonotypeKeyCol){
+  make_subset = function(metadata_table, clonotypes, population, clonotypeKeyCol){
     # Get from metadata table the sample ids of the requested population subset
     # This will get both tra and trb, but only data from one of them is provided in clonotypes
-    pos <- toupper(metadata_table[,subset]) == population
+    pos <- toupper(metadata_table[,"subset"]) == population
     list_samples = metadata_table[pos, "internalSampleId"]
 
     # Combine all files in metadata_location with information for the same subset/population
     # and reformat them
     cdt_subset = clonotypes[clonotypes[,"internalSampleId"] %in% list_samples,]
-    cdt_subset[subset] = population
+    cdt_subset["subset"] = population
     
-    return(cdt_subset[c(clonotypeKeyCol, "count", "fraction", subset)])
+    return(cdt_subset[c(clonotypeKeyCol, "count", "fraction", "subset")])
   }
   
   # create separate CD4 and CD8 subsets using function above
-  metadata_table["subset"] = metadata_table[,subset]
-  cd4_subset = make_subset(metadata_table, subset, clonotypes, "CD4", clonotypeKeyCol)
-  cd8_subset = make_subset(metadata_table, subset, clonotypes, "CD8", clonotypeKeyCol)
+  metadata_table["subset"] = metadata_table[,cd_subset_col]
+  cd4_subset = make_subset(metadata_table, clonotypes, "CD4", clonotypeKeyCol)
+  cd8_subset = make_subset(metadata_table, clonotypes, "CD8", clonotypeKeyCol)
 
   #merge two subset by internalSampleId column and define clonotype subset
   subsets = merge(cd4_subset, cd8_subset, by = clonotypeKeyCol, all = T)
@@ -124,7 +124,7 @@ cd_subset_col <- opt$cd_subset_col
 # cd_alpha <- "/Users/julen/Downloads/miltenyi_test/oncolumn_TCR_discovery/platforma/0x5B60C6/cdAlpha.tsv"
 # cd_beta <- "/Users/julen/Downloads/miltenyi_test/oncolumn_TCR_discovery/platforma/0x5B60C6/cdBeta.tsv"
 # output_folder <- "/Users/julen/Downloads/miltenyi_test/oncolumn_TCR_discovery/platforma/0x5B60C6/results"
-# cd_subset_col <- "subset"
+# cd_subset_col <- "Subset"
 
 ## 1.1. TCR Discovery
 # Load metadata

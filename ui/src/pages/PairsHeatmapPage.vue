@@ -48,7 +48,6 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
     {
       inputName: 'filters',
       selectedSource: pcols[adjustedPvalueIndex].spec,
-      selectedFilterRange: { max: 0.05 },
     },
   ];
 

@@ -40,7 +40,8 @@ getColumns := func(countsSpec, inputType, log2FCThreshold, pAdjFCThreshold) {
 					valueType: "Double",
 					annotations: {
 						"pl7.app/label": inputType + " Base mean",
-						"pl7.app/table/orderPriority": "70"
+						"pl7.app/table/orderPriority": "70",
+						"pl7.app/table/visibility": "optional"
 					}
 				}
 			},
@@ -54,7 +55,8 @@ getColumns := func(countsSpec, inputType, log2FCThreshold, pAdjFCThreshold) {
 					annotations: {
 						"pl7.app/label": inputType + " Log2FC",
 						"pl7.app/table/orderPriority": "60",
-						"pl7.app/graph/axis/symmetricRange": "0"
+						"pl7.app/graph/axis/symmetricRange": "0",
+						"pl7.app/table/visibility": "default"
 					}
 				}
 			},
@@ -67,7 +69,8 @@ getColumns := func(countsSpec, inputType, log2FCThreshold, pAdjFCThreshold) {
 					valueType: "Double",
 					annotations: {
 						"pl7.app/label": inputType + " Log2FC SE",
-						"pl7.app/table/orderPriority": "50"
+						"pl7.app/table/orderPriority": "50",
+						"pl7.app/table/visibility": "optional"
 					}
 				}
 			},
@@ -80,7 +83,8 @@ getColumns := func(countsSpec, inputType, log2FCThreshold, pAdjFCThreshold) {
 					valueType: "Double",
 					annotations: {
 						"pl7.app/label": inputType + " Stat",
-						"pl7.app/table/orderPriority": "40"
+						"pl7.app/table/orderPriority": "40",
+						"pl7.app/table/visibility": "optional"
 					}
 				}
 			},
@@ -93,7 +97,8 @@ getColumns := func(countsSpec, inputType, log2FCThreshold, pAdjFCThreshold) {
 					valueType: "Double",
 					annotations: {
 						"pl7.app/label": inputType + " P-value",
-						"pl7.app/table/orderPriority": "30"
+						"pl7.app/table/orderPriority": "30",
+						"pl7.app/table/visibility": "optional"
 					}
 				}
 			},
@@ -106,7 +111,8 @@ getColumns := func(countsSpec, inputType, log2FCThreshold, pAdjFCThreshold) {
 					valueType: "Double",
 					annotations: {
 						"pl7.app/label": inputType + " Adjusted p-value",
-						"pl7.app/table/orderPriority": "20"
+						"pl7.app/table/orderPriority": "20",
+						"pl7.app/table/visibility": "default"
 					}
 				}
 			},
@@ -119,7 +125,8 @@ getColumns := func(countsSpec, inputType, log2FCThreshold, pAdjFCThreshold) {
 					valueType: "Double",
 					annotations: {
 						"pl7.app/label": inputType + " -log10 adjusted p-value",
-						"pl7.app/table/orderPriority": "10"
+						"pl7.app/table/orderPriority": "10",
+						"pl7.app/table/visibility": "default"
 					}
 				}
 			},
@@ -133,7 +140,8 @@ getColumns := func(countsSpec, inputType, log2FCThreshold, pAdjFCThreshold) {
 						"pl7.app/label": inputType + " Regulation direction",
 						"pl7.app/graph/palette": "{\"name\":\"triadic\",\"mapping\":{\"Up\":\"19\",\"Down\":\"22\",\"NS\":\"25\"}}",
 						"pl7.app/graph/thresholds": thresholds,
-						"pl7.app/table/orderPriority": "5"
+						"pl7.app/table/orderPriority": "5",
+						"pl7.app/table/visibility": "default"
 					}
 				}
 			}

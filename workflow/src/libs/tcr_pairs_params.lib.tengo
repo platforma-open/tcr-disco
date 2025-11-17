@@ -37,8 +37,11 @@ getColumns := func(countsSpecAlpha, countsSpecBeta, inputType) {
 					name: "pl7.app/" + field + "/estimate",
 					valueType: "Double",
 					annotations: {
-						"pl7.app/label": inputType + " Estimate",
-						"pl7.app/table/orderPriority": "70"
+						"pl7.app/label": "Correlation",
+						"pl7.app/table/orderPriority": "70",
+						"pl7.app/min":"0",
+            			"pl7.app/max": "1",
+						"pl7.app/table/visibility": "default"
 					}
 				}
 			},
@@ -50,9 +53,10 @@ getColumns := func(countsSpecAlpha, countsSpecBeta, inputType) {
 					name: "pl7.app/" + field + "/pvalue",
 					valueType: "Double",
 					annotations: {
-						"pl7.app/label": inputType + " P-value",
+						"pl7.app/label": "P-value",
 						"pl7.app/table/orderPriority": "60",
-						"pl7.app/graph/axis/symmetricRange": "0"
+						"pl7.app/graph/axis/symmetricRange": "0",
+						"pl7.app/table/visibility": "optional"
 					}
 				}
 			},
@@ -64,8 +68,9 @@ getColumns := func(countsSpecAlpha, countsSpecBeta, inputType) {
 					name: "pl7.app/" + field + "/padj",
 					valueType: "Double",
 					annotations: {
-						"pl7.app/label": inputType + " Adjusted p-value",
-						"pl7.app/table/orderPriority": "50"
+						"pl7.app/label": "Adjusted p-value",
+						"pl7.app/table/orderPriority": "50",
+						"pl7.app/table/visibility": "default"
 					}
 				}
 			}

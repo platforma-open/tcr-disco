@@ -182,7 +182,6 @@ wf.body(func(args) {
 	columns := args.columns
 	denominator := string(args.denominator)
 	cdSubsetCol := args.cdSubsetCol
-	sampleIdCol := args.sampleIdCol
 	thresholdCounts := args.thresholdCounts
 	thresholdSamples := args.thresholdSamples
 	log2FcThreshold := args.log2FcThreshold
@@ -418,7 +417,6 @@ wf.body(func(args) {
 			daFileBetaCsv: daFileBeta,
 			metadataTsv: metadataTsv,
 			contrastColLabel: contrastColLabel,
-			sampleIdCol: sampleIdCol,
 			log2FcThreshold: log2FcThreshold,
 			pAdjThreshold: pAdjThreshold
 		})
