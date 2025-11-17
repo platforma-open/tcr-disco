@@ -159,4 +159,11 @@ write.table(main_beta_table[, c("internalSampleId", "clonotypeKey", "fraction", 
                 paste0(output_folder, "/main_beta_frequencies.tsv"), 
                 sep = "\t", quote = F, row.names = F)
 
+# store clonotype to subset mapping removing repeated lines
+clonotype_to_subset_alpha <- unique(main_alpha_table[, c("clonotypeKey", "subset")])
+clonotype_to_subset_beta <- unique(main_beta_table[, c("clonotypeKey", "subset")])
 
+write.table(clonotype_to_subset_alpha, paste0(output_folder, "/clonotype_to_subset_alpha.tsv"), 
+  sep = "\t", quote = F, row.names = F)
+write.table(clonotype_to_subset_beta, paste0(output_folder, "/clonotype_to_subset_beta.tsv"), 
+  sep = "\t", quote = F, row.names = F)

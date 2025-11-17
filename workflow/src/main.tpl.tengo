@@ -16,6 +16,7 @@ topTablePfconvParamsLib := import(":libs.top_table_pfconv_params")
 generalDaPfconvLib := import(":libs.general_da_pfconv")
 tcrPairsParamsLib := import(":libs.tcr_pairs_params")
 topFrequenciesLib := import(":libs.top_frequencies")
+cdSubsetParamsLib := import(":libs.cd_subset_params")
 
 mapToPValueData := func(map) {
 	data := {}
@@ -386,6 +387,8 @@ wf.body(func(args) {
 	daFileBeta := tcrAnalysis.output("daFileBeta")
 	mainAlphaFrequenciesTsv := tcrAnalysis.output("mainAlphaFrequenciesTsv")
 	mainBetaFrequenciesTsv := tcrAnalysis.output("mainBetaFrequenciesTsv")
+	clonotypeToSubsetAlpha := tcrAnalysis.output("clonotypeToSubsetAlpha")
+	clonotypeToSubsetBeta := tcrAnalysis.output("clonotypeToSubsetBeta")
 
 	////////////////// Spec preparation ////////////////
 	degPframeBuilderAlpha := pframes.pFrameBuilder()
@@ -532,13 +535,27 @@ wf.body(func(args) {
 		mainBetaFrequenciesPF = betaFrequenciesBuilder.build()
 	}
 
+	// Export subset pframes without trace
+	alphaSubsetParams := cdSubsetParamsLib.getColumns(copy(mainAlphaSpec))
+	clonotypeToSubsetAlphaPf := xsv.importFile(clonotypeToSubsetAlpha, "tsv", alphaSubsetParams, 
+		{mem: defaultConvMem, cpu: defaultConvCpu})
+
+	clonotypeToSubsetBetaPf := undefined
+	if mainBetaSpec != undefined {
+		betaSubsetParams := cdSubsetParamsLib.getColumns(copy(mainBetaSpec))
+		clonotypeToSubsetBetaPf = xsv.importFile(clonotypeToSubsetBeta, "tsv", betaSubsetParams, 
+			{mem: defaultConvMem, cpu: defaultConvCpu})
+	}
+
 	return {
 		outputs: {
 			topDegPFAlpha: pframes.exportFrame(topDegPFAlpha),
 			topDegPFBeta: pframes.exportFrame(topDegPFBeta),
 			pairsPF: pframes.exportFrame(pairsPF),
 			mainAlphaFrequenciesPF: pframes.exportFrame(mainAlphaFrequenciesPF),
-			mainBetaFrequenciesPF: pframes.exportFrame(mainBetaFrequenciesPF)
+			mainBetaFrequenciesPF: pframes.exportFrame(mainBetaFrequenciesPF),
+			clonotypeToSubsetAlpha: pframes.exportFrame(clonotypeToSubsetAlpha),
+			clonotypeToSubsetBeta: pframes.exportFrame(clonotypeToSubsetBeta)
 		},
 		exports: {}
 	}
