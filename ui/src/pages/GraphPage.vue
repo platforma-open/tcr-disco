@@ -3,7 +3,7 @@ import type { PredefinedGraphOption } from '@milaboratories/graph-maker';
 import { GraphMaker } from '@milaboratories/graph-maker';
 import '@milaboratories/graph-maker/styles';
 import type { PColumnIdAndSpec, PlSelectionModel } from '@platforma-sdk/model';
-import { PlBtnGhost, PlBtnGroup, PlMultiSequenceAlignment, PlSlideModal } from '@platforma-sdk/ui-vue';
+import { PlBtnGroup, PlMultiSequenceAlignment, PlSlideModal } from '@platforma-sdk/ui-vue';
 import { computed, ref, watch } from 'vue';
 import { useApp } from '../app';
 import {
@@ -95,16 +95,16 @@ watch(() => app.model.ui.selectedChain, (_) => {
       <PlBtnGroup
         v-model="app.model.ui.selectedChain"
         :options="[
-          { value: 'alpha', label: 'Alpha' },
-          { value: 'beta', label: 'Beta' },
+          { value: 'alpha', label: 'TCR Alpha Chain' },
+          { value: 'beta', label: 'TCR Beta Chain' },
         ]"
       />
-      <PlBtnGhost
+      <!-- <PlBtnGhost
         icon="dna"
         @click.stop="() => (multipleSequenceAlignmentOpen = true)"
       >
         Multiple Sequence Alignment
-      </PlBtnGhost>
+      </PlBtnGhost> -->
     </template>
   </GraphMaker>
   <PlSlideModal

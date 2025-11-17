@@ -80,6 +80,16 @@ run_deseq = function(main_table, covariates_table, contrast_col,
   passing_clonotypes <- rownames(count_matrix)[rowSums(count_matrix >= threshold_counts) >= threshold_samples]
   res_df$Regulation[!res_df$clonotypeKey %in% passing_clonotypes] <- "NS"
 
+  # Add subset column
+  clonoMatch <- match(res_df$clonotypeKey, main_table$clonotypeKey)
+  res_df$umi_count_CD4 <- main_table$umi_count_CD4[clonoMatch]
+  res_df$umi_freq_CD4 <- main_table$umi_freq_CD4[clonoMatch]
+  res_df$umi_count_CD8 <- main_table$umi_count_CD8[clonoMatch]
+  res_df$umi_freq_CD8 <- main_table$umi_freq_CD8[clonoMatch]
+  res_df$subset <- main_table$subset[clonoMatch]
+  res_df$subset_frequency <- main_table$subset_frequency[clonoMatch]
+
+
   # Reorder columns
   res_df <- res_df[, c(
     "clonotypeKey", "Regulation",
@@ -104,7 +114,8 @@ run_deseq = function(main_table, covariates_table, contrast_col,
   # Also filter by threshold: only keep clonotypes that pass threshold criteria
   deg_df <- res_df[
     res_df$padj <= fdr_cut & abs(res_df$log2FoldChange) >= fc_cut & res_df$clonotypeKey %in% passing_clonotypes,
-    c("clonotypeKey", "Contrast", "log2FoldChange", "Regulation", "Numerator")
+    c("clonotypeKey", "Contrast", "log2FoldChange", "Regulation", "Numerator", 
+    "umi_count_CD4", "umi_freq_CD4", "umi_count_CD8", "umi_freq_CD8", "subset", "subset_frequency")
   ]
   # Filter out counts without ID
   deg_df <- deg_df[!is.na(deg_df["clonotypeKey"]), ]
@@ -188,8 +199,8 @@ threshold_counts <- opt$threshold_counts
 threshold_samples <- opt$threshold_samples
 # test
 # covariates <- "/Users/julen/Downloads/miltenyi_test/oncolumn_TCR_discovery/platforma/0x5B60C6/covariates.tsv"
-# main_alpha <- "/Users/julen/Downloads/miltenyi_test/oncolumn_TCR_discovery/platforma/0x5B60C6/results/main_alpha_table.tsv"
-# main_beta <- "/Users/julen/Downloads/miltenyi_test/oncolumn_TCR_discovery/platforma/0x5B60C6/results/main_beta_table.tsv"
+# main_alpha <- "/Users/julen/Downloads/miltenyi_test/oncolumn_TCR_discovery/platforma/0x5B60C6/mainAlpha.tsv"
+# main_beta <- "/Users/julen/Downloads/miltenyi_test/oncolumn_TCR_discovery/platforma/0x5B60C6/mainBeta.tsv"
 # output_folder <- "/Users/julen/Downloads/miltenyi_test/oncolumn_TCR_discovery/platforma/0x5B60C6/results"
 # contrast_col <- "ag"
 # numerator <- "MART1"
