@@ -25,6 +25,7 @@ export type UiState = {
   title?: string;
   selectedChain?: 'alpha' | 'beta';
   graphState: GraphMakerState;
+  pairsHeatmapState: GraphMakerState;
   alignmentModel: PlMultiSequenceAlignmentModel;
 };
 
@@ -82,6 +83,18 @@ export const model = BlockModel.create()
       template: 'dots',
       currentTab: null,
     },
+    pairsHeatmapState: {
+      title: 'TCR AB Pairs Heatmap',
+      template: 'heatmapClustered',
+      layersSettings: {
+        heatmapClustered: {
+          normalizationDirection: 'column',
+          normalizationMethod: 'standardScaling',
+          dendrogramX: false,
+          dendrogramY: false,
+        },
+      },
+    },
     alignmentModel: {},
   })
 
@@ -95,7 +108,8 @@ export const model = BlockModel.create()
       && (ctx.args.pAdjThreshold !== undefined)
       && (ctx.args.thresholdCounts !== undefined)
       && (ctx.args.thresholdSamples !== undefined)
-      && (ctx.args.sampleIdCol !== undefined))
+      && (!ctx.args.findTcrAbPairs || ctx.args.sampleIdCol !== undefined)
+      && (!ctx.args.cdRef || ctx.args.cdSubsetCol !== undefined))
   ))
 
   // Allow user to choose Alpha chain, will pick beta if available
@@ -230,6 +244,29 @@ export const model = BlockModel.create()
     return createPFrameForGraphs(ctx, [...msaCols, ...seqCols]);
   })
 
+  .output('pairsHeatmapPf', (ctx): PFrameHandle | undefined => {
+    const pCols = ctx.outputs?.resolve('pairsPF')?.getPColumns();
+    if (pCols === undefined) {
+      return undefined;
+    }
+
+    return createPFrameForGraphs(ctx, pCols);
+  })
+
+  .output('pairsHeatmapPcols', (ctx) => {
+    const pCols = ctx.outputs?.resolve('pairsPF')?.getPColumns();
+    if (pCols === undefined) {
+      return undefined;
+    }
+    return pCols.map(
+      (c) =>
+        ({
+          columnId: c.id,
+          spec: c.spec,
+        } satisfies PColumnIdAndSpec),
+    );
+  })
+
   .title((ctx) => ctx.uiState?.title ?? 'TCR Disco Enrichment')
 
   .sections((ctx) => {
@@ -240,6 +277,7 @@ export const model = BlockModel.create()
 
     if (ctx.args.findTcrAbPairs) {
       sections.push({ type: 'link' as const, href: '/pairs' as const, label: 'TCR AB Pairs' });
+      sections.push({ type: 'link' as const, href: '/pairs-heatmap' as const, label: 'Pairs Heatmap' });
     }
 
     return sections;
