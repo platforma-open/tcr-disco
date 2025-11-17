@@ -26,7 +26,8 @@ self.validateInputs({
 })
 
 self.defineOutputs("topTableFileAlpha","topTableFileBeta","daFileAlpha",
-"daFileBeta","contrastMap","mainAlphaFrequenciesTsv","mainBetaFrequenciesTsv")
+"daFileBeta","contrastMap","mainAlphaFrequenciesTsv","mainBetaFrequenciesTsv",
+"clonotypeToSubsetAlpha","clonotypeToSubsetBeta")
 
 self.body(func(inputs) {
 
@@ -128,9 +129,13 @@ self.body(func(inputs) {
 		arg("-o").arg(".").
 		saveFile("main_alpha_frequencies.tsv").
 		saveFile("main_beta_frequencies.tsv").
+		saveFile("clonotype_to_subset_alpha.tsv").
+		saveFile("clonotype_to_subset_beta.tsv").
 		run()
 	mainAlphaFrequenciesTsv := getEnrichedFrequenciesExec.getFile("main_alpha_frequencies.tsv")
 	mainBetaFrequenciesTsv := getEnrichedFrequenciesExec.getFile("main_beta_frequencies.tsv")
+	clonotypeToSubsetAlpha := getEnrichedFrequenciesExec.getFile("clonotype_to_subset_alpha.tsv")
+	clonotypeToSubsetBeta := getEnrichedFrequenciesExec.getFile("clonotype_to_subset_beta.tsv")
 
 	return {
 		topTableFileAlpha: ptablerResult.getFile("concatenated_output_topTable_alpha.csv"),
@@ -139,7 +144,9 @@ self.body(func(inputs) {
 		daFileBeta: ptablerResult.getFile("concatenated_output_DA_beta.csv"),
 		contrastMap: contrastMap,
 		mainAlphaFrequenciesTsv: mainAlphaFrequenciesTsv,
-		mainBetaFrequenciesTsv: mainBetaFrequenciesTsv
+		mainBetaFrequenciesTsv: mainBetaFrequenciesTsv,
+		clonotypeToSubsetAlpha: clonotypeToSubsetAlpha,
+		clonotypeToSubsetBeta: clonotypeToSubsetBeta
 	}
 })
 

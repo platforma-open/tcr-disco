@@ -20,6 +20,9 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
 
   const pcols = app.model.outputs.frequenciesHeatmapPcols;
   const fractionIndex = getIndex('pl7.app/differentialTCRAbundance/countFraction', pcols);
+  const contrastIndex = pcols.findIndex((p) => p.spec.name === 'pl7.app/label'
+    && p.spec.annotations?.['pl7.app/label'] === app.model.args.contrastFactor);
+  const subsetIndex = getIndex('pl7.app/differentialTCRAbundance/subset', pcols);
 
   if (fractionIndex === -1 || !pcols[fractionIndex]?.spec.axesSpec) {
     return undefined;
@@ -41,6 +44,14 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
       inputName: 'y',
       selectedSource: axesSpec[1], // clonotypeKey
     },
+    // {
+    //   inputName: 'xGroupBy',
+    //   selectedSource: pcols[contrastIndex].spec,
+    // },
+    // {
+    //   inputName: 'yGroupBy',
+    //   selectedSource: pcols[subsetIndex].spec,
+    // },
   ];
 
   return defaults;
@@ -52,9 +63,14 @@ const key = computed(() => (defaultOptions.value ? JSON.stringify(defaultOptions
 watch(() => app.model.ui.selectedChain, (_) => {
   delete app.model.ui.frequenciesHeatmapState.optionsState;
 }, { deep: false, immediate: false });
+
+const pcols = app.model.outputs.frequenciesHeatmapPcols;
+const contrastIndex2 = pcols?.findIndex((p) => p.spec.name === 'pl7.app/label'
+  && p.spec.annotations?.['pl7.app/label'] === app.model.args.contrastFactor);
 </script>
 
 <template>
+  {{ contrastIndex2 }}
   <GraphMaker
     :key="key"
     v-model="app.model.ui.frequenciesHeatmapState"

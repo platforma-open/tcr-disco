@@ -16,7 +16,6 @@ import {
   createPlDataTableStateV2,
   createPlDataTableV2,
   getUniquePartitionKeys,
-  isPColumn,
   isPColumnSpec,
 } from '@platforma-sdk/model';
 
@@ -290,16 +289,17 @@ export const model = BlockModel.create()
     }
 
     // Get all metadata columns that are compatible with the Sample axis
-    const metadataCols = ctx.resultPool
-      .getData()
-      .entries.map((c) => c.obj)
-      .filter(isPColumn)
-      .filter((col) =>
-        col.spec.name === 'pl7.app/metadata'
-        && col.spec.axesSpec.some((axis) => axis.name === 'pl7.app/sampleId'),
-      );
+    // const metadataCols = ctx.resultPool
+    //   .getData()
+    //   .entries.map((c) => c.obj)
+    //   .filter(isPColumn)
+    //   .filter((col) =>
+    //     col.spec.name === 'pl7.app/metadata'
+    //     && col.spec.axesSpec.some((axis) => axis.name === 'pl7.app/sampleId'),
+    //   );
 
-    return ctx.createPFrame([...pCols, ...metadataCols]);
+    // return ctx.createPFrame([...pCols, ...metadataCols]);
+    return createPFrameForGraphs(ctx, pCols);
   })
 
   .output('frequenciesHeatmapPcols', (ctx) => {
@@ -309,7 +309,25 @@ export const model = BlockModel.create()
     if (pCols === undefined) {
       return undefined;
     }
-    return pCols.map(
+
+    const clonotypeToSubsetPcols = ctx.outputs?.resolve(selectedChain === 'alpha' ? 'clonotypeToSubsetAlpha' : 'clonotypeToSubsetBeta')?.getPColumns();
+    if (clonotypeToSubsetPcols === undefined) {
+      return undefined;
+    }
+
+    // Get all metadata columns that are compatible with the Sample axis
+    const metadataOptions = ctx.resultPool.getOptions(
+      (spec) => isPColumnSpec(spec)
+        && spec.name === 'pl7.app/metadata'
+        && spec.axesSpec?.some((axis) => axis.name === 'pl7.app/sampleId'),
+    );
+    const metadataCols = metadataOptions
+      ?.map((opt) => ctx.resultPool.getPColumnByRef(opt.ref))
+      .filter((col): col is PColumn<TreeNodeAccessor> => col !== undefined) ?? [];
+
+    const allCols = [...pCols, ...metadataCols, ...clonotypeToSubsetPcols];
+
+    return allCols.map(
       (c) =>
         ({
           columnId: c.id,
@@ -317,6 +335,17 @@ export const model = BlockModel.create()
         } satisfies PColumnIdAndSpec),
     );
   })
+
+  .output('test', (ctx) => {
+    const selectedChain = ctx.uiState?.selectedChain ?? 'alpha';
+
+    const clonotypeToSubsetPcols = ctx.outputs?.resolve(selectedChain === 'alpha' ? 'clonotypeToSubsetAlpha' : 'clonotypeToSubsetBeta')?.getPColumns();
+    if (clonotypeToSubsetPcols === undefined) {
+      return undefined;
+    }
+    return clonotypeToSubsetPcols;
+  })
+
   .title((ctx) => ctx.uiState?.title ?? 'TCR Disco Enrichment')
 
   .sections((ctx) => {
