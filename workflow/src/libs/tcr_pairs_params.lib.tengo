@@ -73,6 +73,62 @@ getColumns := func(countsSpecAlpha, countsSpecBeta, inputType) {
 						"pl7.app/table/visibility": "default"
 					}
 				}
+			},
+			{
+				column: "tra_CDR3aa",
+				id: "tra_CDR3aa",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/" + field + "/tra_CDR3aa",
+					valueType: "String",
+					annotations: {
+						"pl7.app/label": "TCR Alpha CDR3 aa",
+						"pl7.app/table/orderPriority": "40",
+						"pl7.app/table/visibility": "optional"
+					}
+				}
+			},
+			{
+				column: "trb_CDR3aa",
+				id: "trb_CDR3aa",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/" + field + "/trb_CDR3aa",
+					valueType: "String",
+					annotations: {
+						"pl7.app/label": "TCR Beta CDR3 aa",
+						"pl7.app/table/orderPriority": "30",
+						"pl7.app/table/visibility": "optional"
+					}
+				}
+			},
+			{
+				column: "tra_VGene",
+				id: "tra_VGene",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/" + field + "/tra_VGene",
+					valueType: "String",
+					annotations: {
+						"pl7.app/label": "TCR Alpha VGene",
+						"pl7.app/table/orderPriority": "20",
+						"pl7.app/table/visibility": "optional"
+					}
+				}
+			},
+			{
+				column: "trb_VGene",
+				id: "trb_VGene",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/" + field + "/trb_VGene",
+					valueType: "String",
+					annotations: {
+						"pl7.app/label": "TCR Beta VGene",
+						"pl7.app/table/orderPriority": "10",
+						"pl7.app/table/visibility": "optional"
+					}
+				}
 			}
 			]
 

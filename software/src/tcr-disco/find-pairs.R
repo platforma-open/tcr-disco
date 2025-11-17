@@ -223,6 +223,17 @@ for (num in numerators) {
 # Filter out negative correlations
 predicted_pairs_all <- predicted_pairs_all[predicted_pairs_all$estimate >= 0, ]
 
+# Add TRA and TRB CDR3 aa and VGene data
+# Match tra column with alpha table (match returns first occurrence, which is fine since CDR3aa/VGene are always the same for repeated clonotypeKeys)
+alpha_match_idx <- match(predicted_pairs_all$tra, main_alpha_table$clonotypeKey)
+predicted_pairs_all$tra_CDR3aa <- main_alpha_table$CDR3aa[alpha_match_idx]
+predicted_pairs_all$tra_VGene <- main_alpha_table$VGene[alpha_match_idx]
+
+# Match trb column with beta table
+beta_match_idx <- match(predicted_pairs_all$trb, main_beta_table$clonotypeKey)
+predicted_pairs_all$trb_CDR3aa <- main_beta_table$CDR3aa[beta_match_idx]
+predicted_pairs_all$trb_VGene <- main_beta_table$VGene[beta_match_idx]
+
 #save ft_ and ct_filtered in the output_folder
 write.table(predicted_pairs_all, paste0(output_folder, "/ab_pairs.tsv"), 
                 sep = "\t", quote = F, row.names = F)

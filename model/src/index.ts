@@ -126,8 +126,10 @@ export const model = BlockModel.create()
         'pl7.app/abundance/isPrimary': 'true',
       },
     },
-    ], { label: { includeNativeLabel: true, addLabelAsSuffix: true },
-      refsWithEnrichments: false });
+    ], { label: { includeNativeLabel: true, addLabelAsSuffix: true,
+      forceTraceElements: [],
+    },
+    refsWithEnrichments: false });
   })
 
   .output('metadataOptions', (ctx) =>
@@ -248,7 +250,7 @@ export const model = BlockModel.create()
       return undefined;
     }
 
-    return createPFrameForGraphs(ctx, pCols);
+    return ctx.createPFrame(pCols);
   })
 
   .output('pairsHeatmapPcols', (ctx) => {

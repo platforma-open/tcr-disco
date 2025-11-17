@@ -105,8 +105,8 @@ watch(() => [app.model.args.contrastFactor], (_) => {
       <PlBtnGroup
         v-model="app.model.ui.selectedChain"
         :options="[
-          { value: 'alpha', label: 'Alpha' },
-          { value: 'beta', label: 'Beta' },
+          { value: 'alpha', label: 'TCR Alpha Chain' },
+          { value: 'beta', label: 'TCR Beta Chain' },
         ]"
       />
       <PlBtnGhost @click.stop="showSettings">
