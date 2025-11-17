@@ -1,0 +1,46 @@
+ll := import("@platforma-sdk/workflow-tengo:ll")
+math := import("math")
+
+getColumns := func(countsSpec) {
+	field := "differentialTCRAbundance"
+	degName := "log2foldchange"
+
+	axes := [
+			{
+				column: "internalSampleId",
+				spec: countsSpec.axesSpec[0]
+			},
+			{
+				column: "clonotypeKey",
+				spec: countsSpec.axesSpec[1]
+			}
+			]
+
+	columns := [
+			{
+				column: "fraction",
+				id: "fraction",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/" + field + "/countFraction",
+					valueType: "Double",
+					annotations: {
+						"pl7.app/label": "Fraction of counts",
+						"pl7.app/table/orderPriority": "100",
+						"pl7.app/table/visibility": "default"
+					}
+				}
+			}
+			]
+
+	return {
+		axes: axes,
+		columns: columns,
+		"storageFormat": "Parquet",
+		"partitionKeyLength": 1
+	}
+}
+
+export ll.toStrict({
+	getColumns: getColumns
+})

@@ -5,7 +5,7 @@ pt := import("@platforma-sdk/workflow-tengo:pt")
 
 subsetAssignment := assets.importSoftware("@platforma-open/milaboratories.run-tcrdisco-enrichment.software:subset-assignment")
 diffSoftware := assets.importSoftware("@platforma-open/milaboratories.run-tcrdisco-enrichment.software:tcr-disco")
-
+getEnrichedFrequenciesSoftware := assets.importSoftware("@platforma-open/milaboratories.run-tcrdisco-enrichment.software:get-enriched-frequencies")
 self.validateInputs({
     "__options__,closed": "",
 	"numerators": "any",
@@ -25,7 +25,8 @@ self.validateInputs({
 	"pAdjThreshold": "number"
 })
 
-self.defineOutputs("topTableFileAlpha","topTableFileBeta","daFileAlpha","daFileBeta","contrastMap")
+self.defineOutputs("topTableFileAlpha","topTableFileBeta","daFileAlpha",
+"daFileBeta","contrastMap","mainAlphaFrequenciesTsv","mainBetaFrequenciesTsv")
 
 self.body(func(inputs) {
 
@@ -114,12 +115,31 @@ self.body(func(inputs) {
 	concatenatedTopTableBeta.save("concatenated_output_topTable_beta.csv")
 	ptablerResult := wf.run()
 
+	getEnrichedFrequenciesExec := exec.builder().
+		software(getEnrichedFrequenciesSoftware).
+		addFile("mainAlpha.tsv", mainAlphaTsv).
+		addFile("mainBeta.tsv", mainBetaTsv).
+		addFile("DA_alpha.csv", ptablerResult.getFile("concatenated_output_DA_alpha.csv")).
+		addFile("DA_beta.csv", ptablerResult.getFile("concatenated_output_DA_beta.csv")).
+		arg("--main_alpha").arg("mainAlpha.tsv").
+		arg("--main_beta").arg("mainBeta.tsv").
+		arg("--da_alpha").arg("DA_alpha.csv").
+		arg("--da_beta").arg("DA_beta.csv").
+		arg("-o").arg(".").
+		saveFile("main_alpha_frequencies.tsv").
+		saveFile("main_beta_frequencies.tsv").
+		run()
+	mainAlphaFrequenciesTsv := getEnrichedFrequenciesExec.getFile("main_alpha_frequencies.tsv")
+	mainBetaFrequenciesTsv := getEnrichedFrequenciesExec.getFile("main_beta_frequencies.tsv")
+
 	return {
 		topTableFileAlpha: ptablerResult.getFile("concatenated_output_topTable_alpha.csv"),
 		topTableFileBeta: ptablerResult.getFile("concatenated_output_topTable_beta.csv"),
 		daFileAlpha: ptablerResult.getFile("concatenated_output_DA_alpha.csv"),
 		daFileBeta: ptablerResult.getFile("concatenated_output_DA_beta.csv"),
-		contrastMap: contrastMap
+		contrastMap: contrastMap,
+		mainAlphaFrequenciesTsv: mainAlphaFrequenciesTsv,
+		mainBetaFrequenciesTsv: mainBetaFrequenciesTsv
 	}
 })
 

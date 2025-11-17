@@ -16,6 +16,7 @@ import {
   createPlDataTableStateV2,
   createPlDataTableV2,
   getUniquePartitionKeys,
+  isPColumn,
   isPColumnSpec,
 } from '@platforma-sdk/model';
 
@@ -26,6 +27,7 @@ export type UiState = {
   selectedChain?: 'alpha' | 'beta';
   graphState: GraphMakerState;
   pairsHeatmapState: GraphMakerState;
+  frequenciesHeatmapState: GraphMakerState;
   alignmentModel: PlMultiSequenceAlignmentModel;
 };
 
@@ -88,6 +90,18 @@ export const model = BlockModel.create()
       layersSettings: {
         heatmapClustered: {
           normalizationDirection: 'column',
+          normalizationMethod: 'standardScaling',
+          dendrogramX: false,
+          dendrogramY: false,
+        },
+      },
+    },
+    frequenciesHeatmapState: {
+      title: 'DA clonotypes Heatmap',
+      template: 'heatmapClustered',
+      layersSettings: {
+        heatmapClustered: {
+          normalizationDirection: 'row',
           normalizationMethod: 'standardScaling',
           dendrogramX: false,
           dendrogramY: false,
@@ -267,17 +281,53 @@ export const model = BlockModel.create()
     );
   })
 
+  .output('frequenciesHeatmapPf', (ctx): PFrameHandle | undefined => {
+    const selectedChain = ctx.uiState?.selectedChain ?? 'alpha';
+    const outputName = selectedChain === 'alpha' ? 'mainAlphaFrequenciesPF' : 'mainBetaFrequenciesPF';
+    const pCols = ctx.outputs?.resolve(outputName)?.getPColumns();
+    if (pCols === undefined) {
+      return undefined;
+    }
+
+    // Get all metadata columns that are compatible with the Sample axis
+    const metadataCols = ctx.resultPool
+      .getData()
+      .entries.map((c) => c.obj)
+      .filter(isPColumn)
+      .filter((col) =>
+        col.spec.name === 'pl7.app/metadata'
+        && col.spec.axesSpec.some((axis) => axis.name === 'pl7.app/sampleId'),
+      );
+
+    return ctx.createPFrame([...pCols, ...metadataCols]);
+  })
+
+  .output('frequenciesHeatmapPcols', (ctx) => {
+    const selectedChain = ctx.uiState?.selectedChain ?? 'alpha';
+    const outputName = selectedChain === 'alpha' ? 'mainAlphaFrequenciesPF' : 'mainBetaFrequenciesPF';
+    const pCols = ctx.outputs?.resolve(outputName)?.getPColumns();
+    if (pCols === undefined) {
+      return undefined;
+    }
+    return pCols.map(
+      (c) =>
+        ({
+          columnId: c.id,
+          spec: c.spec,
+        } satisfies PColumnIdAndSpec),
+    );
+  })
   .title((ctx) => ctx.uiState?.title ?? 'TCR Disco Enrichment')
 
   .sections((ctx) => {
     const sections: Array<{ type: 'link'; href: `/${string}`; label: string }> = [
       { type: 'link' as const, href: '/' as const, label: 'Main' },
       { type: 'link' as const, href: '/graph' as const, label: 'Volcano plot' },
+      { type: 'link' as const, href: '/freq-heatmap' as const, label: 'DA clonotypes Heatmap' },
     ];
 
     if (ctx.args.findTcrAbPairs) {
       sections.push({ type: 'link' as const, href: '/pairs' as const, label: 'TCR AB Pairs' });
-      sections.push({ type: 'link' as const, href: '/pairs-heatmap' as const, label: 'Pairs Heatmap' });
     }
 
     return sections;
