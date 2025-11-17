@@ -102,13 +102,6 @@ watch(() => [app.model.args.contrastFactor], (_) => {
   <PlBlockPage>
     <template #title>{{ app.model.ui.title }}</template>
     <template #append>
-      <PlBtnGroup
-        v-model="app.model.ui.selectedChain"
-        :options="[
-          { value: 'alpha', label: 'TCR Alpha Chain' },
-          { value: 'beta', label: 'TCR Beta Chain' },
-        ]"
-      />
       <PlBtnGhost @click.stop="showSettings">
         Settings
         <template #append>
@@ -116,6 +109,15 @@ watch(() => [app.model.args.contrastFactor], (_) => {
         </template>
       </PlBtnGhost>
     </template>
+    <div style="width: fit-content; margin-left: auto">
+      <PlBtnGroup
+        v-model="app.model.ui.selectedChain"
+        :options="[
+          { value: 'alpha', label: 'TCR Alpha Chain' },
+          { value: 'beta', label: 'TCR Beta Chain' },
+        ]"
+      />
+    </div>
 
     <PlAgDataTableV2
       v-model="app.model.ui.tableState"

@@ -59,25 +59,22 @@ function getDefaultOptions(topTablePcols?: PColumnIdAndSpec[]) {
   return defaults;
 }
 
-let defaults = computed(() => getDefaultOptions(app.model.outputs.topTablePcols));
-let key = computed(() => defaults.value ? JSON.stringify(defaults.value) : '');
+const defaults = computed(() => getDefaultOptions(app.model.outputs.topTablePcols));
+const key = computed(() => {
+  const chain = app.model.ui.selectedChain;
+  const options = defaults.value;
+  return options ? `${chain}-${JSON.stringify(options)}` : '';
+});
 
 const selection = ref<PlSelectionModel>({
   axesSpec: [],
   selectedKeys: [],
 });
 
-// @TODO: Pending to improve this
-// Reset graph maker state to allow new selection of defaults
-watch(() => app.model.ui.selectedChain, (_) => {
+// Reset graph maker state to allow new selection of defaults when chain changes
+watch(() => app.model.ui.selectedChain, () => {
   delete app.model.ui.graphState.optionsState;
-  defaults = computed(() => getDefaultOptions(app.model.outputs.topTablePcols));
-  key = computed(() => defaults.value ? JSON.stringify(defaults.value) : '');
-},
-// immediate - to trigger first time before first change
-// deep - for objects of complicated structure
-{ deep: false, immediate: false },
-);
+});
 
 </script>
 

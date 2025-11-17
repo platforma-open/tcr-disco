@@ -15,6 +15,7 @@ tcrAbPairsTpl := assets.importTemplate(":tcr-ab-pairs")
 topTablePfconvParamsLib := import(":libs.top_table_pfconv_params")
 generalDaPfconvLib := import(":libs.general_da_pfconv")
 tcrPairsParamsLib := import(":libs.tcr_pairs_params")
+topFrequenciesLib := import(":libs.top_frequencies")
 
 mapToPValueData := func(map) {
 	data := {}
@@ -383,6 +384,8 @@ wf.body(func(args) {
 	topTableFileBeta := tcrAnalysis.output("topTableFileBeta")
 	daFileAlpha := tcrAnalysis.output("daFileAlpha")
 	daFileBeta := tcrAnalysis.output("daFileBeta")
+	mainAlphaFrequenciesTsv := tcrAnalysis.output("mainAlphaFrequenciesTsv")
+	mainBetaFrequenciesTsv := tcrAnalysis.output("mainBetaFrequenciesTsv")
 
 	////////////////// Spec preparation ////////////////
 	degPframeBuilderAlpha := pframes.pFrameBuilder()
@@ -488,11 +491,54 @@ wf.body(func(args) {
 		topDegPFBeta = topDegPframeBuilderBeta.build()
 	}
 
+	// Convert frequency TSV files to PFrames
+	frequenciesTrace := pSpec.makeTrace(mainAlphaSpec,
+		{type: "milaboratories.tcr-disco-enrichment", importance: 30, 
+		label: "Frequencies - Denominator: " + denominator}
+	)
+	
+	// Convert alpha frequencies
+	alphaFrequenciesImportParams := topFrequenciesLib.getColumns(copy(mainAlphaSpec))
+	alphaFrequenciesPf := xsv.importFile(mainAlphaFrequenciesTsv, "tsv", alphaFrequenciesImportParams, 
+		{splitDataAndSpec: true, mem: defaultConvMem, cpu: defaultConvCpu})
+	
+	alphaFrequenciesBuilder := pframes.pFrameBuilder()
+	for columnName, value in alphaFrequenciesPf {
+		columnData := value.data
+		alphaFrequenciesBuilder.add(
+			columnName,
+			frequenciesTrace.inject(value.spec),
+			columnData
+		)
+	}
+	mainAlphaFrequenciesPF := alphaFrequenciesBuilder.build()
+	
+	// Convert beta frequencies (only if beta data exists)
+	mainBetaFrequenciesPF := undefined
+	if mainBetaSpec != undefined {
+		betaFrequenciesImportParams := topFrequenciesLib.getColumns(copy(mainBetaSpec))
+		betaFrequenciesPf := xsv.importFile(mainBetaFrequenciesTsv, "tsv", betaFrequenciesImportParams, 
+			{splitDataAndSpec: true, mem: defaultConvMem, cpu: defaultConvCpu})
+		
+		betaFrequenciesBuilder := pframes.pFrameBuilder()
+		for columnName, value in betaFrequenciesPf {
+			columnData := value.data
+			betaFrequenciesBuilder.add(
+				columnName,
+				frequenciesTrace.inject(value.spec),
+				columnData
+			)
+		}
+		mainBetaFrequenciesPF = betaFrequenciesBuilder.build()
+	}
+
 	return {
 		outputs: {
 			topDegPFAlpha: pframes.exportFrame(topDegPFAlpha),
 			topDegPFBeta: pframes.exportFrame(topDegPFBeta),
-			pairsPF: pframes.exportFrame(pairsPF)
+			pairsPF: pframes.exportFrame(pairsPF),
+			mainAlphaFrequenciesPF: pframes.exportFrame(mainAlphaFrequenciesPF),
+			mainBetaFrequenciesPF: pframes.exportFrame(mainBetaFrequenciesPF)
 		},
 		exports: {}
 	}
