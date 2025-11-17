@@ -14,7 +14,6 @@ self.validateInputs({
 	"daFileBetaCsv": "any",
 	"metadataTsv": "any",
 	"contrastColLabel": "string",
-	"sampleIdCol": "string",
 	"log2FcThreshold": "number",
 	"pAdjThreshold": "number"
 })
@@ -29,7 +28,6 @@ self.body(func(inputs) {
 	daFileBetaCsv := inputs.daFileBetaCsv
 	metadataTsv := inputs.metadataTsv
 	contrastColLabel := inputs.contrastColLabel
-	sampleIdCol := inputs.sampleIdCol
 	log2FcThreshold := inputs.log2FcThreshold
 	pAdjThreshold := inputs.pAdjThreshold
 
@@ -46,7 +44,8 @@ self.body(func(inputs) {
 		arg("--da_beta").arg("daBeta.csv").
 		arg("--metadata").arg("metadata.tsv").
 		arg("--contrast_col").arg(contrastColLabel).
-		arg("--sample_id_col").arg(string(sampleIdCol)).
+		// Barcode ID metadata is required for multiplexed FASTQ inputs
+		arg("--sample_id_col").arg("Barcode ID").
 		arg("-f").arg(string(log2FcThreshold)).
 		arg("-p").arg(string(pAdjThreshold)).
 		arg("-o").arg(".").

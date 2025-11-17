@@ -53,7 +53,6 @@ export type BlockArgs = {
   contrastFactor?: PlRef;
   numerators: string[];
   denominator?: string;
-  sampleIdCol?: string;
   findTcrAbPairs: boolean;
   thresholdCounts: number;
   thresholdSamples: number;
@@ -108,7 +107,6 @@ export const model = BlockModel.create()
       && (ctx.args.pAdjThreshold !== undefined)
       && (ctx.args.thresholdCounts !== undefined)
       && (ctx.args.thresholdSamples !== undefined)
-      && (!ctx.args.findTcrAbPairs || ctx.args.sampleIdCol !== undefined)
       && (!ctx.args.cdRef || ctx.args.cdSubsetCol !== undefined))
   ))
 

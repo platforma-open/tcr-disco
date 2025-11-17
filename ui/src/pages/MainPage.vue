@@ -161,41 +161,6 @@ watch(() => [app.model.args.contrastFactor], (_) => {
       label="Denominator"
       required
     />
-    <PlCheckbox v-model="app.model.args.findTcrAbPairs">
-      Find TCR AB pairs
-    </PlCheckbox>
-    <PlDropdown
-      v-if="app.model.args.findTcrAbPairs"
-      v-model="app.model.args.sampleIdCol"
-      :options="metadataLabelOptions"
-      label="Metadata column with sample ID"
-      clearable required
-    >
-      <template #tooltip>
-        This column is required to map TCR Alpha and Beta chain clonotypes to the same samples.
-        The correlation analysis compares clonotype frequencies across matching samples to identify paired alpha-beta TCR chains.
-      </template>
-    </PlDropdown>
-    <!-- Content hidden until you click -->
-    <PlAccordionSection label="CD4/8 subset assignment">
-      <PlDropdownRef
-        v-model="app.model.args.cdRef"
-        :options="app.model.outputs.inputOptions"
-        label="Select CD4/8 dataset (optional)"
-        clearable
-      />
-      <PlDropdown
-        v-if="app.model.args.cdRef"
-        v-model="app.model.args.cdSubsetCol"
-        :options="metadataLabelOptions"
-        label="Metadata column with CD4/8 information"
-        clearable
-      >
-        <template #tooltip>
-          This column is required to subset the main dataset's clonotypes to CD4/8 cells. The column should contain "CD4" or "CD8" values (case-insensitive).
-        </template>
-      </PlDropdown>
-    </PlAccordionSection>
     <!-- Content hidden until you click THRESHOLD PARAMETERS -->
     <PlAccordionSection label="THRESHOLD PARAMETERS">
       <PlRow>
@@ -206,7 +171,7 @@ watch(() => [app.model.args.contrastFactor], (_) => {
           :step="0.1"
         >
           <template #tooltip>
-            Select a valid absolute log2(FC) threshold for identifying
+            Select a valid absolute log2(FC) and p-value threshold for identifying
             significantly enriched clonotypes.
           </template>
         </PlNumberField>
@@ -227,7 +192,7 @@ watch(() => [app.model.args.contrastFactor], (_) => {
           placeholder="0"
         >
           <template #tooltip>
-            Select a valid absolute log2(FC) threshold for identifying
+            Select a valid minimum number of counts for a clonotype to be considered significant.
             significantly enriched clonotypes.
           </template>
         </PlNumberField>
@@ -239,6 +204,32 @@ watch(() => [app.model.args.contrastFactor], (_) => {
           placeholder="0"
         />
       </PlRow>
+    </PlAccordionSection>
+    <PlCheckbox v-model="app.model.args.findTcrAbPairs">
+      Find TCR AB pairs
+      <template #tooltip>
+        Correlate clonotype frequencies across matching samples to identify paired alpha-beta TCR chains.
+      </template>
+    </PlCheckbox>
+    <!-- Content hidden until you click -->
+    <PlAccordionSection label="CD4/8 subset assignment">
+      <PlDropdownRef
+        v-model="app.model.args.cdRef"
+        :options="app.model.outputs.inputOptions"
+        label="Select CD4/8 dataset (optional)"
+        clearable
+      />
+      <PlDropdown
+        v-if="app.model.args.cdRef"
+        v-model="app.model.args.cdSubsetCol"
+        :options="metadataLabelOptions"
+        label="Metadata column with CD4/8 information"
+        clearable
+      >
+        <template #tooltip>
+          This column is required to subset the main dataset's clonotypes to CD4/8 cells. The column should contain "CD4" or "CD8" values (case-insensitive).
+        </template>
+      </PlDropdown>
     </PlAccordionSection>
   </PlSlideModal>
 </template>
