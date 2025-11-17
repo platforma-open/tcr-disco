@@ -147,7 +147,10 @@ watch(() => [app.model.args.contrastFactor], (_) => {
       label="Contrast factor"
       required
     />
-    <PlDropdownMulti v-model="app.model.args.numerators" :options="numeratorOptions.value" label="Numerator" >
+    <PlDropdownMulti
+      v-model="app.model.args.numerators" :options="numeratorOptions.value"
+      label="Numerator" required
+    >
       <template #tooltip>
         Calculate a contrast per each one of the selected Numerators versus the selected control/baseline
       </template>
@@ -158,16 +161,21 @@ watch(() => [app.model.args.contrastFactor], (_) => {
       label="Denominator"
       required
     />
-    <PlDropdown
-      v-model="app.model.args.sampleIdCol"
-      :options="metadataLabelOptions"
-      label="Select Sample ID column"
-      clearable
-    />
     <PlCheckbox v-model="app.model.args.findTcrAbPairs">
       Find TCR AB pairs
     </PlCheckbox>
-
+    <PlDropdown
+      v-if="app.model.args.findTcrAbPairs"
+      v-model="app.model.args.sampleIdCol"
+      :options="metadataLabelOptions"
+      label="Metadata column with sample ID"
+      clearable required
+    >
+      <template #tooltip>
+        This column is required to map TCR Alpha and Beta chain clonotypes to the same samples.
+        The correlation analysis compares clonotype frequencies across matching samples to identify paired alpha-beta TCR chains.
+      </template>
+    </PlDropdown>
     <!-- Content hidden until you click -->
     <PlAccordionSection label="CD4/8 subset assignment">
       <PlDropdownRef
@@ -176,33 +184,20 @@ watch(() => [app.model.args.contrastFactor], (_) => {
         label="Select CD4/8 dataset (optional)"
         clearable
       />
-
       <PlDropdown
         v-if="app.model.args.cdRef"
         v-model="app.model.args.cdSubsetCol"
         :options="metadataLabelOptions"
         label="Metadata column with CD4/8 information"
         clearable
-      />
+      >
+        <template #tooltip>
+          This column is required to subset the main dataset's clonotypes to CD4/8 cells. The column should contain "CD4" or "CD8" values (case-insensitive).
+        </template>
+      </PlDropdown>
     </PlAccordionSection>
     <!-- Content hidden until you click THRESHOLD PARAMETERS -->
     <PlAccordionSection label="THRESHOLD PARAMETERS">
-      <PlRow>
-        <PlNumberField
-          v-model="app.model.args.thresholdCounts"
-          label="Minimum counts"
-          :minValue="0"
-          :step="1"
-          placeholder="0"
-        />
-        <PlNumberField
-          v-model="app.model.args.thresholdSamples"
-          label="Minimum samples"
-          :minValue="0"
-          :step="1"
-          placeholder="0"
-        />
-      </PlRow>
       <PlRow>
         <PlNumberField
           v-model="app.model.args.log2FcThreshold"
@@ -221,6 +216,27 @@ watch(() => [app.model.args.contrastFactor], (_) => {
           :minValue="0"
           :maxValue="1"
           :step="0.01"
+        />
+      </PlRow>
+      <PlRow>
+        <PlNumberField
+          v-model="app.model.args.thresholdCounts"
+          label="Minimum counts"
+          :minValue="0"
+          :step="1"
+          placeholder="0"
+        >
+          <template #tooltip>
+            Select a valid absolute log2(FC) threshold for identifying
+            significantly enriched clonotypes.
+          </template>
+        </PlNumberField>
+        <PlNumberField
+          v-model="app.model.args.thresholdSamples"
+          label="Minimum samples"
+          :minValue="0"
+          :step="1"
+          placeholder="0"
         />
       </PlRow>
     </PlAccordionSection>
