@@ -109,15 +109,6 @@ watch(() => [app.model.args.contrastFactor], (_) => {
         </template>
       </PlBtnGhost>
     </template>
-    <div style="width: fit-content; margin-left: auto">
-      <PlBtnGroup
-        v-model="app.model.ui.selectedChain"
-        :options="[
-          { value: 'alpha', label: 'TCR Alpha Chain' },
-          { value: 'beta', label: 'TCR Beta Chain' },
-        ]"
-      />
-    </div>
 
     <PlAgDataTableV2
       v-model="app.model.ui.tableState"
@@ -125,7 +116,17 @@ watch(() => [app.model.args.contrastFactor], (_) => {
       not-ready-text="Data is not computed"
       show-columns-panel
       show-export-button
-    />
+    >
+      <template #before-sheets>
+        <PlBtnGroup
+          v-model="app.model.ui.selectedChain"
+          :options="[
+            { value: 'alpha', label: 'TCR Alpha Chain' },
+            { value: 'beta', label: 'TCR Beta Chain' },
+          ]"
+        />
+      </template>
+    </PlAgDataTableV2>
   </PlBlockPage>
 
   <PlSlideModal v-model="settingsAreShown">

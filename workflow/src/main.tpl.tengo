@@ -543,7 +543,7 @@ wf.body(func(args) {
 	clonotypeToSubsetBetaPf := undefined
 	if mainBetaSpec != undefined {
 		betaSubsetParams := cdSubsetParamsLib.getColumns(copy(mainBetaSpec))
-		clonotypeToSubsetBetaPf = xsv.importFile(mainBetaFrequenciesTsv, "tsv", betaSubsetParams, 
+		clonotypeToSubsetBetaPf = xsv.importFile(clonotypeToSubsetBeta, "tsv", betaSubsetParams, 
 			{mem: defaultConvMem, cpu: defaultConvCpu})
 	}
 

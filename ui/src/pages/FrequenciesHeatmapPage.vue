@@ -31,7 +31,7 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
 
   const contrastIndex = pcols.findIndex((p) => p.spec.name === 'pl7.app/metadata'
     && p.spec.annotations?.['pl7.app/label'] === contrastFactorLabel);
-  const _subsetIndex = getIndex('pl7.app/differentialTCRAbundance/subset', pcols);
+  const subsetIndex = getIndex('pl7.app/differentialTCRAbundance/subset', pcols);
 
   if (fractionIndex === -1 || !pcols[fractionIndex]?.spec.axesSpec) {
     return undefined;
@@ -57,10 +57,14 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
       inputName: 'xGroupBy',
       selectedSource: pcols[contrastIndex].spec,
     },
-    // {
-    //   inputName: 'yGroupBy',
-    //   selectedSource: pcols[subsetIndex].spec,
-    // },
+    {
+      inputName: 'annotationsX',
+      selectedSource: pcols[contrastIndex].spec,
+    },
+    {
+      inputName: 'annotationsY',
+      selectedSource: pcols[subsetIndex].spec,
+    },
   ];
 
   return defaults;
@@ -81,6 +85,7 @@ watch(() => app.model.ui.selectedChain, (_) => {
     v-model="app.model.ui.frequenciesHeatmapState"
     chartType="heatmap"
     :p-frame="app.model.outputs.frequenciesHeatmapPf"
+    :default-options="defaultOptions"
   >
     <template #titleLineSlot>
       <PlBtnGroup
