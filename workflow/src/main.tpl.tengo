@@ -364,6 +364,17 @@ wf.body(func(args) {
 	}
 
 	//////////////// Run TCR Disco ////////////////
+
+	// Get type of input
+	inputType := undefined
+	if (mainAlphaSpec.axesSpec[1].name == "pl7.app/vdj/clonotypeKey" || mainAlphaSpec.axesSpec[1].name == "pl7.app/vdj/scClonotypeKey") {
+		inputType = "Clonotype"
+	// } else if (mainAlphaSpec.axesSpec[1].name == "pl7.app/vdj/clusterId") {
+	// 	inputType = "Cluster"
+	} else {
+		ll.panic("\n\nNot yet supported input data. Please contact Milaboratories to include it:\n%v\n", mainAlphaSpec)
+	}
+
 	tcrAnalysis := render.create(tcrAnalysisTpl, {
 		numerators: args.numerators,
 		denominator: denominator,
@@ -378,7 +389,12 @@ wf.body(func(args) {
 		thresholdCounts: thresholdCounts,
 		thresholdSamples: thresholdSamples,
 		log2FcThreshold: log2FcThreshold,
-		pAdjThreshold: pAdjThreshold
+		pAdjThreshold: pAdjThreshold,
+		mainAlphaSpec: mainAlphaSpec,
+		mainBetaSpec: mainBetaSpec,
+		blockId: blockId,
+		defaultConvMem: defaultConvMem,
+		defaultConvCpu: defaultConvCpu
 	})
 	
 	topTableFileAlpha := tcrAnalysis.output("topTableFileAlpha")
@@ -389,6 +405,10 @@ wf.body(func(args) {
 	mainBetaFrequenciesTsv := tcrAnalysis.output("mainBetaFrequenciesTsv")
 	clonotypeToSubsetAlpha := tcrAnalysis.output("clonotypeToSubsetAlpha")
 	clonotypeToSubsetBeta := tcrAnalysis.output("clonotypeToSubsetBeta")
+	degPFAlpha_clonotype := tcrAnalysis.output("degPFAlpha_clonotype")
+	regDirPFAlpha_clonotype := tcrAnalysis.output("regDirPFAlpha_clonotype")
+	degPFBeta_clonotype := tcrAnalysis.output("degPFBeta_clonotype")
+	regDirPFBeta_clonotype := tcrAnalysis.output("regDirPFBeta_clonotype")
 
 	////////////////// Spec preparation ////////////////
 	degPframeBuilderAlpha := pframes.pFrameBuilder()
@@ -397,20 +417,13 @@ wf.body(func(args) {
 	regDirPframeBuilderBeta := pframes.pFrameBuilder()
 	topDegPframeBuilderAlpha := pframes.pFrameBuilder()
 	topDegPframeBuilderBeta := pframes.pFrameBuilder()
+	
 
 	trace := pSpec.makeTrace(mainAlphaSpec,
 			{type: "milaboratories.tcr-disco-enrichment", importance: 30, 
 			label: "DA - Denominator: " + denominator + " (log2FC: " + log2FcThreshold + ", pAdj: " + pAdjThreshold + ", threshold counts: " + thresholdCounts + ", threshold samples: " + thresholdSamples + ")"}
 		)
-	// Get type of input
-	inputType := undefined
-	if (mainAlphaSpec.axesSpec[1].name == "pl7.app/vdj/clonotypeKey" || mainAlphaSpec.axesSpec[1].name == "pl7.app/vdj/scClonotypeKey") {
-		inputType = "Clonotype"
-	// } else if (mainAlphaSpec.axesSpec[1].name == "pl7.app/vdj/clusterId") {
-	// 	inputType = "Cluster"
-	} else {
-		ll.panic("\n\nNot yet supported input data. Please contact Milaboratories to include it:\n%v\n", mainAlphaSpec)
-	}
+
 
 	// Run TCR AB pairing if stated
 	pairsTsvFile := undefined
@@ -463,6 +476,7 @@ wf.body(func(args) {
 							degPframeBuilderBeta, regDirPframeBuilderBeta, topDegPframeBuilderBeta)
 	}
 
+
 	// Create contrast label Pcolumn
 	contrastExport := {
 		spec: {
@@ -493,6 +507,7 @@ wf.body(func(args) {
 	if mainBetaSpec != undefined {
 		topDegPFBeta = topDegPframeBuilderBeta.build()
 	}
+	
 
 	// Convert frequency TSV files to PFrames
 	frequenciesTrace := pSpec.makeTrace(mainAlphaSpec,
@@ -557,7 +572,13 @@ wf.body(func(args) {
 			clonotypeToSubsetAlpha: pframes.exportFrame(clonotypeToSubsetAlphaPf),
 			clonotypeToSubsetBeta: pframes.exportFrame(clonotypeToSubsetBetaPf)
 		},
-		exports: {}
+		exports: {
+			DEGAlpha: degPFAlpha_clonotype,
+			regDirAlpha: regDirPFAlpha_clonotype,
+			DEGBeta: degPFBeta_clonotype,
+			regDirBeta: regDirPFBeta_clonotype,
+			contrastExport: contrastExport
+		}
 	}
 })
 

@@ -1,0 +1,74 @@
+ll := import("@platforma-sdk/workflow-tengo:ll")
+
+getColumns := func(countsSpec) {
+	return {
+		"axes": [
+			{
+				column: "clonotypeKey",
+				spec: countsSpec.axesSpec[1]
+			}
+			],
+		"columns": [
+			{
+				column: "log2FoldChange",
+				id: "log2foldchange",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/differentialTCRAbundance/log2foldchange",
+					valueType: "Double",
+					annotations: {
+						"pl7.app/label": "Log2FC",
+						"pl7.app/table/orderPriority": "60"
+					}
+				}
+			},
+			{
+				column: "Regulation",
+				id: "regulationDirection",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/differentialTCRAbundance/regulationDirection",
+					valueType: "String",
+					annotations: {
+						"pl7.app/label": "Regulation direction (Up\\Down\\NS)",
+						"pl7.app/table/orderPriority": "5"
+					}
+				}
+			},
+			{
+				column: "padj",
+				id: "padj",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/differentialTCRAbundance/adjustedPValue",
+					valueType: "Double",
+					annotations: {
+						"pl7.app/label": "Adjusted p-value",
+						"pl7.app/table/orderPriority": "10"
+					}
+				}
+			},
+			{
+				column: "subset",
+				id: "subset",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/differentialTCRAbundance/cdsubset",
+					valueType: "String",
+					annotations: {
+						"pl7.app/label": "CD4/CD8 subset",
+						"pl7.app/table/visibility": "default",
+						"pl7.app/table/orderPriority": "60"
+					}
+				}
+			}
+			],
+		"storageFormat": "Parquet",
+		"partitionKeyLength": 0
+	}
+}
+
+export ll.toStrict({
+	getColumns: getColumns
+})
+

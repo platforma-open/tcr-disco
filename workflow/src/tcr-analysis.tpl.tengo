@@ -2,10 +2,16 @@ self := import("@platforma-sdk/workflow-tengo:tpl")
 exec := import("@platforma-sdk/workflow-tengo:exec")
 assets := import("@platforma-sdk/workflow-tengo:assets")
 pt := import("@platforma-sdk/workflow-tengo:pt")
+xsv := import("@platforma-sdk/workflow-tengo:pframes.xsv")
+pframes := import("@platforma-sdk/workflow-tengo:pframes")
+pSpec := import("@platforma-sdk/workflow-tengo:pframes.spec")
+smart := import("@platforma-sdk/workflow-tengo:smart")
+json := import("json")
 
 subsetAssignment := assets.importSoftware("@platforma-open/milaboratories.run-tcrdisco-enrichment.software:subset-assignment")
 diffSoftware := assets.importSoftware("@platforma-open/milaboratories.run-tcrdisco-enrichment.software:tcr-disco")
 getEnrichedFrequenciesSoftware := assets.importSoftware("@platforma-open/milaboratories.run-tcrdisco-enrichment.software:get-enriched-frequencies")
+tcrdiscoDaPfconvParamsLib := import(":libs.tcrdisco_da_pfconv_params")
 self.validateInputs({
     "__options__,closed": "",
 	"numerators": "any",
@@ -22,12 +28,18 @@ self.validateInputs({
 	"thresholdCounts": "number",
 	"thresholdSamples": "number",
 	"log2FcThreshold": "number",
-	"pAdjThreshold": "number"
+	"pAdjThreshold": "number",
+	"mainAlphaSpec,?": "any",
+	"mainBetaSpec,?": "any",
+	"blockId,?": "string",
+	"defaultConvMem,?": "string",
+	"defaultConvCpu,?": "number"
 })
 
 self.defineOutputs("topTableFileAlpha","topTableFileBeta","daFileAlpha",
 "daFileBeta","contrastMap","mainAlphaFrequenciesTsv","mainBetaFrequenciesTsv",
-"clonotypeToSubsetAlpha","clonotypeToSubsetBeta")
+"clonotypeToSubsetAlpha","clonotypeToSubsetBeta","degPFAlpha_clonotype",
+"regDirPFAlpha_clonotype","degPFBeta_clonotype","regDirPFBeta_clonotype")
 
 self.body(func(inputs) {
 
@@ -75,6 +87,22 @@ self.body(func(inputs) {
 	dfsTopTableAlpha := []
 	dfsTopTableBeta := []
 	contrastMap := {}
+	
+	// Format 2 specs (with contrast in domain) - process outside workflow
+	degPframeBuilderAlpha_clonotype := pframes.pFrameBuilder()
+	degPframeBuilderBeta_clonotype := pframes.pFrameBuilder()
+	regDirPframeBuilderAlpha_clonotype := pframes.pFrameBuilder()
+	regDirPframeBuilderBeta_clonotype := pframes.pFrameBuilder()
+	
+	// Create trace if specs are provided
+	trace := undefined
+	if !is_undefined(inputs.mainAlphaSpec) {
+		trace = pSpec.makeTrace(inputs.mainAlphaSpec,
+			{type: "milaboratories.tcr-disco-enrichment", importance: 30, 
+			label: "DA - Denominator: " + denominator + " (log2FC: " + log2FcThreshold + ", pAdj: " + pAdjThreshold + ")"}
+		)
+	}
+	
 	for numerator in inputs.numerators {
 		numerator = string(numerator)
 		contrastMap[numerator + " vs " + denominator] = numerator + " vs " + denominator
@@ -104,6 +132,137 @@ self.body(func(inputs) {
 		dfsTopTableAlpha += [wf.frame(diffExec.getFile("topTable_alpha.csv"), {xsvType: "csv", inferSchema: false})]
 		dfsDegBeta += [wf.frame(diffExec.getFile("DA_beta.csv"), {xsvType: "csv", inferSchema: false})]
 		dfsTopTableBeta += [wf.frame(diffExec.getFile("topTable_beta.csv"), {xsvType: "csv", inferSchema: false})]
+		
+		// Process format 2 specs (with contrast in domain) if specs are provided
+		if !is_undefined(inputs.mainAlphaSpec) {
+			comparison := numerator + " - vs - " + denominator
+			defaultConvMem := inputs.defaultConvMem
+			if defaultConvMem == undefined {
+				defaultConvMem = "16GiB"
+			}
+			defaultConvCpu := inputs.defaultConvCpu
+			if defaultConvCpu == undefined {
+				defaultConvCpu = 1
+			}
+			
+			// Process alpha chain
+			degImportParams := tcrdiscoDaPfconvParamsLib.getColumns(inputs.mainAlphaSpec)
+			degPfAlpha := xsv.importFile(diffExec.getFile("topTable_alpha.csv"), "csv", degImportParams, {mem: defaultConvMem, cpu: defaultConvCpu})
+			
+			// Get runID label
+			runIdLabel := inputs.mainAlphaSpec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
+			if runIdLabel == undefined {
+				runIdLabel = "pl7.app/vdj/vdjImport"
+			} else {
+				runIdLabel = "pl7.app/vdj/clonotypingRunId"
+			}
+			
+			degPframeBuilderAlpha_clonotype.add(
+				numerator,
+				trace.inject({
+					kind: "PColumn",
+					name: "pl7.app/differentialAbundance/DCA",
+					domain: {
+						runIdLabel: inputs.mainAlphaSpec.axesSpec[1].domain[runIdLabel],
+						"pl7.app/differentialAbundance/comparison": comparison
+					},
+					valueType: "Double",
+					annotations: {
+						"pl7.app/label": comparison + " (log2FC)",
+						"pl7.app/isAbundance": "true",
+						"pl7.app/table/visibility": "default",
+						"pl7.app/table/orderPriority": "85000"
+					},
+					axesSpec: [
+						inputs.mainAlphaSpec.axesSpec[1]
+					]
+				}),
+				degPfAlpha["log2foldchange.data"]
+			)
+			
+			regDirPframeBuilderAlpha_clonotype.add(
+				numerator,
+				trace.inject({
+					kind: "PColumn",
+					name: "pl7.app/differentialAbundance/regulationDirection",
+					domain: {
+						runIdLabel: inputs.mainAlphaSpec.axesSpec[1].domain[runIdLabel],
+						"pl7.app/differentialAbundance/comparison": comparison
+					},
+					valueType: "String",
+					annotations: {
+						"pl7.app/label": comparison + " (UP\\Down-regulated clonotype list)",
+						"pl7.app/isAbundance": "true",
+						"pl7.app/table/visibility": "optional",
+						"pl7.app/table/orderPriority": "84000"
+					},
+					axesSpec: [
+						inputs.mainAlphaSpec.axesSpec[1]
+					]
+				}),
+				degPfAlpha["regulationDirection.data"]
+			)
+			
+			// Process beta chain if available
+			if !is_undefined(inputs.mainBetaSpec) {
+				degImportParamsBeta := tcrdiscoDaPfconvParamsLib.getColumns(inputs.mainBetaSpec)
+				degPfBeta := xsv.importFile(diffExec.getFile("topTable_beta.csv"), "csv", degImportParamsBeta, {mem: defaultConvMem, cpu: defaultConvCpu})
+				
+				// Get runID label for beta
+				runIdLabelBeta := inputs.mainBetaSpec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
+				if runIdLabelBeta == undefined {
+					runIdLabelBeta = "pl7.app/vdj/vdjImport"
+				} else {
+					runIdLabelBeta = "pl7.app/vdj/clonotypingRunId"
+				}
+				
+				degPframeBuilderBeta_clonotype.add(
+					numerator,
+					trace.inject({
+						kind: "PColumn",
+						name: "pl7.app/differentialAbundance/DCA",
+						domain: {
+							runIdLabelBeta: inputs.mainBetaSpec.axesSpec[1].domain[runIdLabelBeta],
+							"pl7.app/differentialAbundance/comparison": comparison
+						},
+						valueType: "Double",
+						annotations: {
+							"pl7.app/label": comparison + " (log2FC)",
+							"pl7.app/isAbundance": "true",
+							"pl7.app/table/visibility": "default",
+							"pl7.app/table/orderPriority": "85000"
+						},
+						axesSpec: [
+							inputs.mainBetaSpec.axesSpec[1]
+						]
+					}),
+					degPfBeta["log2foldchange.data"]
+				)
+				
+				regDirPframeBuilderBeta_clonotype.add(
+					numerator,
+					trace.inject({
+						kind: "PColumn",
+						name: "pl7.app/differentialAbundance/regulationDirection",
+						domain: {
+							runIdLabelBeta: inputs.mainBetaSpec.axesSpec[1].domain[runIdLabelBeta],
+							"pl7.app/differentialAbundance/comparison": comparison
+						},
+						valueType: "String",
+						annotations: {
+							"pl7.app/label": comparison + " (UP\\Down-regulated clonotype list)",
+							"pl7.app/isAbundance": "true",
+							"pl7.app/table/visibility": "optional",
+							"pl7.app/table/orderPriority": "84000"
+						},
+						axesSpec: [
+							inputs.mainBetaSpec.axesSpec[1]
+						]
+					}),
+					degPfBeta["regulationDirection.data"]
+				)
+			}
+		}
 	}
 	// Concatenate all DEG and topTable files
 	concatenatedDegAlpha := pt.concat(dfsDegAlpha)
@@ -137,6 +296,20 @@ self.body(func(inputs) {
 	clonotypeToSubsetAlpha := getEnrichedFrequenciesExec.getFile("clonotype_to_subset_alpha.tsv")
 	clonotypeToSubsetBeta := getEnrichedFrequenciesExec.getFile("clonotype_to_subset_beta.tsv")
 
+	// Build format 2 PFrames
+	degPFAlpha_clonotype := undefined
+	regDirPFAlpha_clonotype := undefined
+	degPFBeta_clonotype := undefined
+	regDirPFBeta_clonotype := undefined
+	if !is_undefined(inputs.mainAlphaSpec) {
+		degPFAlpha_clonotype = degPframeBuilderAlpha_clonotype.build()
+		regDirPFAlpha_clonotype = regDirPframeBuilderAlpha_clonotype.build()
+		if !is_undefined(inputs.mainBetaSpec) {
+			degPFBeta_clonotype = degPframeBuilderBeta_clonotype.build()
+			regDirPFBeta_clonotype = regDirPframeBuilderBeta_clonotype.build()
+		}
+	}
+
 	return {
 		topTableFileAlpha: ptablerResult.getFile("concatenated_output_topTable_alpha.csv"),
 		topTableFileBeta: ptablerResult.getFile("concatenated_output_topTable_beta.csv"),
@@ -146,7 +319,11 @@ self.body(func(inputs) {
 		mainAlphaFrequenciesTsv: mainAlphaFrequenciesTsv,
 		mainBetaFrequenciesTsv: mainBetaFrequenciesTsv,
 		clonotypeToSubsetAlpha: clonotypeToSubsetAlpha,
-		clonotypeToSubsetBeta: clonotypeToSubsetBeta
+		clonotypeToSubsetBeta: clonotypeToSubsetBeta,
+		degPFAlpha_clonotype: degPFAlpha_clonotype,
+		regDirPFAlpha_clonotype: regDirPFAlpha_clonotype,
+		degPFBeta_clonotype: degPFBeta_clonotype,
+		regDirPFBeta_clonotype: regDirPFBeta_clonotype
 	}
 })
 
