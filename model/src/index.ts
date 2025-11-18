@@ -79,12 +79,12 @@ export const model = BlockModel.create()
     pairsTableState: createPlDataTableStateV2(),
     selectedChain: 'alpha',
     graphState: {
-      title: 'TCR Volcano',
+      title: 'Volcano plot of differentially abundant clonotypes',
       template: 'dots',
       currentTab: null,
     },
     pairsHeatmapState: {
-      title: 'TCR AB Pairs Heatmap',
+      title: 'TCR A/B pairs correlation heatmap',
       template: 'heatmapClustered',
       layersSettings: {
         heatmapClustered: {
@@ -96,7 +96,7 @@ export const model = BlockModel.create()
       },
     },
     frequenciesHeatmapState: {
-      title: 'DA clonotypes Heatmap',
+      title: 'Enriched clonotypes heatmap',
       template: 'heatmapClustered',
       layersSettings: {
         heatmapClustered: {
@@ -358,12 +358,12 @@ export const model = BlockModel.create()
     const sections: Array<{ type: 'link'; href: `/${string}`; label: string }> = [
       { type: 'link' as const, href: '/' as const, label: 'Main' },
       { type: 'link' as const, href: '/graph' as const, label: 'Volcano plot' },
-      { type: 'link' as const, href: '/freq-heatmap' as const, label: 'DA clonotypes Heatmap' },
+      { type: 'link' as const, href: '/freq-heatmap' as const, label: 'Enriched clonotypes heatmap:' },
     ];
 
     if (ctx.args.findTcrAbPairs) {
       sections.push({ type: 'link' as const, href: '/pairs' as const, label: 'TCR AB Pairs' });
-      sections.push({ type: 'link' as const, href: '/pairs-heatmap' as const, label: 'Pairs Heatmap' });
+      sections.push({ type: 'link' as const, href: '/pairs-heatmap' as const, label: 'Pairs correlation heatmap' });
     }
 
     return sections;

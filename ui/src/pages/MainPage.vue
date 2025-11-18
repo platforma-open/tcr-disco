@@ -15,6 +15,7 @@ import {
   PlRow,
   PlSlideModal,
   PlTabs,
+  PlTooltip,
   usePlDataTableSettingsV2,
   useWatchFetch,
 } from '@platforma-sdk/ui-vue';
@@ -175,7 +176,7 @@ watch(() => [app.model.args.contrastFactor], (_) => {
           :step="0.1"
         >
           <template #tooltip>
-            Select a valid absolute log2(FC) and p-value threshold for identifying
+            Select a valid absolute log2(FC) and adjusted p-value threshold for identifying
             significantly enriched clonotypes.
           </template>
         </PlNumberField>
@@ -190,36 +191,36 @@ watch(() => [app.model.args.contrastFactor], (_) => {
       <PlRow>
         <PlNumberField
           v-model="app.model.args.thresholdCounts"
-          label="Minimum counts"
+          label="Min counts"
           :minValue="0"
           :step="1"
           placeholder="0"
         >
           <template #tooltip>
             Select a valid minimum number of counts for a clonotype to be considered significant.
-            significantly enriched clonotypes.
           </template>
         </PlNumberField>
         <PlNumberField
           v-model="app.model.args.thresholdSamples"
-          label="Minimum samples"
+          label="Min samples"
           :minValue="0"
           :step="1"
           placeholder="0"
-        />
+        >
+          <template #tooltip>
+            Minimum number of samples where a clonotype must have >= "Min counts" to be considered significant.
+          </template>
+        </PlNumberField>
       </PlRow>
     </PlAccordionSection>
-    <PlAccordionSection label="TCR A/B clonotype pairing">
-      <div style="text-align: justify;">
-        Correlate differentially enriched clonotype frequencies across matching samples to identify paired alpha-beta TCR chains.
-      </div>
-      <PlCheckbox v-model="app.model.args.findTcrAbPairs">
-        Find TCR AB pairs
+    <PlCheckbox v-model="app.model.args.findTcrAbPairs">
+      Find TCR A/B pairs
+      <PlTooltip class="info">
         <template #tooltip>
-          Correlate clonotype frequencies across matching samples to identify paired alpha-beta TCR chains.
+          Correlate differentially enriched clonotype frequencies across matching samples to identify paired alpha-beta TCR chains.
         </template>
-      </PlCheckbox>
-    </PlAccordionSection>
+      </PlTooltip>
+    </PlCheckbox>
     <!-- Content hidden until you click -->
     <PlAccordionSection label="CD4/8 subset assignment">
       <PlDropdownRef
