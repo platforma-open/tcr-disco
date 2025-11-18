@@ -288,6 +288,11 @@ export const model = BlockModel.create()
       return undefined;
     }
 
+    const clonotypeToSubsetPcols = ctx.outputs?.resolve(selectedChain === 'alpha' ? 'clonotypeToSubsetAlpha' : 'clonotypeToSubsetBeta')?.getPColumns();
+    if (clonotypeToSubsetPcols === undefined) {
+      return undefined;
+    }
+
     // Get all metadata columns that are compatible with the Sample axis
     // const metadataCols = ctx.resultPool
     //   .getData()
@@ -299,7 +304,8 @@ export const model = BlockModel.create()
     //   );
 
     // return ctx.createPFrame([...pCols, ...metadataCols]);
-    return createPFrameForGraphs(ctx, pCols);
+    return createPFrameForGraphs(ctx, [...pCols, ...clonotypeToSubsetPcols]);
+    // return createPFrameForGraphs(ctx, pCols);
   })
 
   .output('frequenciesHeatmapPcols', (ctx) => {
