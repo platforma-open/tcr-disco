@@ -28,10 +28,10 @@ const showSettings = () => {
   settingsAreShown.value = true;
 };
 
-const tableSettings = usePlDataTableSettingsV2({
+const tableSettings = computed(() => usePlDataTableSettingsV2({
   model: () => app.model.outputs.pt,
   sheets: () => app.model.outputs.sheets,
-});
+}).value);
 
 // Update page title by dataset
 function setInput(inputRef?: PlRef) {

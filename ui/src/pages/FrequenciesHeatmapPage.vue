@@ -81,7 +81,6 @@ watch(() => app.model.ui.selectedChain, (_) => {
     v-model="app.model.ui.frequenciesHeatmapState"
     chartType="heatmap"
     :p-frame="app.model.outputs.frequenciesHeatmapPf"
-    :default-options="defaultOptions"
   >
     <template #titleLineSlot>
       <PlBtnGroup

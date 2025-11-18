@@ -3,16 +3,13 @@ import type { PredefinedGraphOption } from '@milaboratories/graph-maker';
 import { GraphMaker } from '@milaboratories/graph-maker';
 import '@milaboratories/graph-maker/styles';
 import type { PColumnIdAndSpec, PlSelectionModel } from '@platforma-sdk/model';
-import { PlBtnGroup, PlMultiSequenceAlignment, PlSlideModal } from '@platforma-sdk/ui-vue';
+import { PlBtnGroup } from '@platforma-sdk/ui-vue';
 import { computed, ref, watch } from 'vue';
 import { useApp } from '../app';
-import {
-  isSequenceColumn,
-} from '../util';
 
 const app = useApp();
 
-const multipleSequenceAlignmentOpen = ref(false);
+// const multipleSequenceAlignmentOpen = ref(false);
 
 function getIndex(name: string, pcols: PColumnIdAndSpec[]): number {
   return pcols.findIndex((p) => p.spec.name === name);
@@ -100,7 +97,7 @@ const selection = ref<PlSelectionModel>({
       </PlBtnGhost> -->
     </template>
   </GraphMaker>
-  <PlSlideModal
+  <!-- <PlSlideModal
     v-model="multipleSequenceAlignmentOpen"
     width="100%"
     :close-on-outside-click="false"
@@ -112,5 +109,5 @@ const selection = ref<PlSelectionModel>({
       :p-frame="app.model.outputs.msaPf"
       :selection="selection"
     />
-  </PlSlideModal>
+  </PlSlideModal> -->
 </template>
