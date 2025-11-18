@@ -3,6 +3,7 @@ import type { PredefinedGraphOption } from '@milaboratories/graph-maker';
 import { GraphMaker } from '@milaboratories/graph-maker';
 import '@milaboratories/graph-maker/styles';
 import type { PColumnIdAndSpec } from '@platforma-sdk/model';
+import { plRefsEqual } from '@platforma-sdk/model';
 import { PlBtnGroup } from '@platforma-sdk/ui-vue';
 import { computed, watch } from 'vue';
 import { useApp } from '../app';
@@ -20,9 +21,17 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
 
   const pcols = app.model.outputs.frequenciesHeatmapPcols;
   const fractionIndex = getIndex('pl7.app/differentialTCRAbundance/countFraction', pcols);
-  const contrastIndex = pcols.findIndex((p) => p.spec.name === 'pl7.app/label'
-    && p.spec.annotations?.['pl7.app/label'] === app.model.args.contrastFactor);
-  const subsetIndex = getIndex('pl7.app/differentialTCRAbundance/subset', pcols);
+
+  // Get the label from the contrastFactor PlRef
+  const contrastFactorLabel = app.model.args.contrastFactor
+    ? app.model.outputs.metadataOptions?.find((opt) =>
+      plRefsEqual(opt.ref, app.model.args.contrastFactor!),
+    )?.label
+    : undefined;
+
+  const contrastIndex = pcols.findIndex((p) => p.spec.name === 'pl7.app/metadata'
+    && p.spec.annotations?.['pl7.app/label'] === contrastFactorLabel);
+  const _subsetIndex = getIndex('pl7.app/differentialTCRAbundance/subset', pcols);
 
   if (fractionIndex === -1 || !pcols[fractionIndex]?.spec.axesSpec) {
     return undefined;
@@ -44,10 +53,10 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
       inputName: 'y',
       selectedSource: axesSpec[1], // clonotypeKey
     },
-    // {
-    //   inputName: 'xGroupBy',
-    //   selectedSource: pcols[contrastIndex].spec,
-    // },
+    {
+      inputName: 'xGroupBy',
+      selectedSource: pcols[contrastIndex].spec,
+    },
     // {
     //   inputName: 'yGroupBy',
     //   selectedSource: pcols[subsetIndex].spec,
@@ -64,13 +73,9 @@ watch(() => app.model.ui.selectedChain, (_) => {
   delete app.model.ui.frequenciesHeatmapState.optionsState;
 }, { deep: false, immediate: false });
 
-const pcols = app.model.outputs.frequenciesHeatmapPcols;
-const contrastIndex2 = pcols?.findIndex((p) => p.spec.name === 'pl7.app/label'
-  && p.spec.annotations?.['pl7.app/label'] === app.model.args.contrastFactor);
 </script>
 
 <template>
-  {{ contrastIndex2 }}
   <GraphMaker
     :key="key"
     v-model="app.model.ui.frequenciesHeatmapState"

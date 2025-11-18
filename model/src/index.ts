@@ -357,6 +357,7 @@ export const model = BlockModel.create()
 
     if (ctx.args.findTcrAbPairs) {
       sections.push({ type: 'link' as const, href: '/pairs' as const, label: 'TCR AB Pairs' });
+      sections.push({ type: 'link' as const, href: '/pairs-heatmap' as const, label: 'Pairs Heatmap' });
     }
 
     return sections;

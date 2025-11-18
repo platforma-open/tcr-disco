@@ -2,7 +2,7 @@
 import type { PredefinedGraphOption } from '@milaboratories/graph-maker';
 import { GraphMaker } from '@milaboratories/graph-maker';
 import '@milaboratories/graph-maker/styles';
-import type { PColumnIdAndSpec, PlSelectionModel } from '@platforma-sdk/model';
+import type { PColumnIdAndSpec } from '@platforma-sdk/model';
 import { PlBtnGroup, PlMultiSequenceAlignment, PlSlideModal } from '@platforma-sdk/ui-vue';
 import { computed, ref, watch } from 'vue';
 import { useApp } from '../app';
@@ -66,14 +66,14 @@ const key = computed(() => {
   return options ? `${chain}-${JSON.stringify(options)}` : '';
 });
 
-const selection = ref<PlSelectionModel>({
-  axesSpec: [],
-  selectedKeys: [],
-});
-
 // Reset graph maker state to allow new selection of defaults when chain changes
 watch(() => app.model.ui.selectedChain, () => {
   delete app.model.ui.graphState.optionsState;
+});
+
+const selection = ref<PlSelectionModel>({
+  axesSpec: [],
+  selectedKeys: [],
 });
 
 </script>
