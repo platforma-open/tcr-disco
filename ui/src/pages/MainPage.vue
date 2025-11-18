@@ -6,7 +6,6 @@ import {
   PlAgDataTableV2,
   PlBlockPage,
   PlBtnGhost,
-  PlBtnGroup,
   PlCheckbox,
   PlDropdown,
   PlDropdownMulti,
@@ -15,6 +14,7 @@ import {
   PlNumberField,
   PlRow,
   PlSlideModal,
+  PlTabs,
   usePlDataTableSettingsV2,
   useWatchFetch,
 } from '@platforma-sdk/ui-vue';
@@ -118,12 +118,13 @@ watch(() => [app.model.args.contrastFactor], (_) => {
       show-export-button
     >
       <template #before-sheets>
-        <PlBtnGroup
+        <PlTabs
           v-model="app.model.ui.selectedChain"
           :options="[
             { value: 'alpha', label: 'TCR Alpha Chain' },
             { value: 'beta', label: 'TCR Beta Chain' },
           ]"
+          :top-line="false"
         />
       </template>
     </PlAgDataTableV2>
@@ -208,12 +209,17 @@ watch(() => [app.model.args.contrastFactor], (_) => {
         />
       </PlRow>
     </PlAccordionSection>
-    <PlCheckbox v-model="app.model.args.findTcrAbPairs">
-      Find TCR AB pairs
-      <template #tooltip>
-        Correlate clonotype frequencies across matching samples to identify paired alpha-beta TCR chains.
-      </template>
-    </PlCheckbox>
+    <PlAccordionSection label="TCR A/B clonotype pairing">
+      <div style="text-align: justify;">
+        Correlate differentially enriched clonotype frequencies across matching samples to identify paired alpha-beta TCR chains.
+      </div>
+      <PlCheckbox v-model="app.model.args.findTcrAbPairs">
+        Find TCR AB pairs
+        <template #tooltip>
+          Correlate clonotype frequencies across matching samples to identify paired alpha-beta TCR chains.
+        </template>
+      </PlCheckbox>
+    </PlAccordionSection>
     <!-- Content hidden until you click -->
     <PlAccordionSection label="CD4/8 subset assignment">
       <PlDropdownRef
@@ -226,7 +232,7 @@ watch(() => [app.model.args.contrastFactor], (_) => {
         v-if="app.model.args.cdRef"
         v-model="app.model.args.cdSubsetCol"
         :options="metadataLabelOptions"
-        label="Metadata column with CD4/8 information"
+        label="CD4/8 metadata column"
         clearable
       >
         <template #tooltip>
