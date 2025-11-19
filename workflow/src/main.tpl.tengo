@@ -207,7 +207,6 @@ wf.body(func(args) {
 	// Get the main dataset
 	mainAlpha := columns.getColumn(args.mainRef)
 	mainAlphaSpec := mainAlpha.spec
-	ll.print("__THE_LOG__: mainAlphaSpec: %v", mainAlphaSpec)
 	mainAlphaClonoStructure := mainAlphaSpec.axesSpec[1].domain["pl7.app/vdj/clonotypeKey/structure"]
 	// Get counts block id from mainAlpha key
 	countsBlockId := mainAlphaSpec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
@@ -249,7 +248,6 @@ wf.body(func(args) {
 		if colChain == "TCRBeta" && colBlockId == countsBlockId && clonoStructure == mainAlphaClonoStructure {
 			mainBetaTable.add(countCol, {header: "count"})
 			mainBetaSpec = countCol.spec
-			ll.print("__THE_LOG__: mainBetaSpec: %v", mainBetaSpec)
 		}
 	}
 	for fractionCol in columns.getColumns("mainFractions") {

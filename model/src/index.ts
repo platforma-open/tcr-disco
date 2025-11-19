@@ -339,34 +339,7 @@ export const model = BlockModel.create()
     if (datasetRef === undefined)
       return undefined;
 
-    const seqCols = ctx.resultPool.getAnchoredPColumns(
-      { main: datasetRef },
-      [{ axes: [{ anchor: 'main', idx: 1 }] }],
-    );
-    if (seqCols === undefined)
-      return undefined;
-
-    return createPFrameForGraphs(ctx, [...msaCols, ...seqCols]);
-  })
-
-  .output('test', (ctx) => {
-    const selectedChain = ctx.uiState?.selectedChain ?? 'alpha';
-    const outputName = selectedChain === 'alpha' ? 'topDegPFAlpha' : 'topDegPFBeta';
-    const msaCols = ctx.outputs?.resolve(outputName)?.getPColumns();
-    if (!msaCols) return undefined;
-
-    const datasetRef = ctx.args.mainRef;
-    if (datasetRef === undefined)
-      return undefined;
-
-    const seqCols = ctx.resultPool.getAnchoredPColumns(
-      { main: datasetRef },
-      [{ axes: [{ anchor: 'main', idx: 1 }] }],
-    );
-    if (seqCols === undefined)
-      return undefined;
-
-    return [...msaCols, ...seqCols];
+    return createPFrameForGraphs(ctx, msaCols);
   })
 
   .title((ctx) => ctx.uiState?.title ?? 'TCR Disco Enrichment')
