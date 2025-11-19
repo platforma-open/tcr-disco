@@ -2,6 +2,7 @@ import type { GraphMakerState } from '@milaboratories/graph-maker';
 import type {
   InferOutputsType,
   PColumn,
+  PColumnDataUniversal,
   PColumnIdAndSpec,
   PFrameHandle,
   PlDataTableStateV2,
@@ -67,9 +68,9 @@ export const model = BlockModel.create()
     covariateRefs: [],
     numerators: [],
     findTcrAbPairs: false,
-    thresholdCounts: 0,
-    thresholdSamples: 0,
-    log2FcThreshold: 0.5,
+    thresholdCounts: 10,
+    thresholdSamples: 3,
+    log2FcThreshold: 0,
     pAdjThreshold: 0.05,
   })
 
@@ -185,7 +186,7 @@ export const model = BlockModel.create()
   })
 
   .output('pairsPt', (ctx) => {
-    const pCols = ctx.outputs?.resolve('pairsPF')?.getPColumns();
+    const pCols = ctx.outputs?.resolve({ field: 'pairsPF', allowPermanentAbsence: true })?.getPColumns();
     if (pCols === undefined) {
       return undefined;
     }
@@ -194,7 +195,7 @@ export const model = BlockModel.create()
   })
 
   .output('pairsSheets', (ctx) => {
-    const pCols = ctx.outputs?.resolve('pairsPF')?.getPColumns();
+    const pCols = ctx.outputs?.resolve({ field: 'pairsPF', allowPermanentAbsence: true })?.getPColumns();
     if (pCols === undefined || pCols.length === 0) {
       return undefined;
     }
@@ -237,6 +238,97 @@ export const model = BlockModel.create()
     );
   })
 
+  .output('pairsHeatmapPf', (ctx): PFrameHandle | undefined => {
+    const pCols = ctx.outputs?.resolve({ field: 'pairsPF', allowPermanentAbsence: true })?.getPColumns();
+    if (pCols === undefined) {
+      return undefined;
+    }
+
+    const clonotypeIds = ctx.resultPool.selectColumns(
+      (spec) => spec.name === 'pl7.app/label'
+        && spec.axesSpec?.some((axis) => axis.name === 'pl7.app/vdj/clonotypeKey' || axis.name === 'pl7.app/vdj/scClonotypeKey'),
+    ) as PColumn<PColumnDataUniversal>[];
+
+    const allPcols = [...pCols, ...clonotypeIds];
+
+    return ctx.createPFrame(allPcols);
+  })
+
+  .output('pairsHeatmapPcols', (ctx) => {
+    const pCols = ctx.outputs?.resolve({ field: 'pairsPF', allowPermanentAbsence: true })?.getPColumns();
+    if (pCols === undefined) {
+      return undefined;
+    }
+    return pCols.map(
+      (c) =>
+        ({
+          columnId: c.id,
+          spec: c.spec,
+        } satisfies PColumnIdAndSpec),
+    );
+  })
+
+  .output('frequenciesHeatmapPf', (ctx): PFrameHandle | undefined => {
+    const selectedChain = ctx.uiState?.selectedChain ?? 'alpha';
+    const outputName = selectedChain === 'alpha' ? 'mainAlphaFrequenciesPF' : 'mainBetaFrequenciesPF';
+    let allPcols = ctx.outputs?.resolve(outputName)?.getPColumns();
+    if (allPcols === undefined) {
+      return undefined;
+    }
+
+    // Get all metadata columns that are compatible with the Sample axis
+    // const sampleIds = ctx.resultPool.selectColumns(
+    //   (spec) => spec.name === 'pl7.app/label'
+    //     && spec.axesSpec?.some((axis) => axis.name === 'pl7.app/sampleId'
+    //       || axis.name === 'pl7.app/vdj/clonotypeKey'
+    //       || axis.name === 'pl7.app/vdj/scClonotypeKey'
+    //       || axis.name === 'pl7.app/metadata'),
+    // ) as PColumn<PColumnDataUniversal>[];
+
+    // let allPcols = [...pCols, ...sampleIds];
+    // let allPcols = pCols;
+
+    const subtypeLabel = selectedChain === 'alpha' ? 'clonotypeToSubsetAlpha' : 'clonotypeToSubsetBeta';
+    const clonotypeToSubsetPcols = ctx.outputs?.resolve({ field: subtypeLabel, allowPermanentAbsence: true })?.getPColumns();
+    if (clonotypeToSubsetPcols !== undefined) {
+      allPcols = [...allPcols, ...clonotypeToSubsetPcols];
+    }
+
+    // return ctx.createPFrame([...pCols, ...metadataCols]);
+    // return ctx.createPFrame(allPcols);
+    return createPFrameForGraphs(ctx, allPcols);
+  })
+
+  .output('frequenciesHeatmapPcols', (ctx) => {
+    const selectedChain = ctx.uiState?.selectedChain ?? 'alpha';
+    const outputName = selectedChain === 'alpha' ? 'mainAlphaFrequenciesPF' : 'mainBetaFrequenciesPF';
+    const pCols = ctx.outputs?.resolve(outputName)?.getPColumns();
+    if (pCols === undefined) {
+      return undefined;
+    }
+
+    const subtypeLabel = selectedChain === 'alpha' ? 'clonotypeToSubsetAlpha' : 'clonotypeToSubsetBeta';
+    const clonotypeToSubsetPcols = ctx.outputs?.resolve({ field: subtypeLabel, allowPermanentAbsence: true })?.getPColumns();
+
+    // Get all metadata columns that are compatible with the Sample axis
+    const metadataCols = ctx.resultPool.selectColumns(
+      (spec) => spec.name === 'pl7.app/metadata',
+    );
+
+    let allCols = [...pCols, ...metadataCols];
+    if (clonotypeToSubsetPcols !== undefined) {
+      allCols = [...allCols, ...clonotypeToSubsetPcols];
+    }
+
+    return allCols.map(
+      (c) =>
+        ({
+          columnId: c.id,
+          spec: c.spec,
+        } satisfies PColumnIdAndSpec),
+    );
+  })
+
   .output('msaPf', (ctx) => {
     const selectedChain = ctx.uiState?.selectedChain ?? 'alpha';
     const outputName = selectedChain === 'alpha' ? 'topDegPFAlpha' : 'topDegPFBeta';
@@ -257,99 +349,24 @@ export const model = BlockModel.create()
     return createPFrameForGraphs(ctx, [...msaCols, ...seqCols]);
   })
 
-  .output('pairsHeatmapPf', (ctx): PFrameHandle | undefined => {
-    const pCols = ctx.outputs?.resolve('pairsPF')?.getPColumns();
-    if (pCols === undefined) {
-      return undefined;
-    }
-
-    return ctx.createPFrame(pCols);
-  })
-
-  .output('pairsHeatmapPcols', (ctx) => {
-    const pCols = ctx.outputs?.resolve('pairsPF')?.getPColumns();
-    if (pCols === undefined) {
-      return undefined;
-    }
-    return pCols.map(
-      (c) =>
-        ({
-          columnId: c.id,
-          spec: c.spec,
-        } satisfies PColumnIdAndSpec),
-    );
-  })
-
-  .output('frequenciesHeatmapPf', (ctx): PFrameHandle | undefined => {
-    const selectedChain = ctx.uiState?.selectedChain ?? 'alpha';
-    const outputName = selectedChain === 'alpha' ? 'mainAlphaFrequenciesPF' : 'mainBetaFrequenciesPF';
-    const pCols = ctx.outputs?.resolve(outputName)?.getPColumns();
-    if (pCols === undefined) {
-      return undefined;
-    }
-
-    const clonotypeToSubsetPcols = ctx.outputs?.resolve(selectedChain === 'alpha' ? 'clonotypeToSubsetAlpha' : 'clonotypeToSubsetBeta')?.getPColumns();
-    if (clonotypeToSubsetPcols === undefined) {
-      return undefined;
-    }
-
-    // Get all metadata columns that are compatible with the Sample axis
-    // const metadataCols = ctx.resultPool
-    //   .getData()
-    //   .entries.map((c) => c.obj)
-    //   .filter(isPColumn)
-    //   .filter((col) =>
-    //     col.spec.name === 'pl7.app/metadata'
-    //     && col.spec.axesSpec.some((axis) => axis.name === 'pl7.app/sampleId'),
-    //   );
-
-    // return ctx.createPFrame([...pCols, ...metadataCols]);
-    return createPFrameForGraphs(ctx, [...pCols, ...clonotypeToSubsetPcols]);
-    // return createPFrameForGraphs(ctx, pCols);
-  })
-
-  .output('frequenciesHeatmapPcols', (ctx) => {
-    const selectedChain = ctx.uiState?.selectedChain ?? 'alpha';
-    const outputName = selectedChain === 'alpha' ? 'mainAlphaFrequenciesPF' : 'mainBetaFrequenciesPF';
-    const pCols = ctx.outputs?.resolve(outputName)?.getPColumns();
-    if (pCols === undefined) {
-      return undefined;
-    }
-
-    const clonotypeToSubsetPcols = ctx.outputs?.resolve(selectedChain === 'alpha' ? 'clonotypeToSubsetAlpha' : 'clonotypeToSubsetBeta')?.getPColumns();
-    if (clonotypeToSubsetPcols === undefined) {
-      return undefined;
-    }
-
-    // Get all metadata columns that are compatible with the Sample axis
-    const metadataOptions = ctx.resultPool.getOptions(
-      (spec) => isPColumnSpec(spec)
-        && spec.name === 'pl7.app/metadata'
-        && spec.axesSpec?.some((axis) => axis.name === 'pl7.app/sampleId'),
-    );
-    const metadataCols = metadataOptions
-      ?.map((opt) => ctx.resultPool.getPColumnByRef(opt.ref))
-      .filter((col): col is PColumn<TreeNodeAccessor> => col !== undefined) ?? [];
-
-    const allCols = [...pCols, ...metadataCols, ...clonotypeToSubsetPcols];
-
-    return allCols.map(
-      (c) =>
-        ({
-          columnId: c.id,
-          spec: c.spec,
-        } satisfies PColumnIdAndSpec),
-    );
-  })
-
   .output('test', (ctx) => {
     const selectedChain = ctx.uiState?.selectedChain ?? 'alpha';
+    const outputName = selectedChain === 'alpha' ? 'topDegPFAlpha' : 'topDegPFBeta';
+    const msaCols = ctx.outputs?.resolve(outputName)?.getPColumns();
+    if (!msaCols) return undefined;
 
-    const clonotypeToSubsetPcols = ctx.outputs?.resolve(selectedChain === 'alpha' ? 'clonotypeToSubsetAlpha' : 'clonotypeToSubsetBeta')?.getPColumns();
-    if (clonotypeToSubsetPcols === undefined) {
+    const datasetRef = ctx.args.mainRef;
+    if (datasetRef === undefined)
       return undefined;
-    }
-    return clonotypeToSubsetPcols;
+
+    const seqCols = ctx.resultPool.getAnchoredPColumns(
+      { main: datasetRef },
+      [{ axes: [{ anchor: 'main', idx: 1 }] }],
+    );
+    if (seqCols === undefined)
+      return undefined;
+
+    return [...msaCols, ...seqCols];
   })
 
   .title((ctx) => ctx.uiState?.title ?? 'TCR Disco Enrichment')

@@ -30,13 +30,13 @@
       "logo": "file:../logos/block-logo.png",
       "url": "https://github.com/platforma-open/milaboratories.tcrdisco-enrichment",
       "support": "mailto:support@milaboratories.com",
-      "description": "Simple Hello World block that can be used as a boilerplate for newly created blocks.",
+      "description": "Identify differentially abundant clonotypes between conditions in TCR alpha and beta chains.",
       "longDescription": "file:../docs/description.md",
       "changelog": "file:../CHANGELOG.md",
-      "tags": ["tutorial"],
+      "tags": ["vdj", "tcr", "downstream"],
       "organization": {
-        "name": "MiLaboratories Inc",
-        "url": "https://milaboratories.com/",
+        "name": "Miltenyi Biotec",
+        "url": "https://www.miltenyibiotec.com/",
         "logo": "file:../logos/organization-logo.png"
       }
     }

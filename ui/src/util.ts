@@ -13,4 +13,3 @@ export const isSequenceColumn = (column: PColumnIdAndSpec) => {
 
   return isBulkSequence(column.spec) || isSingleCellSequence(column.spec);
 };
-

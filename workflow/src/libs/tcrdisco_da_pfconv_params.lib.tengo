@@ -1,14 +1,7 @@
 ll := import("@platforma-sdk/workflow-tengo:ll")
 
-getColumns := func(countsSpec) {
-	return {
-		"axes": [
-			{
-				column: "clonotypeKey",
-				spec: countsSpec.axesSpec[1]
-			}
-			],
-		"columns": [
+getColumns := func(countsSpec, cdSubsetCol) {
+	columns := [
 			{
 				column: "log2FoldChange",
 				id: "log2foldchange",
@@ -47,8 +40,10 @@ getColumns := func(countsSpec) {
 						"pl7.app/table/orderPriority": "10"
 					}
 				}
-			},
-			{
+			}
+			]
+	if cdSubsetCol != undefined {
+		columns += [{
 				column: "subset",
 				id: "subset",
 				allowNA: true,
@@ -61,8 +56,17 @@ getColumns := func(countsSpec) {
 						"pl7.app/table/orderPriority": "60"
 					}
 				}
+			}]
+	}
+			
+	return {
+		"axes": [
+			{
+				column: "clonotypeKey",
+				spec: countsSpec.axesSpec[1]
 			}
 			],
+		"columns": columns,
 		"storageFormat": "Parquet",
 		"partitionKeyLength": 0
 	}

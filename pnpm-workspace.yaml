@@ -15,6 +15,7 @@ catalog:
   "@platforma-sdk/tengo-builder": ^2.3.10
   "@platforma-sdk/package-builder": ^3.10.7
   "@platforma-sdk/eslint-config": ^1.1.0
+  '@milaboratories/multi-sequence-alignment': ^1.45.1
   "@platforma-sdk/blocks-deps-updater": ^2.0.0
 
   "@milaboratories/graph-maker": ^1.1.180

@@ -61,11 +61,14 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
       inputName: 'annotationsX',
       selectedSource: pcols[contrastIndex].spec,
     },
-    {
+  ];
+
+  if (subsetIndex !== -1) {
+    defaults.push({
       inputName: 'annotationsY',
       selectedSource: pcols[subsetIndex].spec,
-    },
-  ];
+    });
+  }
 
   return defaults;
 });

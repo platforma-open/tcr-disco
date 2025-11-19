@@ -19,7 +19,6 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
 
   const pcols = app.model.outputs.pairsHeatmapPcols;
   const estimateIndex = getIndex('pl7.app/differentialTCRAbundance/estimate', pcols);
-  const adjustedPvalueIndex = getIndex('pl7.app/differentialTCRAbundance/padj', pcols);
 
   if (estimateIndex === -1 || !pcols[estimateIndex]?.spec.axesSpec) {
     return undefined;
@@ -44,10 +43,6 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
     {
       inputName: 'tabBy',
       selectedSource: axesSpec[0],
-    },
-    {
-      inputName: 'filters',
-      selectedSource: pcols[adjustedPvalueIndex].spec,
     },
   ];
 

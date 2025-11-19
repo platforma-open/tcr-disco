@@ -12,6 +12,9 @@ catalogs:
     '@milaboratories/graph-maker':
       specifier: ^1.1.180
       version: 1.1.180
+    '@milaboratories/multi-sequence-alignment':
+      specifier: ^1.45.1
+      version: 1.45.2
     '@platforma-open/milaboratories.runenv-r-differential-expression':
       specifier: ^1.0.7
       version: 1.0.7
@@ -158,6 +161,9 @@ importers:
       '@milaboratories/graph-maker':
         specifier: 'catalog:'
         version: 1.1.180(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)(sortablejs@1.15.6)(typescript@5.5.4)
+      '@milaboratories/multi-sequence-alignment':
+        specifier: 'catalog:'
+        version: 1.45.2(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)(sortablejs@1.15.6)(typescript@5.5.4)
       '@platforma-open/milaboratories.tcrdisco-enrichment.model':
         specifier: workspace:*
         version: link:../model
@@ -987,6 +993,12 @@ packages:
 
   '@milaboratories/miplots4@1.0.157':
     resolution: {integrity: sha512-Efgaz5KxzZwmBPVbk1ninHfU0I6OM8NQnUWmqDcpwZFMAukb/NYo9ODer2GcLP1+MxcpZWk7l8txF2/GuqDlKw==}
+
+  '@milaboratories/miplots4@1.0.158':
+    resolution: {integrity: sha512-M3EG2qhiDKAYg3DGhmn3y/m0Or54A0R0oIX8W9WNxHc5/TP+kEggiGfHt/GZUmDrjhAHk38UDMEDELKD7zX5AQ==}
+
+  '@milaboratories/multi-sequence-alignment@1.45.2':
+    resolution: {integrity: sha512-RoUpvCkeEPFRqafx07jXK0VpaQXPi/rIXp/tUosWZTEdbxbzvlS5pCnd7aNCl59OCCWgPLMjKufMbAVcm3uQCg==}
 
   '@milaboratories/pf-driver@1.0.5':
     resolution: {integrity: sha512-mQksz5yxc5NGDS/HN7jQjrTBeIq0NKLO6NC/I/ztskujs9x28tFsdV23FvH0cPZUfG26//hPdN5erpazkTdfjw==}
@@ -6822,6 +6834,69 @@ snapshots:
       - d3-path
       - d3-scale-chromatic
       - supports-color
+
+  '@milaboratories/miplots4@1.0.158(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)':
+    dependencies:
+      '@d3fc/d3fc-chart': 5.1.9(d3-array@3.2.4)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)(d3-scale@4.0.2)(d3-selection@3.0.0)(d3-shape@3.2.0)
+      '@d3fc/d3fc-pointer': 3.0.3(d3-dispatch@3.0.1)(d3-selection@3.0.0)
+      '@d3fc/d3fc-webgl': 3.2.1(d3-scale@4.0.2)(d3-shape@3.2.0)
+      '@stdlib/stats-anova1': 0.2.2
+      '@stdlib/stats-kruskal-test': 0.2.2
+      '@stdlib/stats-ttest': 0.2.2
+      '@stdlib/stats-ttest2': 0.2.2
+      '@stdlib/stats-wilcoxon': 0.2.2
+      comlink: 4.4.2
+      d3-array: 3.2.4
+      d3-axis: 3.0.0
+      d3-color: 3.1.0
+      d3-drag: 3.0.0
+      d3-format: 3.1.0
+      d3-hierarchy: 3.1.2
+      d3-polygon: 3.0.1
+      d3-quadtree: 3.0.1
+      d3-random: 3.0.1
+      d3-scale: 4.0.2
+      d3-selection: 3.0.0
+      d3-shape: 3.2.0
+      d3-zoom: 3.0.0
+      kdbush: 4.0.2
+      lodash: 4.17.21
+      rbush: 4.0.1
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      zod: 3.23.8
+    transitivePeerDependencies:
+      - d3-dispatch
+      - d3-path
+      - d3-scale-chromatic
+      - supports-color
+
+  '@milaboratories/multi-sequence-alignment@1.45.2(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)(sortablejs@1.15.6)(typescript@5.5.4)':
+    dependencies:
+      '@milaboratories/biowasm-tools': 2.0.0
+      '@milaboratories/miplots4': 1.0.158(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)
+      '@milaboratories/uikit': 2.6.2(typescript@5.5.4)
+      '@platforma-sdk/model': 1.45.35
+      '@platforma-sdk/ui-vue': 1.45.36(sortablejs@1.15.6)(typescript@5.5.4)
+      vue: 3.5.24(typescript@5.5.4)
+    transitivePeerDependencies:
+      - async-validator
+      - axios
+      - change-case
+      - d3-dispatch
+      - d3-path
+      - d3-scale-chromatic
+      - drauu
+      - focus-trap
+      - fuse.js
+      - idb-keyval
+      - jwt-decode
+      - nprogress
+      - qrcode
+      - sortablejs
+      - supports-color
+      - typescript
+      - universal-cookie
 
   '@milaboratories/pf-driver@1.0.5':
     dependencies:
