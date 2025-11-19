@@ -138,20 +138,33 @@ watch(() => [app.model.args.contrastFactor], (_) => {
       :options="app.model.outputs.inputOptions"
       label="Select main dataset" clearable required
       @update:model-value="setInput"
-    />
-
+    >
+      <template #tooltip>
+        Select the main dataset containing TCR Alpha and Beta chain counts for the relevant samples/conditions.
+      </template>
+    </PlDropdownRef>
     <PlDropdownMulti
       v-model="app.model.args.covariateRefs"
       :options="metadataOptions"
       label="Design"
       required
-    />
+    >
+      <template #tooltip>
+        Select the metadata columns to include in the design matrix for the differential abundance analysis.
+        I.E. Condition, Treatment, Replicate, etc.
+      </template>
+    </PlDropdownMulti>
     <PlDropdown
       v-model="app.model.args.contrastFactor"
       :options="contrastFactorOptions"
       label="Contrast factor"
       required
-    />
+    >
+      <template #tooltip>
+        Select the condition metadata column for the differential abundance analysis.
+        I.E. Condition, Treatment, etc.
+      </template>
+    </PlDropdown>
     <PlDropdownMulti
       v-model="app.model.args.numerators" :options="numeratorOptions.value"
       label="Numerator" required
@@ -165,7 +178,11 @@ watch(() => [app.model.args.contrastFactor], (_) => {
       :options="denominatorOptions"
       label="Denominator"
       required
-    />
+    >
+      <template #tooltip>
+        Select the control/baseline condition for the differential abundance analysis.
+      </template>
+    </PlDropdown>
     <!-- Content hidden until you click THRESHOLD PARAMETERS -->
     <PlAccordionSection label="THRESHOLD PARAMETERS">
       <PlRow>
@@ -178,6 +195,7 @@ watch(() => [app.model.args.contrastFactor], (_) => {
           <template #tooltip>
             Select a valid absolute log2(FC) and adjusted p-value threshold for identifying
             significantly enriched clonotypes.
+            Additionally, Log2(FC) threshold is used to define which clonotypes are Up, Down or NS in Regulation direction output
           </template>
         </PlNumberField>
         <PlNumberField
@@ -197,7 +215,8 @@ watch(() => [app.model.args.contrastFactor], (_) => {
           placeholder="0"
         >
           <template #tooltip>
-            Select a valid minimum number of counts for a clonotype to be considered significant.
+            Select the minimum number of samples (Min samples) where a clonotype must have >= "Min counts" to be eligible for significancy.
+            Additionally, these thresholds are used to define which clonotypes are Up, Down or NS in Regulation direction output
           </template>
         </PlNumberField>
         <PlNumberField
@@ -206,18 +225,14 @@ watch(() => [app.model.args.contrastFactor], (_) => {
           :minValue="0"
           :step="1"
           placeholder="0"
-        >
-          <template #tooltip>
-            Minimum number of samples where a clonotype must have >= "Min counts" to be considered significant.
-          </template>
-        </PlNumberField>
+        />
       </PlRow>
     </PlAccordionSection>
     <PlCheckbox v-model="app.model.args.findTcrAbPairs">
       Find TCR A/B pairs
       <PlTooltip class="info">
         <template #tooltip>
-          Correlate differentially enriched clonotype frequencies across matching samples to identify paired alpha-beta TCR chains.
+          Correlate differentially enriched clonotype frequencies across matching samples to identify paired alpha-beta TCR chains. Only positive correlations will be considered.
         </template>
       </PlTooltip>
     </PlCheckbox>
@@ -228,7 +243,12 @@ watch(() => [app.model.args.contrastFactor], (_) => {
         :options="app.model.outputs.inputOptions"
         label="Select CD4/8 dataset (optional)"
         clearable
-      />
+      >
+        <template #tooltip>
+          Select the CD4/8 dataset to assign the main dataset's clonotypes to CD4/8 cells.
+          This is optional, if not selected, no assignment will be performed.
+        </template>
+      </PlDropdownRef>
       <PlDropdown
         v-if="app.model.args.cdRef"
         v-model="app.model.args.cdSubsetCol"
@@ -237,7 +257,7 @@ watch(() => [app.model.args.contrastFactor], (_) => {
         clearable
       >
         <template #tooltip>
-          This column is required to subset the main dataset's clonotypes to CD4/8 cells. The column should contain "CD4" or "CD8" values (case-insensitive).
+          This column is required to assign the main dataset's clonotypes to CD4/8 cells. The column should contain "CD4" or "CD8" values.
         </template>
       </PlDropdown>
     </PlAccordionSection>

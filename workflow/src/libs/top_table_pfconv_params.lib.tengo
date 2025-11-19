@@ -1,7 +1,7 @@
 ll := import("@platforma-sdk/workflow-tengo:ll")
 math := import("math")
 
-getColumns := func(countsSpec, inputType, log2FCThreshold, pAdjFCThreshold) {
+getColumns := func(countsSpec, inputType, log2FCThreshold, pAdjFCThreshold, cdSubsetCol) {
 	field := "differentialTCRAbundance"
 	degName := "log2foldchange"
 
@@ -144,8 +144,10 @@ getColumns := func(countsSpec, inputType, log2FCThreshold, pAdjFCThreshold) {
 						"pl7.app/table/visibility": "default"
 					}
 				}
-			},
-			{
+			}
+			]
+	if cdSubsetCol != undefined {
+		columns += [{
 				column: "subset",
 				id: "subset",
 				spec: {
@@ -222,8 +224,8 @@ getColumns := func(countsSpec, inputType, log2FCThreshold, pAdjFCThreshold) {
 						"pl7.app/table/orderPriority": "35"
 					}
 				}
-			}
-			]
+			}]
+	}
 
 	return {
 		axes: axes,

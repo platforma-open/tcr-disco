@@ -130,8 +130,8 @@ output_folder <- opt$output
 # test
 # main_alpha <- "/Users/julen/Downloads/m_test/oncolumn_TCR_discovery/platforma/0x5B60C6/mainAlpha.tsv"
 # main_beta <- "/Users/julen/Downloads/m_test/oncolumn_TCR_discovery/platforma/0x5B60C6/mainBeta.tsv"
-# da_alpha <- "/Users/julen/Downloads/m_test/oncolumn_TCR_discovery/platforma/0x5B60C6/forPairing/daAlpha.csv"
-# da_beta <- "/Users/julen/Downloads/m_test/oncolumn_TCR_discovery/platforma/0x5B60C6/forPairing/daBeta.csv"
+# da_alpha <- "/Users/julen/Downloads/m_test/oncolumn_TCR_discovery/platforma/0x5B60C6/forPairing/DA_alpha.csv"
+# da_beta <- "/Users/julen/Downloads/m_test/oncolumn_TCR_discovery/platforma/0x5B60C6/forPairing/DA_beta.csv"
 # output_folder <- "/Users/julen/Downloads/m_test/oncolumn_TCR_discovery/platforma/0x5B60C6/resultsPairing"
 
 
@@ -152,18 +152,37 @@ main_beta_table <- main_beta_table[main_beta_table$clonotypeKey %in% deg_beta_ta
 if (!dir.exists(output_folder)) {
   dir.create(output_folder, recursive = TRUE)
 }
-write.table(main_alpha_table[, c("internalSampleId", "clonotypeKey", "fraction", "subset")], 
+
+if ("subset" %in% colnames(main_alpha_table)) {
+  keep_cols1 <- c("internalSampleId", "clonotypeKey", "fraction", "subset")
+  keep_cols2 <- c("clonotypeKey", "subset")
+} else {
+  keep_cols1 <- c("internalSampleId", "clonotypeKey", "fraction")
+  keep_cols2 <- c("clonotypeKey")
+}
+write.table(main_alpha_table[, keep_cols1], 
                 paste0(output_folder, "/main_alpha_frequencies.tsv"), 
                 sep = "\t", quote = F, row.names = F)
-write.table(main_beta_table[, c("internalSampleId", "clonotypeKey", "fraction", "subset")], 
+write.table(main_beta_table[, keep_cols1], 
                 paste0(output_folder, "/main_beta_frequencies.tsv"), 
                 sep = "\t", quote = F, row.names = F)
 
-# store clonotype to subset mapping removing repeated lines
-clonotype_to_subset_alpha <- unique(main_alpha_table[, c("clonotypeKey", "subset")])
-clonotype_to_subset_beta <- unique(main_beta_table[, c("clonotypeKey", "subset")])
+if ("subset" %in% colnames(main_alpha_table)) {
+  # store clonotype to subset mapping removing repeated lines
+  clonotype_to_subset_alpha <- unique(main_alpha_table[, c("clonotypeKey", "subset")])
+  clonotype_to_subset_beta <- unique(main_beta_table[, c("clonotypeKey", "subset")])
 
-write.table(clonotype_to_subset_alpha, paste0(output_folder, "/clonotype_to_subset_alpha.tsv"), 
-  sep = "\t", quote = F, row.names = F)
-write.table(clonotype_to_subset_beta, paste0(output_folder, "/clonotype_to_subset_beta.tsv"), 
-  sep = "\t", quote = F, row.names = F)
+  write.table(clonotype_to_subset_alpha, paste0(output_folder, "/clonotype_to_subset_alpha.tsv"), 
+    sep = "\t", quote = F, row.names = F)
+  write.table(clonotype_to_subset_beta, paste0(output_folder, "/clonotype_to_subset_beta.tsv"), 
+    sep = "\t", quote = F, row.names = F)
+} else {
+  # Create empty tables
+  clonotype_to_subset_alpha <- data.frame(clonotypeKey = character(), subset = character())
+  clonotype_to_subset_beta <- data.frame(clonotypeKey = character(), subset = character())
+
+  write.table(clonotype_to_subset_alpha, paste0(output_folder, "/clonotype_to_subset_alpha.tsv"), 
+    sep = "\t", quote = F, row.names = F)
+  write.table(clonotype_to_subset_beta, paste0(output_folder, "/clonotype_to_subset_beta.tsv"), 
+    sep = "\t", quote = F, row.names = F)
+}

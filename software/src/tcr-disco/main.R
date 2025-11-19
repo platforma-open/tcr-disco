@@ -81,13 +81,20 @@ run_deseq = function(main_table, covariates_table, contrast_col,
   res_df$Regulation[!res_df$clonotypeKey %in% passing_clonotypes] <- "NS"
 
   # Add subset column
-  clonoMatch <- match(res_df$clonotypeKey, main_table$clonotypeKey)
-  res_df$umi_count_CD4 <- main_table$umi_count_CD4[clonoMatch]
-  res_df$umi_freq_CD4 <- main_table$umi_freq_CD4[clonoMatch]
-  res_df$umi_count_CD8 <- main_table$umi_count_CD8[clonoMatch]
-  res_df$umi_freq_CD8 <- main_table$umi_freq_CD8[clonoMatch]
-  res_df$subset <- main_table$subset[clonoMatch]
-  res_df$subset_frequency <- main_table$subset_frequency[clonoMatch]
+  if ("subset" %in% colnames(main_table)) { 
+    clonoMatch <- match(res_df$clonotypeKey, main_table$clonotypeKey)
+    res_df$umi_count_CD4 <- main_table$umi_count_CD4[clonoMatch]
+    res_df$umi_freq_CD4 <- main_table$umi_freq_CD4[clonoMatch]
+    res_df$umi_count_CD8 <- main_table$umi_count_CD8[clonoMatch]
+    res_df$umi_freq_CD8 <- main_table$umi_freq_CD8[clonoMatch]
+    res_df$subset <- main_table$subset[clonoMatch]
+    res_df$subset_frequency <- main_table$subset_frequency[clonoMatch]
+
+    deg_cols <- c("clonotypeKey", "Contrast", "log2FoldChange", "Regulation", "Numerator", 
+    "umi_count_CD4", "umi_freq_CD4", "umi_count_CD8", "umi_freq_CD8", "subset", "subset_frequency")
+  } else {
+    deg_cols <- c("clonotypeKey", "Contrast", "log2FoldChange", "Regulation", "Numerator")
+  }
 
 
   # Reorder columns
@@ -114,8 +121,7 @@ run_deseq = function(main_table, covariates_table, contrast_col,
   # Also filter by threshold: only keep clonotypes that pass threshold criteria
   deg_df <- res_df[
     res_df$padj <= fdr_cut & abs(res_df$log2FoldChange) >= fc_cut & res_df$clonotypeKey %in% passing_clonotypes,
-    c("clonotypeKey", "Contrast", "log2FoldChange", "Regulation", "Numerator", 
-    "umi_count_CD4", "umi_freq_CD4", "umi_count_CD8", "umi_freq_CD8", "subset", "subset_frequency")
+    deg_cols
   ]
   # Filter out counts without ID
   deg_df <- deg_df[!is.na(deg_df["clonotypeKey"]), ]
