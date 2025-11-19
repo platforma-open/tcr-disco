@@ -4,6 +4,7 @@ import { PFrameImpl, plRefsEqual } from '@platforma-sdk/model';
 import {
   PlAccordionSection,
   PlAgDataTableV2,
+  PlAlert,
   PlBlockPage,
   PlBtnGhost,
   PlCheckbox,
@@ -51,13 +52,6 @@ const metadataOptions = computed(() => {
   })) ?? [];
 });
 
-const metadataLabelOptions = computed(() => {
-  return app.model.outputs.metadataOptions?.map((v: { ref: PlRef; label: string }) => ({
-    value: v.label,
-    label: v.label,
-  })) ?? [];
-});
-
 const contrastFactorOptions = computed(() => {
   return app.model.args.covariateRefs.map((ref) => ({
     value: ref,
@@ -89,6 +83,35 @@ const numeratorOptions = useWatchFetch(() => app.model.outputs.denominatorOption
 const denominatorOptions = computed(() => {
   return numeratorOptions.value?.filter((op) =>
     !app.model.args.numerators.includes(op.value));
+});
+
+// Check CD4/CD8 column selection
+// Get all possible numerator/denominator values
+const cdValues = useWatchFetch(() => app.model.outputs.cdSubsetOptions, async (pframeHandle) => {
+  if (!pframeHandle) {
+    return undefined;
+  }
+  // Get ID of first pcolumn in the pframe (the only one we will access)
+  const pFrame = new PFrameImpl(pframeHandle);
+  const list = await pFrame.listColumns();
+  const id = list?.[0].columnId;
+  if (!id) {
+    return undefined;
+  }
+  // Get unique values of that first pcolumn
+  const response = await pFrame.getUniqueValues({ columnId: id, filters: [], limit: 1000000 });
+  if (!response) {
+    return undefined;
+  }
+
+  const vals = [...response.values.data].map((v) => ({ value: String(v), label: String(v) }));
+
+  // Check if any of the values are 'CD4' or 'CD8'
+  const lowerLabels = vals.map((v) => v.label.toLowerCase());
+  app.model.ui.cdSubsetColValid = lowerLabels.some((label) => label.includes('cd4') || label.includes('cd8'));
+
+  // Return all distinct values
+  return vals;
 });
 
 // Make sure numerator and denominator are reset when contrast factor is changed
@@ -252,7 +275,7 @@ watch(() => [app.model.args.contrastFactor], (_) => {
       <PlDropdown
         v-if="app.model.args.cdRef"
         v-model="app.model.args.cdSubsetCol"
-        :options="metadataLabelOptions"
+        :options="metadataOptions"
         label="CD4/8 metadata column"
         clearable
       >
@@ -260,6 +283,10 @@ watch(() => [app.model.args.contrastFactor], (_) => {
           This column is required to assign the main dataset's clonotypes to CD4/8 cells. The column should contain "CD4" or "CD8" values.
         </template>
       </PlDropdown>
+      <PlAlert v-if="!app.model.ui.cdSubsetColValid && app.model.args.cdRef && app.model.args.cdSubsetCol" type="warn">
+        {{ "Warning: The selected column doen't have any CD4 or CD8 values. please choose a column that has.\
+        First 5 values are: " + cdValues.value?.slice(0, 5).map((v) => v.label).join(', ') }}
+      </PlAlert>
     </PlAccordionSection>
   </PlSlideModal>
 </template>

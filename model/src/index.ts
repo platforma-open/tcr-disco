@@ -25,10 +25,27 @@ export type UiState = {
   pairsTableState: PlDataTableStateV2;
   title?: string;
   selectedChain?: 'alpha' | 'beta';
+  cdSubsetColValid: boolean;
   graphState: GraphMakerState;
   pairsHeatmapState: GraphMakerState;
   frequenciesHeatmapState: GraphMakerState;
   alignmentModel: PlMultiSequenceAlignmentModel;
+};
+
+export type BlockArgs = {
+  name?: string;
+  mainRef?: PlRef;
+  cdRef?: PlRef;
+  cdSubsetCol?: PlRef;
+  covariateRefs: PlRef[];
+  contrastFactor?: PlRef;
+  numerators: string[];
+  denominator?: string;
+  findTcrAbPairs: boolean;
+  thresholdCounts: number;
+  thresholdSamples: number;
+  log2FcThreshold: number;
+  pAdjThreshold: number;
 };
 
 // Filter columns for volcano plot
@@ -45,22 +62,6 @@ function filterPCols(
   );
   return pCols;
 }
-
-export type BlockArgs = {
-  name?: string;
-  mainRef?: PlRef;
-  cdRef?: PlRef;
-  cdSubsetCol?: string;
-  covariateRefs: PlRef[];
-  contrastFactor?: PlRef;
-  numerators: string[];
-  denominator?: string;
-  findTcrAbPairs: boolean;
-  thresholdCounts: number;
-  thresholdSamples: number;
-  log2FcThreshold: number;
-  pAdjThreshold: number;
-};
 
 export const model = BlockModel.create()
 
@@ -79,6 +80,7 @@ export const model = BlockModel.create()
     tableState: createPlDataTableStateV2(),
     pairsTableState: createPlDataTableStateV2(),
     selectedChain: 'alpha',
+    cdSubsetColValid: false,
     graphState: {
       title: 'Volcano plot of differentially abundant clonotypes',
       template: 'dots',
@@ -121,7 +123,7 @@ export const model = BlockModel.create()
       && (ctx.args.pAdjThreshold !== undefined)
       && (ctx.args.thresholdCounts !== undefined)
       && (ctx.args.thresholdSamples !== undefined)
-      && (!ctx.args.cdRef || ctx.args.cdSubsetCol !== undefined))
+      && (!ctx.args.cdRef || (ctx.args.cdSubsetCol !== undefined && ctx.uiState?.cdSubsetColValid)))
   ))
 
   // Allow user to choose Alpha chain, will pick beta if available
@@ -154,6 +156,15 @@ export const model = BlockModel.create()
     if (!ctx.args.contrastFactor) return undefined;
 
     const pColumn = ctx.resultPool.getPColumnByRef(ctx.args.contrastFactor);
+    if (!pColumn) return undefined;
+
+    return ctx.createPFrame([pColumn]);
+  })
+
+  .output('cdSubsetOptions', (ctx) => {
+    if (!ctx.args.cdSubsetCol) return undefined;
+
+    const pColumn = ctx.resultPool.getPColumnByRef(ctx.args.cdSubsetCol);
     if (!pColumn) return undefined;
 
     return ctx.createPFrame([pColumn]);
