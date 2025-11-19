@@ -176,6 +176,7 @@ wf.prepare(func(args) {
 	return {
 		columns: bundleBuilder.build(),
 		resolvedContrastFactor: wf.resolve(args.contrastFactor),
+		resolvedCdSubsetCol: wf.resolve(args.cdSubsetCol),
 		metaRefs: metaRefs
 	}
 })
@@ -184,7 +185,7 @@ wf.body(func(args) {
 	blockId := wf.blockId().getDataAsJson()
 	columns := args.columns
 	denominator := string(args.denominator)
-	cdSubsetCol := args.cdSubsetCol
+	cdSubsetCol := string(args.resolvedCdSubsetCol.spec.annotations["pl7.app/label"])
 	thresholdCounts := args.thresholdCounts
 	thresholdSamples := args.thresholdSamples
 	log2FcThreshold := args.log2FcThreshold
