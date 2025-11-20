@@ -82,7 +82,7 @@ export const model = BlockModel.create()
     selectedChain: 'alpha',
     cdSubsetColValid: false,
     graphState: {
-      title: 'Volcano plot of differentially abundant clonotypes',
+      title: 'Volcano plot',
       template: 'dots',
       currentTab: null,
     },
@@ -142,7 +142,7 @@ export const model = BlockModel.create()
         'pl7.app/abundance/isPrimary': 'true',
       },
     },
-    ], { label: { includeNativeLabel: true, addLabelAsSuffix: true,
+    ], { label: { includeNativeLabel: false, addLabelAsSuffix: true,
       forceTraceElements: [],
     },
     refsWithEnrichments: false });
