@@ -163,7 +163,7 @@ watch(() => [app.model.args.contrastFactor], (_) => {
       @update:model-value="setInput"
     >
       <template #tooltip>
-        Select the main dataset containing TCR Alpha and Beta chain counts for the relevant samples/conditions.
+        Select the main dataset containing TCR alpha and beta chain clonotype counts for differential abundance analysis.
       </template>
     </PlDropdownRef>
     <PlDropdownMulti
@@ -173,8 +173,7 @@ watch(() => [app.model.args.contrastFactor], (_) => {
       required
     >
       <template #tooltip>
-        Select the metadata columns to include in the design matrix for the differential abundance analysis.
-        I.E. Condition, Treatment, Replicate, etc.
+        Select the metadata columns that describe your experimental design. These columns will be used to build the statistical model for differential abundance analysis. Examples include: Condition, Treatment, Replicate, Batch, or any other experimental variables that may affect clonotype abundance.
       </template>
     </PlDropdownMulti>
     <PlDropdown
@@ -184,8 +183,7 @@ watch(() => [app.model.args.contrastFactor], (_) => {
       required
     >
       <template #tooltip>
-        Select the condition metadata column for the differential abundance analysis.
-        I.E. Condition, Treatment, etc.
+        Select the metadata column that defines the experimental groups you want to compare. The analysis will identify clonotypes that are differentially abundant between groups defined by this column.
       </template>
     </PlDropdown>
     <PlDropdownMulti
@@ -193,7 +191,7 @@ watch(() => [app.model.args.contrastFactor], (_) => {
       label="Numerator" required
     >
       <template #tooltip>
-        Calculate a contrast per each one of the selected Numerators versus the selected control/baseline
+        Select one or more experimental conditions to compare against the baseline (denominator).
       </template>
     </PlDropdownMulti>
     <PlDropdown
@@ -203,7 +201,7 @@ watch(() => [app.model.args.contrastFactor], (_) => {
       required
     >
       <template #tooltip>
-        Select the control/baseline condition for the differential abundance analysis.
+        Select the control or baseline condition that will serve as the reference for comparison.
       </template>
     </PlDropdown>
     <!-- Content hidden until you click THRESHOLD PARAMETERS -->
@@ -216,9 +214,8 @@ watch(() => [app.model.args.contrastFactor], (_) => {
           :step="0.1"
         >
           <template #tooltip>
-            Select a valid absolute log2(FC) and adjusted p-value threshold for identifying
-            significantly enriched clonotypes.
-            Additionally, Log2(FC) threshold is used to define which clonotypes are Up, Down or NS in Regulation direction output
+            Set the minimum absolute log2 fold change threshold (keep ≥ log2(FC)) and the maximum adjusted p-value threshold (keep ≤ adjusted p-value) for identifying significantly enriched or depleted clonotypes.
+            The log2(FC) threshold alone is also used to classify clonotypes as "Up" (enriched), "Down" (depleted), or "NS" (not significant) in the regulation direction output.
           </template>
         </PlNumberField>
         <PlNumberField
@@ -238,8 +235,7 @@ watch(() => [app.model.args.contrastFactor], (_) => {
           placeholder="0"
         >
           <template #tooltip>
-            Select the minimum number of samples (Min samples) where a clonotype must have >= "Min counts" to be eligible for significancy.
-            Additionally, these thresholds are used to define which clonotypes are Up, Down or NS in Regulation direction output
+            A clonotype must have at least "Min counts" in at least "Min samples" to be accepted as significantly enriched. These thresholds are also used to classify clonotypes as "Up" (enriched), "Down" (depleted), or "NS" (not significant) in the regulation direction output.
           </template>
         </PlNumberField>
         <PlNumberField
@@ -255,7 +251,7 @@ watch(() => [app.model.args.contrastFactor], (_) => {
       Find TCR A/B pairs
       <PlTooltip class="info">
         <template #tooltip>
-          Correlate differentially enriched clonotype frequencies across matching samples to identify paired alpha-beta TCR chains. Only positive correlations will be considered.
+          When enabled, the analysis will identify paired TCR alpha and beta chains by correlating the frequencies of differentially enriched clonotypes across matching samples. Only clonotypes that show positive correlation in their enrichment patterns will be considered
         </template>
       </PlTooltip>
     </PlCheckbox>
@@ -268,8 +264,7 @@ watch(() => [app.model.args.contrastFactor], (_) => {
         clearable
       >
         <template #tooltip>
-          Select the CD4/8 dataset to assign the main dataset's clonotypes to CD4/8 cells.
-          This is optional, if not selected, no assignment will be performed.
+          Optionally select a dataset that contains CD4/CD8 cell subset information. If provided, clonotypes from the main dataset will be assigned to either CD4+ or CD8+ T cell subsets based on this dataset.
         </template>
       </PlDropdownRef>
       <PlDropdown
@@ -280,7 +275,7 @@ watch(() => [app.model.args.contrastFactor], (_) => {
         clearable
       >
         <template #tooltip>
-          This column is required to assign the main dataset's clonotypes to CD4/8 cells. The column should contain "CD4" or "CD8" values.
+          Select the metadata column from the CD4/8 dataset that contains the cell subset labels. This column must contain values that include "CD4" or "CD8" (case-insensitive) to identify CD4+ and CD8+ T cell subsets. The analysis will use this information to assign clonotypes from the main dataset to the appropriate T cell subset based on matching clonotypes.
         </template>
       </PlDropdown>
       <PlAlert v-if="!app.model.ui.cdSubsetColValid && app.model.args.cdRef && app.model.args.cdSubsetCol" type="warn">

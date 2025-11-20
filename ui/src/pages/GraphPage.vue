@@ -4,7 +4,7 @@ import { GraphMaker } from '@milaboratories/graph-maker';
 import '@milaboratories/graph-maker/styles';
 import { PlMultiSequenceAlignment } from '@milaboratories/multi-sequence-alignment';
 import type { PColumnIdAndSpec, PlSelectionModel } from '@platforma-sdk/model';
-import { PlBtnGhost, PlBtnGroup, PlSlideModal } from '@platforma-sdk/ui-vue';
+import { PlBtnGhost, PlSlideModal, PlTabs } from '@platforma-sdk/ui-vue';
 import { computed, ref, watch } from 'vue';
 import { useApp } from '../app';
 import { isSequenceColumn } from '../util';
@@ -84,12 +84,13 @@ const selection = ref<PlSelectionModel>({
     :default-options="defaults"
   >
     <template #titleLineSlot>
-      <PlBtnGroup
+      <PlTabs
         v-model="app.model.ui.selectedChain"
         :options="[
           { value: 'alpha', label: 'TCR Alpha Chain' },
           { value: 'beta', label: 'TCR Beta Chain' },
         ]"
+        :top-line="false"
       />
       <PlBtnGhost
         icon="dna"
