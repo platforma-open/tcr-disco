@@ -359,7 +359,7 @@ export const model = BlockModel.create()
     const sections: Array<{ type: 'link'; href: `/${string}`; label: string }> = [
       { type: 'link' as const, href: '/' as const, label: 'Main' },
       { type: 'link' as const, href: '/graph' as const, label: 'Volcano plot' },
-      { type: 'link' as const, href: '/freq-heatmap' as const, label: 'Enriched clonotypes heatmap:' },
+      { type: 'link' as const, href: '/freq-heatmap' as const, label: 'Enriched clonotypes heatmap' },
     ];
 
     if (ctx.args.findTcrAbPairs) {
