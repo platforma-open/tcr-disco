@@ -278,7 +278,7 @@ watch(() => [app.model.args.contrastFactor], (_) => {
           Select the metadata column from the CD4/8 dataset that contains the cell subset labels. This column must contain values that include "CD4" or "CD8" (case-insensitive) to identify CD4+ and CD8+ T cell subsets. The analysis will use this information to assign clonotypes from the main dataset to the appropriate T cell subset based on matching clonotypes.
         </template>
       </PlDropdown>
-      <PlAlert v-if="!app.model.ui.cdSubsetColValid && app.model.args.cdRef && app.model.args.cdSubsetCol" type="warn">
+      <PlAlert v-if="!app.model.ui.cdSubsetColValid && app.model.args.cdRef && app.model.args.cdSubsetCol && cdValues.value" type="warn">
         {{ "Warning: The selected column doen't have any CD4 or CD8 values. please choose a column that has.\
         First 5 values are: " + cdValues.value?.slice(0, 5).map((v) => v.label).join(', ') }}
       </PlAlert>

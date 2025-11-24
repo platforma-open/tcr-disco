@@ -47,12 +47,21 @@ function getDefaultOptions(topTablePcols?: PColumnIdAndSpec[]) {
       selectedSource: topTablePcols[getIndex('pl7.app/' + dataType + '/log2foldchange',
         topTablePcols)].spec.axesSpec[0],
     },
-    // // Clonotype ID
-    // {
-    //   inputName: 'tooltipContent',
-    //   selectedSource: topTablePcols[getIndex('pl7.app/' + dataType + '/log2foldchange',
-    //     topTablePcols)].spec.axesSpec[1],
-    // },
+    // CDR3 aa
+    {
+      inputName: 'tooltipContent',
+      selectedSource: {
+        kind: 'PColumn',
+        name: 'pl7.app/vdj/sequence',
+        valueType: 'String',
+        axesSpec: [],
+        annotations: {
+          'pl7.app/label': 'CDR3 aa',
+          'pl7.app/vdj/isAssemblingFeature': 'true',
+          'pl7.app/vdj/isMainSequence': 'true',
+        },
+      },
+    },
   ];
 
   return defaults;
