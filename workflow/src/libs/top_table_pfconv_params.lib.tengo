@@ -32,6 +32,34 @@ getColumns := func(countsSpec, inputType, log2FCThreshold, pAdjFCThreshold, cdSu
 
 	columns := [
 			{
+				column: "CDR3aa",
+				id: "cdr3aa",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/" + field + "/cdr3aa",
+					valueType: "String",
+					annotations: {
+						"pl7.app/label": "CDR3 aa",
+						"pl7.app/table/orderPriority": "110",
+						"pl7.app/table/visibility": "default"
+					}
+				}
+			},
+			{
+				column: "VGene",
+				id: "vgene",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/" + field + "/vgene",
+					valueType: "String",
+					annotations: {
+						"pl7.app/label": "VGene",
+						"pl7.app/table/orderPriority": "105",
+						"pl7.app/table/visibility": "optional"
+					}
+				}
+			},
+			{
 				column: "baseMean",
 				id: "basemean",
 				allowNA: true,

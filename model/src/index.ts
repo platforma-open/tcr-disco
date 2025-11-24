@@ -234,11 +234,10 @@ export const model = BlockModel.create()
   .output('topTablePcols', (ctx) => {
     const selectedChain = ctx.uiState?.selectedChain ?? 'alpha';
     const outputName = selectedChain === 'alpha' ? 'topDegPFAlpha' : 'topDegPFBeta';
-    let pCols = ctx.outputs?.resolve(outputName)?.getPColumns();
+    const pCols = ctx.outputs?.resolve(outputName)?.getPColumns();
     if (pCols === undefined) {
       return undefined;
     }
-    pCols = filterPCols(pCols);
 
     return pCols.map(
       (c) =>
@@ -326,9 +325,21 @@ export const model = BlockModel.create()
       (spec) => spec.name === 'pl7.app/metadata',
     );
 
+    // Get the sequence column for the sleected chain
+    const chain = selectedChain === 'alpha' ? 'TCRAlpha' : 'TCRBeta';
+    const sequenceCol = ctx.resultPool.selectColumns(
+      (spec) => spec.name === 'pl7.app/vdj/sequence'
+        && spec.domain?.['pl7.app/alphabet'] === 'aminoacid'
+        && spec.domain?.['pl7.app/vdj/feature'] === 'CDR3'
+        && spec.axesSpec[0].domain?.['pl7.app/vdj/chain'] === chain,
+    );
+
     let allCols = [...pCols, ...metadataCols];
     if (clonotypeToSubsetPcols !== undefined) {
       allCols = [...allCols, ...clonotypeToSubsetPcols];
+    }
+    if (sequenceCol !== undefined) {
+      allCols = [...allCols, ...sequenceCol];
     }
 
     return allCols.map(

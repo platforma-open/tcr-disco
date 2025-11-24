@@ -75,6 +75,10 @@ run_deseq = function(main_table, covariates_table, contrast_col,
     )
   )
 
+  # Add CDR3 aa and VGene columns
+  res_df$CDR3aa <- main_table$CDR3aa[match(res_df$clonotypeKey, main_table$clonotypeKey)]
+  res_df$VGene <- main_table$VGene[match(res_df$clonotypeKey, main_table$clonotypeKey)]
+
   # Apply threshold filter: set Regulation to NS for clonotypes that don't pass threshold
   # Check if clonotype has at least threshold_counts in at least threshold_samples samples
   passing_clonotypes <- rownames(count_matrix)[rowSums(count_matrix >= threshold_counts) >= threshold_samples]
@@ -90,10 +94,10 @@ run_deseq = function(main_table, covariates_table, contrast_col,
     res_df$subset <- main_table$subset[clonoMatch]
     res_df$subset_frequency <- main_table$subset_frequency[clonoMatch]
 
-    deg_cols <- c("clonotypeKey", "Contrast", "log2FoldChange", "Regulation", "Numerator", 
+    deg_cols <- c("clonotypeKey", "Contrast", "CDR3aa", "VGene", "log2FoldChange", "Regulation", "Numerator", 
     "umi_count_CD4", "umi_freq_CD4", "umi_count_CD8", "umi_freq_CD8", "subset", "subset_frequency")
   } else {
-    deg_cols <- c("clonotypeKey", "Contrast", "log2FoldChange", "Regulation", "Numerator")
+    deg_cols <- c("clonotypeKey", "Contrast", "CDR3aa", "VGene", "log2FoldChange", "Regulation", "Numerator")
   }
 
 
@@ -204,10 +208,10 @@ fdr_cut <- opt$p_threshold
 threshold_counts <- opt$threshold_counts
 threshold_samples <- opt$threshold_samples
 # test
-# covariates <- "/Users/julen/Downloads/miltenyi_test/oncolumn_TCR_discovery/platforma/0x5B60C6/covariates.tsv"
-# main_alpha <- "/Users/julen/Downloads/miltenyi_test/oncolumn_TCR_discovery/platforma/0x5B60C6/mainAlpha.tsv"
-# main_beta <- "/Users/julen/Downloads/miltenyi_test/oncolumn_TCR_discovery/platforma/0x5B60C6/mainBeta.tsv"
-# output_folder <- "/Users/julen/Downloads/miltenyi_test/oncolumn_TCR_discovery/platforma/0x5B60C6/results"
+# covariates <- "/Users/julen/Downloads/m_test/oncolumn_TCR_discovery/platforma/0x5B60C6/covariates.tsv"
+# main_alpha <- "/Users/julen/Downloads/m_test/oncolumn_TCR_discovery/platforma/0x5B60C6/mainAlpha.tsv"
+# main_beta <- "/Users/julen/Downloads/m_test/oncolumn_TCR_discovery/platforma/0x5B60C6/mainBeta.tsv"
+# output_folder <- "/Users/julen/Downloads/m_test/oncolumn_TCR_discovery/platforma/0x5B60C6/results"
 # contrast_col <- "ag"
 # numerator <- "MART1"
 # denominator <- "Control"

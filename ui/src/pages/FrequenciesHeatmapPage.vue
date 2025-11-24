@@ -32,6 +32,7 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
   const contrastIndex = pcols.findIndex((p) => p.spec.name === 'pl7.app/metadata'
     && p.spec.annotations?.['pl7.app/label'] === contrastFactorLabel);
   const subsetIndex = getIndex('pl7.app/differentialTCRAbundance/subset', pcols);
+  const cdr3Index = getIndex('pl7.app/vdj/sequence', pcols);
 
   if (fractionIndex === -1 || !pcols[fractionIndex]?.spec.axesSpec) {
     return undefined;
@@ -49,9 +50,13 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
       inputName: 'x',
       selectedSource: axesSpec[0], // internalSampleId
     },
-    {
+    { // second Y value, CDR3 aa
       inputName: 'y',
-      selectedSource: axesSpec[1], // clonotypeKey
+      selectedSource: pcols[cdr3Index].spec,
+    },
+    { // first Y value, clonotypeKey
+      inputName: 'y',
+      selectedSource: axesSpec[1],
     },
     {
       inputName: 'xGroupBy',
