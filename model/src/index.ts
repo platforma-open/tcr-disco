@@ -37,6 +37,7 @@ export type BlockArgs = {
   mainRef?: PlRef;
   cdRef?: PlRef;
   cdSubsetCol?: PlRef;
+  pairingMetadataCol?: string;
   covariateRefs: PlRef[];
   contrastFactor?: PlRef;
   numerators: string[];
@@ -184,6 +185,19 @@ export const model = BlockModel.create()
     if (!pColumn) return undefined;
 
     return ctx.createPFrame([pColumn]);
+  })
+
+  // Check if "Barcode ID" column is present in metadata, otherwise return false
+  // This column will be present in demultiplexed data and will relate same
+  // samples from different chains
+  .output('barcodeColPresent', (ctx) => {
+    const metadataCols = ctx.resultPool.selectColumns(
+      (spec) => spec.name === 'pl7.app/metadata',
+    );
+    if (metadataCols === undefined) {
+      return false;
+    }
+    return metadataCols.some((col) => col.spec.annotations?.['pl7.app/label'] === 'Barcode ID');
   })
 
   .output('pt', (ctx) => {
