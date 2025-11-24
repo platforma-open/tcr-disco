@@ -97,6 +97,14 @@ export const model = BlockModel.create()
           dendrogramY: false,
         },
       },
+      axesSettings: {
+        axisX: {
+          cellSize: 20,
+        },
+        axisY: {
+          cellSize: 20,
+        },
+      },
     },
     frequenciesHeatmapState: {
       title: 'Enriched clonotypes heatmap',
@@ -107,6 +115,14 @@ export const model = BlockModel.create()
           normalizationMethod: 'standardScaling',
           dendrogramX: false,
           dendrogramY: false,
+        },
+      },
+      axesSettings: {
+        axisX: {
+          cellSize: 20,
+        },
+        axisY: {
+          cellSize: 20,
         },
       },
     },
