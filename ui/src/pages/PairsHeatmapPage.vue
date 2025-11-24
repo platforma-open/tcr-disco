@@ -19,8 +19,10 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
 
   const pcols = app.model.outputs.pairsHeatmapPcols;
   const estimateIndex = getIndex('pl7.app/differentialTCRAbundance/estimate', pcols);
-  // const cdr3AlphaIndex = getIndex('pl7.app/differentialTCRAbundance/tra_CDR3aa', pcols);
-  // const cdr3BetaIndex = getIndex('pl7.app/differentialTCRAbundance/trb_CDR3aa', pcols);
+  const cdr3AlphaIndex = pcols.findIndex((p) => p.spec.domain?.['pl7.app/vdj/feature'] === 'CDR3'
+    && p.spec.axesSpec[0].domain?.['pl7.app/vdj/chain'] === 'TCRAlpha');
+  const cdr3BetaIndex = pcols.findIndex((p) => p.spec.domain?.['pl7.app/vdj/feature'] === 'CDR3'
+    && p.spec.axesSpec[0].domain?.['pl7.app/vdj/chain'] === 'TCRBeta');
 
   if (estimateIndex === -1 || !pcols[estimateIndex]?.spec.axesSpec) {
     return undefined;
@@ -34,21 +36,21 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
       inputName: 'value',
       selectedSource: estimateSpec,
     },
-    // { // second X value, CDR3 aa
-    //   inputName: 'x',
-    //   selectedSource: pcols[cdr3BetaIndex].spec,
-    // },
     {
       inputName: 'x',
       selectedSource: axesSpec[1],
     },
-    // { // second Y value, CDR3 aa
-    //   inputName: 'y',
-    //   selectedSource: pcols[cdr3AlphaIndex].spec,
-    // },
+    { // second X value, CDR3 aa
+      inputName: 'x',
+      selectedSource: pcols[cdr3AlphaIndex].spec,
+    },
     {
       inputName: 'y',
       selectedSource: axesSpec[2],
+    },
+    { // second Y value, CDR3 aa
+      inputName: 'y',
+      selectedSource: pcols[cdr3BetaIndex].spec,
     },
     {
       inputName: 'tabBy',

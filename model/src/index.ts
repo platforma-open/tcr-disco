@@ -270,12 +270,35 @@ export const model = BlockModel.create()
       return undefined;
     }
 
+    // Filter out CDR3 and Vgene columns
+    let filteredPcols = pCols.filter((col) => col.spec.name !== 'pl7.app/differentialTCRAbundance/tra_CDR3aa'
+      && col.spec.name !== 'pl7.app/differentialTCRAbundance/trb_CDR3aa'
+      && col.spec.name !== 'pl7.app/differentialTCRAbundance/tra_VGene'
+      && col.spec.name !== 'pl7.app/differentialTCRAbundance/trb_VGene');
+
+    // Get from the pool CDR3 aa and VGene pcolumns
+    const cdr3Pcols = ctx.resultPool.selectColumns(
+      (spec) => spec.name === 'pl7.app/vdj/sequence'
+        && spec.domain?.['pl7.app/alphabet'] === 'aminoacid'
+        && spec.domain?.['pl7.app/vdj/feature'] === 'CDR3',
+    );
+    const vGenePcols = ctx.resultPool.selectColumns(
+      (spec) => spec.name === 'pl7.app/vdj/sequence'
+        && spec.domain?.['pl7.app/alphabet'] === 'aminoacid'
+        && spec.domain?.['pl7.app/vdj/feature'] === 'VGene',
+    );
+
+    if (cdr3Pcols !== undefined && vGenePcols !== undefined) {
+      filteredPcols = [...filteredPcols, ...cdr3Pcols, ...vGenePcols];
+    }
+
+    // Add sample ID to labels information
     const clonotypeIds = ctx.resultPool.selectColumns(
       (spec) => spec.name === 'pl7.app/label'
         && spec.axesSpec?.some((axis) => axis.name === 'pl7.app/vdj/clonotypeKey' || axis.name === 'pl7.app/vdj/scClonotypeKey'),
     ) as PColumn<PColumnDataUniversal>[];
 
-    const allPcols = [...pCols, ...clonotypeIds];
+    const allPcols = [...filteredPcols, ...clonotypeIds];
 
     return ctx.createPFrame(allPcols);
   })
@@ -285,7 +308,21 @@ export const model = BlockModel.create()
     if (pCols === undefined) {
       return undefined;
     }
-    return pCols.map(
+
+    // Filter out CDR3 and Vgene columns
+    let filteredPcols = pCols.filter((col) => col.spec.name !== 'pl7.app/differentialTCRAbundance/tra_CDR3aa'
+      && col.spec.name !== 'pl7.app/differentialTCRAbundance/trb_CDR3aa'
+      && col.spec.name !== 'pl7.app/differentialTCRAbundance/tra_VGene'
+      && col.spec.name !== 'pl7.app/differentialTCRAbundance/trb_VGene');
+
+    // Get from the pool CDR3 aa and VGene pcolumns
+    const cdr3Pcols = ctx.resultPool.selectColumns(
+      (spec) => spec.name === 'pl7.app/vdj/sequence'
+        && spec.domain?.['pl7.app/alphabet'] === 'aminoacid'
+        && spec.domain?.['pl7.app/vdj/feature'] === 'CDR3',
+    );
+    filteredPcols = [...filteredPcols, ...cdr3Pcols];
+    return filteredPcols.map(
       (c) =>
         ({
           columnId: c.id,
