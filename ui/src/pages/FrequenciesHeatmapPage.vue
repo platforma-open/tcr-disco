@@ -50,13 +50,13 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
       inputName: 'x',
       selectedSource: axesSpec[0], // internalSampleId
     },
-    { // second Y value, CDR3 aa
-      inputName: 'y',
-      selectedSource: pcols[cdr3Index].spec,
-    },
     { // first Y value, clonotypeKey
       inputName: 'y',
       selectedSource: axesSpec[1],
+    },
+    { // second Y value, CDR3 aa
+      inputName: 'y',
+      selectedSource: pcols[cdr3Index].spec,
     },
     {
       inputName: 'xGroupBy',
