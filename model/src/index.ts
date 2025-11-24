@@ -76,7 +76,7 @@ export const model = BlockModel.create()
   })
 
   .withUiState<UiState>({
-    title: 'TCR Disco Enrichment',
+    title: 'TCR Disco',
     tableState: createPlDataTableStateV2(),
     pairsTableState: createPlDataTableStateV2(),
     selectedChain: 'alpha',
@@ -380,7 +380,7 @@ export const model = BlockModel.create()
     return createPFrameForGraphs(ctx, msaCols);
   })
 
-  .title((ctx) => ctx.uiState?.title ?? 'TCR Disco Enrichment')
+  .title((ctx) => ctx.uiState?.title ?? 'TCR Disco')
 
   .sections((ctx) => {
     const sections: Array<{ type: 'link'; href: `/${string}`; label: string }> = [

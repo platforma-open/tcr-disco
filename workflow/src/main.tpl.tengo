@@ -443,7 +443,7 @@ wf.body(func(args) {
 		pairsTsvFile = tcrAbPairs.output("pairsTsvFile")
 		
 		// Convert pairs TSV to PFrame
-		pairsImportParams := tcrPairsParamsLib.getColumns(copy(mainAlphaSpec), copy(mainBetaSpec), inputType)
+		pairsImportParams := tcrPairsParamsLib.getColumns(copy(mainAlphaSpec), copy(mainBetaSpec))
 		pairsPf := xsv.importFile(pairsTsvFile, "tsv", pairsImportParams, 
 			{splitDataAndSpec: true, mem: defaultConvMem, cpu: defaultConvCpu})
 		
