@@ -49,7 +49,9 @@ run_deseq = function(main_table, covariates_table, contrast_col,
   rownames(covariates_table) <- covariates_table$internalSampleId
 
   # Prepare DESeq2 dataset
-  metadta_short <- covariates_table[,c(contrast_col, "replicate")]
+  non_contrast_cols <- setdiff(colnames(covariates_table), 
+    c("Sample", "internalSampleId",contrast_col))
+  metadta_short <- covariates_table[,c(contrast_col, non_contrast_cols)]
   metadta_short <- metadta_short[colnames(count_matrix),]
   set.seed(42)
   dds <- DESeqDataSetFromMatrix(

@@ -191,6 +191,11 @@ wf.body(func(args) {
 	log2FcThreshold := args.log2FcThreshold
 	pAdjThreshold := args.pAdjThreshold
 	contrastColLabel := args.resolvedContrastFactor.spec.annotations["pl7.app/label"]
+	pairingMetadataCol := args.pairingMetadataCol
+	// Barcode ID is the default pairing metadata column when we have demultiplexed data
+	if pairingMetadataCol == undefined {
+		pairingMetadataCol = "Barcode ID"
+	}
 	outputs := {}
 
 	// Set default conversion memory and CPU
@@ -436,6 +441,7 @@ wf.body(func(args) {
 			daFileAlphaCsv: daFileAlpha,
 			daFileBetaCsv: daFileBeta,
 			metadataTsv: metadataTsv,
+			pairingMetadataCol: pairingMetadataCol,
 			contrastColLabel: contrastColLabel,
 			log2FcThreshold: log2FcThreshold,
 			pAdjThreshold: pAdjThreshold

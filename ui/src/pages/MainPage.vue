@@ -52,6 +52,13 @@ const metadataOptions = computed(() => {
   })) ?? [];
 });
 
+const metadataLabels = computed(() => {
+  return app.model.outputs.metadataOptions?.map((v: { ref: PlRef; label: string }) => ({
+    value: v.label,
+    label: v.label,
+  })) ?? [];
+});
+
 const contrastFactorOptions = computed(() => {
   return app.model.args.covariateRefs.map((ref) => ({
     value: ref,
@@ -255,6 +262,17 @@ watch(() => [app.model.args.contrastFactor], (_) => {
         </template>
       </PlTooltip>
     </PlCheckbox>
+    <PlDropdown
+      v-if="!app.model.outputs.barcodeColPresent && app.model.args.findTcrAbPairs"
+      v-model="app.model.args.pairingMetadataCol"
+      :options="metadataLabels"
+      label="Pairing metadata column"
+      clearable
+    >
+      <template #tooltip>
+        Select the metadata column that will be used to match samples between alpha and beta chains for pairing analysis. This column should contain values that uniquely identify matching samples across both chains.
+      </template>
+    </PlDropdown>
     <!-- Content hidden until you click -->
     <PlAccordionSection label="CD4/8 subset assignment">
       <PlDropdownRef
