@@ -2,7 +2,7 @@
   "name": "@platforma-open/milaboratories.run-tcrdisco-enrichment.software",
   "version": "1.0.0",
   "type": "module",
-  "description": "Block Software: Run TCR Disco Enrichment with R",
+  "description": "Block Software: Run TCR Disco with R",
   "scripts": {
     "build": "pl-pkg build",
     "prepublishOnly": "pl-pkg prepublish",

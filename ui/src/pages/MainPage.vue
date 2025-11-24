@@ -41,7 +41,7 @@ function setInput(inputRef?: PlRef) {
   if (inputRef) {
     const mainLabel = app.model.outputs.inputOptions?.find((o) => plRefsEqual(o.ref, inputRef))?.label;
     if (mainLabel)
-      app.model.ui.title = 'TCR Disco Enrichment - ' + mainLabel;
+      app.model.ui.title = 'TCR Disco - ' + mainLabel;
   }
 }
 

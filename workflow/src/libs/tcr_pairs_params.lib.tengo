@@ -1,7 +1,7 @@
 ll := import("@platforma-sdk/workflow-tengo:ll")
 math := import("math")
 
-getColumns := func(countsSpecAlpha, countsSpecBeta, inputType) {
+getColumns := func(countsSpecAlpha, countsSpecBeta) {
 	field := "differentialTCRAbundance"
 	degName := "log2foldchange"
 
@@ -14,7 +14,7 @@ getColumns := func(countsSpecAlpha, countsSpecBeta, inputType) {
 					name: "pl7.app/" + field + "/contrastGroup",
 					type: "String",
 					annotations: {
-						"pl7.app/label": inputType + " Contrast"
+						"pl7.app/label": "Contrast"
 					}
 				}
 			},
