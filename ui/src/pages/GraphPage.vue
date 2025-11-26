@@ -25,7 +25,7 @@ function getDefaultOptions(topTablePcols?: PColumnIdAndSpec[]) {
     return undefined;
   }
 
-  const defaults: PredefinedGraphOption<'scatterplot-umap'>[] = [
+  const defaults: PredefinedGraphOption<'scatterplot'>[] = [
     {
       inputName: 'x',
       selectedSource: topTablePcols[getIndex('pl7.app/' + dataType + '/log2foldchange',
@@ -88,7 +88,7 @@ const selection = ref<PlSelectionModel>({
     v-model="app.model.ui.graphState"
     v-model:selection="selection"
     :data-state-key="app.model.args.mainRef"
-    chartType="scatterplot-umap"
+    chartType="scatterplot"
     :p-frame="app.model.outputs.topTablePf"
     :default-options="defaults"
   >

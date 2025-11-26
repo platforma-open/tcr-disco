@@ -4,7 +4,7 @@ import { GraphMaker } from '@milaboratories/graph-maker';
 import '@milaboratories/graph-maker/styles';
 import type { PColumnIdAndSpec } from '@platforma-sdk/model';
 import { plRefsEqual } from '@platforma-sdk/model';
-import { PlBtnGroup } from '@platforma-sdk/ui-vue';
+import { PlTabs } from '@platforma-sdk/ui-vue';
 import { computed, watch } from 'vue';
 import { useApp } from '../app';
 
@@ -96,12 +96,13 @@ watch(() => app.model.ui.selectedChain, (_) => {
     :default-options="defaultOptions"
   >
     <template #titleLineSlot>
-      <PlBtnGroup
+      <PlTabs
         v-model="app.model.ui.selectedChain"
         :options="[
           { value: 'alpha', label: 'TCR Alpha Chain' },
           { value: 'beta', label: 'TCR Beta Chain' },
         ]"
+        :top-line="false"
       />
     </template>
   </GraphMaker>

@@ -303,7 +303,7 @@ export const model = BlockModel.create()
     );
 
     if (cdr3Pcols !== undefined && vGenePcols !== undefined) {
-      filteredPcols = [...filteredPcols, ...cdr3Pcols, ...vGenePcols];
+      filteredPcols = [...filteredPcols, ...cdr3Pcols, ...vGenePcols] as PColumn<TreeNodeAccessor>[];
     }
 
     // Add sample ID to labels information
@@ -335,7 +335,9 @@ export const model = BlockModel.create()
         && spec.domain?.['pl7.app/alphabet'] === 'aminoacid'
         && spec.domain?.['pl7.app/vdj/feature'] === 'CDR3',
     );
-    filteredPcols = [...filteredPcols, ...cdr3Pcols];
+    if (cdr3Pcols !== undefined) {
+      filteredPcols = [...filteredPcols, ...cdr3Pcols] as PColumn<TreeNodeAccessor>[];
+    }
     return filteredPcols.map(
       (c) =>
         ({
