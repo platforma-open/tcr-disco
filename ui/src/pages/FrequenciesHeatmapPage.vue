@@ -5,7 +5,7 @@ import '@milaboratories/graph-maker/styles';
 import type { PColumnIdAndSpec } from '@platforma-sdk/model';
 import { plRefsEqual } from '@platforma-sdk/model';
 import { PlTabs } from '@platforma-sdk/ui-vue';
-import { computed, watch } from 'vue';
+import { computed } from 'vue';
 import { useApp } from '../app';
 
 const app = useApp();
@@ -80,18 +80,13 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
 
 const key = computed(() => (defaultOptions.value ? JSON.stringify(defaultOptions.value) : ''));
 
-// Reset graph maker state when chain selection changes
-watch(() => app.model.ui.selectedChain, (_) => {
-  delete app.model.ui.frequenciesHeatmapState.optionsState;
-}, { deep: false, immediate: false });
-
 </script>
 
 <template>
   <GraphMaker
-    :key="key"
     v-model="app.model.ui.frequenciesHeatmapState"
     chartType="heatmap"
+    :data-state-key="key"
     :p-frame="app.model.outputs.frequenciesHeatmapPf"
     :default-options="defaultOptions"
   >

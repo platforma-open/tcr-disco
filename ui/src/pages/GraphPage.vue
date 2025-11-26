@@ -5,7 +5,7 @@ import '@milaboratories/graph-maker/styles';
 import { PlMultiSequenceAlignment } from '@milaboratories/multi-sequence-alignment';
 import type { PColumnIdAndSpec, PlSelectionModel } from '@platforma-sdk/model';
 import { PlBtnGhost, PlSlideModal, PlTabs } from '@platforma-sdk/ui-vue';
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import { useApp } from '../app';
 import { isSequenceColumn } from '../util';
 
@@ -25,7 +25,7 @@ function getDefaultOptions(topTablePcols?: PColumnIdAndSpec[]) {
     return undefined;
   }
 
-  const defaults: PredefinedGraphOption<'scatterplot'>[] = [
+  const defaults: PredefinedGraphOption<'scatterplot-umap'>[] = [
     {
       inputName: 'x',
       selectedSource: topTablePcols[getIndex('pl7.app/' + dataType + '/log2foldchange',
@@ -70,11 +70,6 @@ function getDefaultOptions(topTablePcols?: PColumnIdAndSpec[]) {
 const defaults = computed(() => getDefaultOptions(app.model.outputs.topTablePcols));
 const key = computed(() => (defaults.value ? JSON.stringify(defaults.value) : ''));
 
-// Reset graph maker state when chain selection changes
-watch(() => app.model.ui.selectedChain, (_) => {
-  delete app.model.ui.graphState.optionsState;
-}, { deep: false, immediate: false });
-
 const selection = ref<PlSelectionModel>({
   axesSpec: [],
   selectedKeys: [],
@@ -84,11 +79,10 @@ const selection = ref<PlSelectionModel>({
 
 <template>
   <GraphMaker
-    :key="key"
     v-model="app.model.ui.graphState"
     v-model:selection="selection"
-    :data-state-key="app.model.args.mainRef"
-    chartType="scatterplot"
+    :data-state-key="key"
+    chartType="scatterplot-umap"
     :p-frame="app.model.outputs.topTablePf"
     :default-options="defaults"
   >
