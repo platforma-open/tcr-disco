@@ -115,7 +115,7 @@ const cdValues = useWatchFetch(() => app.model.outputs.cdSubsetOptions, async (p
 
   // Check if any of the values are 'CD4' or 'CD8'
   const lowerLabels = vals.map((v) => v.label.toLowerCase());
-  app.model.ui.cdSubsetColValid = lowerLabels.some((label) => label.includes('cd4') || label.includes('cd8'));
+  app.model.ui.cdSubsetColValid = lowerLabels.some((label) => label == 'cd4' || label == 'cd8');
 
   // Return all distinct values
   return vals;
