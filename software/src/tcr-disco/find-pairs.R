@@ -155,17 +155,17 @@ fdr_cut <- opt$p_threshold
 output_folder <- opt$output
 
 # test
-# metadata <- "/Users/julen/Downloads/m_test/oncolumn_TCR_discovery/platforma/0x5B60C6/forPairing/metadata.tsv"
-# main_alpha <- "/Users/julen/Downloads/m_test/oncolumn_TCR_discovery/platforma/0x5B60C6/forPairing/mainAlpha.tsv"
-# main_beta <- "/Users/julen/Downloads/m_test/oncolumn_TCR_discovery/platforma/0x5B60C6/forPairing/mainBeta.tsv"
-# da_alpha <- "/Users/julen/Downloads/m_test/oncolumn_TCR_discovery/platforma/0x5B60C6/forPairing/daAlpha.csv"
-# da_beta <- "/Users/julen/Downloads/m_test/oncolumn_TCR_discovery/platforma/0x5B60C6/forPairing/daBeta.csv"
+# metadata <- "/Users/julen/Downloads/m_test/standard_TCR_discovery/0x168716/metadata.tsv"
+# main_alpha <- "/Users/julen/Downloads/m_test/standard_TCR_discovery/0x168716/mainAlpha.tsv"
+# main_beta <- "/Users/julen/Downloads/m_test/standard_TCR_discovery/0x168716/mainBeta.tsv"
+# da_alpha <- "/Users/julen/Downloads/m_test/standard_TCR_discovery/0x168716/daAlpha.csv"
+# da_beta <- "/Users/julen/Downloads/m_test/standard_TCR_discovery/0x168716/daBeta.csv"
 # contrast_col <- "ag"
 # output_folder <- "/Users/julen/Downloads/m_test/oncolumn_TCR_discovery/platforma/0x5B60C6/resultsPairing"
 # sample_id_col <- "Barcode ID"
 
 # Get from platforma
-# @TODO: Filters are not yet sued, implement them
+# @TODO: Filters are not yet especifical, implement them separately for DA and pairing
 # fdr_cut <- 0.05
 estimate_cut <- 0.95
 
@@ -190,7 +190,7 @@ if (nrow(deg_alpha_table) == 0 || nrow(deg_beta_table) == 0) {
   print("Warning: The DA alpha or beta tables are empty. No pairs will be found.")
 
   # Create an emtpy output table with sall the required columns
-  required_cols <- c("Contrast", "tra", "trb", "estimate", "p.value", "p.adj", "tra_CDR3aa", "tra_VGene", "trb_CDR3aa", "trb_VGene")
+  required_cols <- c("Contrast", "tra", "trb", "estimate", "p.value", "p.adj", "tra_CDR3aa", "tra_VGene", "trb_CDR3aa", "trb_VGene", "is_max_correlation")
   empty_table <- data.frame(matrix(ncol = length(required_cols), nrow = 0))
   colnames(empty_table) <- required_cols
   predicted_pairs_all <- empty_table
@@ -237,6 +237,7 @@ if (nrow(deg_alpha_table) == 0 || nrow(deg_beta_table) == 0) {
   # Filter out negative correlations
   predicted_pairs_all <- predicted_pairs_all[predicted_pairs_all$estimate >= 0, ]
 
+  
   # Add TRA and TRB CDR3 aa and VGene data
   # Match tra column with alpha table (match returns first occurrence, which is fine since CDR3aa/VGene are always the same for repeated clonotypeKeys)
   alpha_match_idx <- match(predicted_pairs_all$tra, main_alpha_table$clonotypeKey)
@@ -247,6 +248,16 @@ if (nrow(deg_alpha_table) == 0 || nrow(deg_beta_table) == 0) {
   beta_match_idx <- match(predicted_pairs_all$trb, main_beta_table$clonotypeKey)
   predicted_pairs_all$trb_CDR3aa <- main_beta_table$CDR3aa[beta_match_idx]
   predicted_pairs_all$trb_VGene <- main_beta_table$VGene[beta_match_idx]
+
+  # Add column indicating if this pair's correlation is the maximum for either tra or trb
+  predicted_pairs_all$is_max_correlation <- 
+    (predicted_pairs_all$estimate == ave(predicted_pairs_all$estimate, predicted_pairs_all$tra, FUN = max)) |
+    (predicted_pairs_all$estimate == ave(predicted_pairs_all$estimate, predicted_pairs_all$trb, FUN = max))
+  predicted_pairs_all$is_max_correlation[predicted_pairs_all$is_max_correlation == TRUE] <- "max"
+  predicted_pairs_all$is_max_correlation[predicted_pairs_all$is_max_correlation == FALSE] <- "not_max"
+  
+  # Order by tra
+  predicted_pairs_all <- predicted_pairs_all[order(predicted_pairs_all$tra), ]
 }
 
 #save ft_ and ct_filtered in the output_folder

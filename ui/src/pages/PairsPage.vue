@@ -8,6 +8,18 @@ const app = useApp();
 const tableSettings = computed(() => usePlDataTableSettingsV2({
   model: () => app.model.outputs.pairsPt,
   sheets: () => app.model.outputs.pairsSheets,
+  filtersConfig: ({ column }) => {
+    const columnName = column.spec.name;
+    if (columnName === 'pl7.app/differentialTCRAbundance/max_cc_info') {
+      return {
+        default: {
+          type: 'string_equals',
+          reference: 'max',
+        },
+      };
+    }
+    return {};
+  },
 }).value);
 
 </script>
