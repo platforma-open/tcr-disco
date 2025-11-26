@@ -185,7 +185,11 @@ wf.body(func(args) {
 	blockId := wf.blockId().getDataAsJson()
 	columns := args.columns
 	denominator := string(args.denominator)
-	cdSubsetCol := string(args.resolvedCdSubsetCol.spec.annotations["pl7.app/label"])
+	cdSubsetCol := undefined
+	// This is needed for cases in which user selects a value and then removes the CD4/8 dataset
+	if args.cdRef != undefined {
+		cdSubsetCol = string(args.resolvedCdSubsetCol.spec.annotations["pl7.app/label"])
+	}
 	thresholdCounts := args.thresholdCounts
 	thresholdSamples := args.thresholdSamples
 	log2FcThreshold := args.log2FcThreshold
