@@ -36,9 +36,7 @@ const tableSettings = computed(() => usePlDataTableSettingsV2({
   filtersConfig: ({ column }) => {
     const columnName = column.spec.name;
 
-    // Filter for log2foldchange columns (>= log2FcThreshold or <= -log2FcThreshold)
-    // Since we can only set one filter, we'll filter for >= threshold (positive enrichments)
-    // Users can manually adjust to see negative enrichments if needed
+    // Filter for log2foldchange columns (>= log2FcThreshold or)
     if (columnName === 'pl7.app/differentialTCRAbundance/log2foldchange') {
       return {
         default: {

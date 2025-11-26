@@ -129,6 +129,20 @@ getColumns := func(countsSpecAlpha, countsSpecBeta) {
 						"pl7.app/table/visibility": "optional"
 					}
 				}
+			},
+			{
+				column: "is_max_correlation",
+				id: "is_max_correlation",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/" + field + "/max_cc_info",
+					valueType: "String",
+					annotations: {
+						"pl7.app/label": "Maximum correlation",
+						"pl7.app/table/orderPriority": "5",
+						"pl7.app/table/visibility": "optional"
+					}
+				}
 			}
 			]
 
