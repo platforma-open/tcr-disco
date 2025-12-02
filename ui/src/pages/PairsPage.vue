@@ -18,6 +18,15 @@ const tableSettings = computed(() => usePlDataTableSettingsV2({
         },
       };
     }
+
+    if (columnName === 'pl7.app/differentialTCRAbundance/padj') {
+      return {
+        default: {
+          type: 'number_lessThanOrEqualTo',
+          reference: app.model.args.pAdjThreshold,
+        },
+      };
+    }
     return {};
   },
 }).value);
@@ -33,7 +42,7 @@ const tableSettings = computed(() => usePlDataTableSettingsV2({
       not-ready-text="Data is not computed"
       show-columns-panel
       show-export-button
-      no-rows-text="No DA results for pairing"
+      no-rows-text="No significant TCR A/B pairs"
     />
   </PlBlockPage>
 </template>

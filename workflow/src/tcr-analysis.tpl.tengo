@@ -6,6 +6,7 @@ xsv := import("@platforma-sdk/workflow-tengo:pframes.xsv")
 pframes := import("@platforma-sdk/workflow-tengo:pframes")
 pSpec := import("@platforma-sdk/workflow-tengo:pframes.spec")
 smart := import("@platforma-sdk/workflow-tengo:smart")
+text := import("text")
 json := import("json")
 
 subsetAssignment := assets.importSoftware("@platforma-open/milaboratories.run-tcrdisco-enrichment.software:subset-assignment")
@@ -15,7 +16,7 @@ tcrdiscoDaPfconvParamsLib := import(":libs.tcrdisco_da_pfconv_params")
 self.validateInputs({
     "__options__,closed": "",
 	"numerators": "any",
-	"denominator": "string",
+	"denominators": "any",
 	"mainAlphaTsv": "any",
 	"mainBetaTsv": "any",
 	"metadataTsv": "any",
@@ -43,7 +44,8 @@ self.defineOutputs("topTableFileAlpha","topTableFileBeta","daFileAlpha",
 
 self.body(func(inputs) {
 
-	denominator := inputs.denominator
+	denominators := inputs.denominators
+	denominatorString := text.join(denominators, "-")
 	covariatesTsv := inputs.covariatesTsv
 	contrastColLabel := inputs.contrastColLabel
 	thresholdCounts := inputs.thresholdCounts
@@ -99,13 +101,13 @@ self.body(func(inputs) {
 	if !is_undefined(inputs.mainAlphaSpec) {
 		trace = pSpec.makeTrace(inputs.mainAlphaSpec,
 			{type: "milaboratories.tcr-disco-enrichment", importance: 30, 
-			label: "DA - Denominator: " + denominator + " (log2FC: " + log2FcThreshold + ", pAdj: " + pAdjThreshold + ")"}
+			label: "DA - Denominator: " + denominatorString + " (log2FC: " + log2FcThreshold + ", pAdj: " + pAdjThreshold + ")"}
 		)
 	}
 	
 	for numerator in inputs.numerators {
 		numerator = string(numerator)
-		contrastMap[numerator + " vs " + denominator] = numerator + " vs " + denominator
+		contrastMap[numerator + " vs " + denominatorString] = numerator + " vs " + denominatorString
 		diffExec := exec.builder().
 			software(diffSoftware).
 			addFile("mainAlpha.tsv", mainAlphaTsv).
@@ -116,7 +118,7 @@ self.body(func(inputs) {
 			arg("--covariates").arg("covariates.tsv").
 			arg("-t").arg(contrastColLabel).
 			arg("-n").arg(numerator).
-			arg("-d").arg(denominator).	
+			arg("-d").arg(string(json.encode(denominators))).
 			arg("-f").arg(string(log2FcThreshold)).
 			arg("-p").arg(string(pAdjThreshold)).
 			arg("--threshold_counts").arg(string(thresholdCounts)).
@@ -135,7 +137,7 @@ self.body(func(inputs) {
 		
 		// Process format 2 specs (with contrast in domain) if specs are provided
 		if !is_undefined(inputs.mainAlphaSpec) {
-			comparison := numerator + " - vs - " + denominator
+			comparison := numerator + " - vs - " + denominatorString
 			defaultConvMem := inputs.defaultConvMem
 			if defaultConvMem == undefined {
 				defaultConvMem = "16GiB"
@@ -168,7 +170,7 @@ self.body(func(inputs) {
 					},
 					valueType: "Double",
 					annotations: {
-						"pl7.app/label": comparison + " (log2FC)",
+						"pl7.app/label": comparison + " (Mean Log2FC)",
 						"pl7.app/isAbundance": "true",
 						"pl7.app/table/visibility": "default",
 						"pl7.app/table/orderPriority": "85000"
@@ -177,7 +179,7 @@ self.body(func(inputs) {
 						inputs.mainAlphaSpec.axesSpec[1]
 					]
 				}),
-				degPfAlpha["log2foldchange.data"]
+				degPfAlpha["log2FoldChange_mean.data"]
 			)
 			
 			regDirPframeBuilderAlpha_clonotype.add(
@@ -227,7 +229,7 @@ self.body(func(inputs) {
 						},
 						valueType: "Double",
 						annotations: {
-							"pl7.app/label": comparison + " (log2FC)",
+							"pl7.app/label": comparison + " (Mean Log2FC)",
 							"pl7.app/isAbundance": "true",
 							"pl7.app/table/visibility": "default",
 							"pl7.app/table/orderPriority": "85000"
@@ -236,7 +238,7 @@ self.body(func(inputs) {
 							inputs.mainBetaSpec.axesSpec[1]
 						]
 					}),
-					degPfBeta["log2foldchange.data"]
+					degPfBeta["log2FoldChange_mean.data"]
 				)
 				
 				regDirPframeBuilderBeta_clonotype.add(

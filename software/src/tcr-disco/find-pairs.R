@@ -155,13 +155,13 @@ fdr_cut <- opt$p_threshold
 output_folder <- opt$output
 
 # test
-# metadata <- "/path/to/data/metadata.tsv"
-# main_alpha <- "/path/to/data/mainAlpha.tsv"
-# main_beta <- "/path/to/data/mainBeta.tsv"
-# da_alpha <- "/path/to/data/daAlpha.csv"
-# da_beta <- "/path/to/data/daBeta.csv"
+# metadata <- "./metadata.tsv"
+# main_alpha <- "./mainAlpha.tsv"
+# main_beta <- "./mainBeta.tsv"
+# da_alpha <- "./daAlpha.csv"
+# da_beta <- "./daBeta.csv"
 # contrast_col <- "ag"
-# output_folder <- "/path/to/data/resultsPairing"
+# output_folder <- "./resultsPairing"
 # sample_id_col <- "Barcode ID"
 
 # Get from platforma

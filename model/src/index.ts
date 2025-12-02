@@ -41,7 +41,7 @@ export type BlockArgs = {
   covariateRefs: PlRef[];
   contrastFactor?: PlRef;
   numerators: string[];
-  denominator?: string;
+  denominators: string[];
   findTcrAbPairs: boolean;
   thresholdCounts: number;
   thresholdSamples: number;
@@ -55,11 +55,12 @@ function filterPCols(
   PColumn<TreeNodeAccessor>[] {
   // Allow only log2 FC and -log10 Padjust as options for volcano axis
   pCols = pCols.filter(
-    (col) => col.spec.name === 'pl7.app/differentialTCRAbundance/log2foldchange'
-      || col.spec.name === 'pl7.app/differentialTCRAbundance/minlog10padj'
+    (col) => col.spec.name === 'pl7.app/differentialTCRAbundance/log2foldchange_mean'
+      || col.spec.name === 'pl7.app/differentialTCRAbundance/minlog10padj_mean'
       || col.spec.name === 'pl7.app/differentialTCRAbundance/regulationDirection'
       || col.spec.name === 'pl7.app/differentialTCRAbundance/contrastGroup'
-      || col.spec.name === 'pl7.app/differentialTCRAbundance/chain',
+      || col.spec.name === 'pl7.app/differentialTCRAbundance/chain'
+      || col.spec.name === 'pl7.app/differentialTCRAbundance/cdsubset',
   );
   return pCols;
 }
@@ -69,6 +70,7 @@ export const model = BlockModel.create()
   .withArgs<BlockArgs>({
     covariateRefs: [],
     numerators: [],
+    denominators: [],
     findTcrAbPairs: false,
     thresholdCounts: 10,
     thresholdSamples: 3,
@@ -135,7 +137,7 @@ export const model = BlockModel.create()
       && (ctx.args.covariateRefs !== undefined)
       && (ctx.args.contrastFactor !== undefined)
       && (ctx.args.numerators.length > 0)
-      && (ctx.args.denominator !== undefined)
+      && (ctx.args.denominators.length > 0)
       && (ctx.args.log2FcThreshold !== undefined)
       && (ctx.args.pAdjThreshold !== undefined)
       && (ctx.args.thresholdCounts !== undefined)

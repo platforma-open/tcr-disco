@@ -2,7 +2,7 @@ wf := import("@platforma-sdk/workflow-tengo:workflow")
 assets := import("@platforma-sdk/workflow-tengo:assets")
 pframes := import("@platforma-sdk/workflow-tengo:pframes")
 render := import("@platforma-sdk/workflow-tengo:render")
-strings := import("@platforma-sdk/workflow-tengo:strings")
+text := import("text")
 xsv := import("@platforma-sdk/workflow-tengo:pframes.xsv")
 ll := import("@platforma-sdk/workflow-tengo:ll")
 smart := import("@platforma-sdk/workflow-tengo:smart")
@@ -35,12 +35,13 @@ createJsonPColumnData := func(data) {
 
 // Helper function to process results for one chain type
 processChainResults := func(mainSpec, inputType, log2FcThreshold, pAdjThreshold, trace,
-blockId, topTableFile, daFile, defaultConvMem, defaultConvCpu, degBuilder, 
+blockId, denominators, topTableFile, daFile, defaultConvMem, defaultConvCpu, degBuilder, 
 							regDirBuilder, topDegBuilder, cdSubsetCol) {
 	topTableImportParams := topTablePfconvParamsLib.getColumns(copy(mainSpec), inputType,
 															log2FcThreshold,
 															pAdjThreshold,
-															cdSubsetCol)
+															cdSubsetCol,
+															denominators)
 	topTablePf := xsv.importFile(topTableFile, "csv", topTableImportParams, 
 														// This changes output format from default to per column
 														// So key will be column name and values spec and data
@@ -58,12 +59,6 @@ blockId, topTableFile, daFile, defaultConvMem, defaultConvCpu, degBuilder,
 			columnData
 		)
 	}
-
-	degBuilder.add(
-		"Log2FC",
-		trace.inject(degPf["log2foldchange.spec"]),
-		degPf["log2foldchange.data"]
-	)
 
 	regDirBuilder.add(
 		"Regulation Direction",
@@ -184,7 +179,8 @@ wf.prepare(func(args) {
 wf.body(func(args) {
 	blockId := wf.blockId().getDataAsJson()
 	columns := args.columns
-	denominator := string(args.denominator)
+	denominators := args.denominators
+	denominatorString := text.join(denominators, "-")
 	cdSubsetCol := undefined
 	// This is needed for cases in which user selects a value and then removes the CD4/8 dataset
 	if args.cdRef != undefined {
@@ -387,7 +383,7 @@ wf.body(func(args) {
 
 	tcrAnalysis := render.create(tcrAnalysisTpl, {
 		numerators: args.numerators,
-		denominator: denominator,
+		denominators: denominators,
 		mainAlphaTsv: mainAlphaTsv,
 		mainBetaTsv: mainBetaTsv,
 		metadataTsv: metadataTsv,
@@ -431,7 +427,7 @@ wf.body(func(args) {
 
 	trace := pSpec.makeTrace(mainAlphaSpec,
 			{type: "milaboratories.tcr-disco-enrichment", importance: 30, 
-			label: "DA - Denominator: " + denominator + " (log2FC: " + log2FcThreshold + ", pAdj: " + pAdjThreshold + ", threshold counts: " + thresholdCounts + ", threshold samples: " + thresholdSamples + ")"}
+			label: "DA - Denominator: " + denominatorString + " (log2FC: " + log2FcThreshold + ", pAdj: " + pAdjThreshold + ", threshold counts: " + thresholdCounts + ", threshold samples: " + thresholdSamples + ")"}
 		)
 
 
@@ -461,7 +457,7 @@ wf.body(func(args) {
 		pairsPframeBuilder := pframes.pFrameBuilder()
 		pairsTrace := pSpec.makeTrace(mainAlphaSpec,
 			{type: "milaboratories.tcr-disco-enrichment", importance: 30, 
-			label: "TCR AB Pairs - Denominator: " + denominator + " (log2FC: " + log2FcThreshold + ", pAdj: " + pAdjThreshold + ")"}
+			label: "TCR AB Pairs - Denominator: " + denominatorString + " (log2FC: " + log2FcThreshold + ", pAdj: " + pAdjThreshold + ")"}
 		)
 		
 		for columnName, value in pairsPf {
@@ -477,13 +473,13 @@ wf.body(func(args) {
 
 	// Process alpha chain results
 	processChainResults(mainAlphaSpec, inputType, log2FcThreshold, pAdjThreshold,
-						trace, blockId, topTableFileAlpha, daFileAlpha, defaultConvMem, defaultConvCpu, 
+						trace, blockId, denominators, topTableFileAlpha, daFileAlpha, defaultConvMem, defaultConvCpu, 
 						degPframeBuilderAlpha, regDirPframeBuilderAlpha, topDegPframeBuilderAlpha, cdSubsetCol)
 
 	// Process beta chain results (only if beta data exists)
 	if mainBetaSpec != undefined {
 		processChainResults(mainBetaSpec, inputType, log2FcThreshold, pAdjThreshold,
-							trace, blockId, topTableFileBeta, daFileBeta, defaultConvMem, defaultConvCpu, 
+							trace, blockId, denominators, topTableFileBeta, daFileBeta, defaultConvMem, defaultConvCpu, 
 							degPframeBuilderBeta, regDirPframeBuilderBeta, topDegPframeBuilderBeta, cdSubsetCol)
 	}
 
@@ -523,7 +519,7 @@ wf.body(func(args) {
 	// Convert frequency TSV files to PFrames
 	frequenciesTrace := pSpec.makeTrace(mainAlphaSpec,
 		{type: "milaboratories.tcr-disco-enrichment", importance: 30, 
-		label: "Frequencies - Denominator: " + denominator}
+		label: "Frequencies - Denominator: " + denominatorString}
 	)
 	
 	// Convert alpha frequencies

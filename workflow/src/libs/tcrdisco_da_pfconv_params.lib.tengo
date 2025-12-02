@@ -3,14 +3,14 @@ ll := import("@platforma-sdk/workflow-tengo:ll")
 getColumns := func(countsSpec, cdSubsetCol) {
 	columns := [
 			{
-				column: "log2FoldChange",
-				id: "log2foldchange",
+				column: "log2FoldChange_mean",
+				id: "log2foldchange_mean",
 				allowNA: true,
 				spec: {
-					name: "pl7.app/differentialTCRAbundance/log2foldchange",
+					name: "pl7.app/differentialTCRAbundance/log2foldchange_mean",
 					valueType: "Double",
 					annotations: {
-						"pl7.app/label": "Log2FC",
+						"pl7.app/label": "Mean Log2FC",
 						"pl7.app/table/orderPriority": "60"
 					}
 				}
@@ -29,14 +29,14 @@ getColumns := func(countsSpec, cdSubsetCol) {
 				}
 			},
 			{
-				column: "padj",
-				id: "padj",
+				column: "padj_mean",
+				id: "padj_mean",
 				allowNA: true,
 				spec: {
-					name: "pl7.app/differentialTCRAbundance/adjustedPValue",
+					name: "pl7.app/differentialTCRAbundance/adjustedPValue_mean",
 					valueType: "Double",
 					annotations: {
-						"pl7.app/label": "Adjusted p-value",
+						"pl7.app/label": "Mean Adjusted p-value",
 						"pl7.app/table/orderPriority": "10"
 					}
 				}

@@ -128,11 +128,11 @@ da_beta <- opt$da_beta
 output_folder <- opt$output
 
 # test
-# main_alpha <- "/path/to/data/mainAlpha.tsv"
-# main_beta <- "/path/to/data/mainBeta.tsv"
-# da_alpha <- "/path/to/data/forPairing/DA_alpha.csv"
-# da_beta <- "/path/to/data/forPairing/DA_beta.csv"
-# output_folder <- "/path/to/data/resultsPairing"
+# main_alpha <- "./mainAlpha.tsv"
+# main_beta <- "./mainBeta.tsv"
+# da_alpha <- "./forPairing/DA_alpha.csv"
+# da_beta <- "./forPairing/DA_beta.csv"
+# output_folder <- "./resultsPairing"
 
 
 ## 1.1. TCR Discovery

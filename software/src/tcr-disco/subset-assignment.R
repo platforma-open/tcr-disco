@@ -118,12 +118,12 @@ output_folder <- opt$output
 cd_subset_col <- opt$cd_subset_col
 
 # test
-# metadata <- "/path/to/data/metadata.tsv"
-# main_alpha <- "/path/to/data/mainAlpha.tsv"
-# main_beta <- "/path/to/data/mainBeta.tsv"
-# cd_alpha <- "/path/to/data/cdAlpha.tsv"
-# cd_beta <- "/path/to/data/cdBeta.tsv"
-# output_folder <- "/path/to/data/results"
+# metadata <- "./metadata.tsv"
+# main_alpha <- "./mainAlpha.tsv"
+# main_beta <- "./mainBeta.tsv"
+# cd_alpha <- "./cdAlpha.tsv"
+# cd_beta <- "./cdBeta.tsv"
+# output_folder <- "./results"
 # cd_subset_col <- "Subset"
 
 ## 1.1. TCR Discovery

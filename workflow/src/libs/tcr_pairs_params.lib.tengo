@@ -84,7 +84,7 @@ getColumns := func(countsSpecAlpha, countsSpecBeta) {
 					annotations: {
 						"pl7.app/label": "TCR Alpha CDR3 aa",
 						"pl7.app/table/orderPriority": "40",
-						"pl7.app/table/visibility": "optional"
+						"pl7.app/table/visibility": "default"
 					}
 				}
 			},
@@ -98,7 +98,7 @@ getColumns := func(countsSpecAlpha, countsSpecBeta) {
 					annotations: {
 						"pl7.app/label": "TCR Beta CDR3 aa",
 						"pl7.app/table/orderPriority": "30",
-						"pl7.app/table/visibility": "optional"
+						"pl7.app/table/visibility": "default"
 					}
 				}
 			},
