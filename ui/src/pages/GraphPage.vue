@@ -28,12 +28,12 @@ function getDefaultOptions(topTablePcols?: PColumnIdAndSpec[]) {
   const defaults: PredefinedGraphOption<'scatterplot-umap'>[] = [
     {
       inputName: 'x',
-      selectedSource: topTablePcols[getIndex('pl7.app/' + dataType + '/log2foldchange',
+      selectedSource: topTablePcols[getIndex('pl7.app/' + dataType + '/log2foldchange_mean',
         topTablePcols)].spec,
     },
     {
       inputName: 'y',
-      selectedSource: topTablePcols[getIndex('pl7.app/' + dataType + '/minlog10padj',
+      selectedSource: topTablePcols[getIndex('pl7.app/' + dataType + '/minlog10padj_mean',
         topTablePcols)].spec,
     },
     {
@@ -44,7 +44,7 @@ function getDefaultOptions(topTablePcols?: PColumnIdAndSpec[]) {
     // Contrast
     {
       inputName: 'tabBy',
-      selectedSource: topTablePcols[getIndex('pl7.app/' + dataType + '/log2foldchange',
+      selectedSource: topTablePcols[getIndex('pl7.app/' + dataType + '/log2foldchange_mean',
         topTablePcols)].spec.axesSpec[0],
     },
     // CDR3 aa

@@ -29,30 +29,7 @@ getColumns := func(countsSpec, blockId, inputType) {
 			]
 
 	// Prepare Columns
-	columns := []
-	colFC := {
-				column: "log2FoldChange",
-				id: "log2foldchange",
-				allowNA: true,
-				spec: {
-					name: "pl7.app/" + field + "/" + degName,
-					valueType: "Double",
-					domain: {
-						"pl7.app/vdj/clonotypingRunId": countsSpec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
-					},
-					annotations: {
-						"pl7.app/label": "Log2FC",
-						"pl7.app/table/hValue": "true",
-						// This allows us to select this Pcolumn to use it as filtering
-						// in this case to keep only genes appearing in this list
-						"pl7.app/isSubset": "true",
-						"pl7.app/table/orderPriority": "60",
-						"pl7.app/format": ".2f",
-						"pl7.app/table/visibility": "default"
-					}
-				}
-			}
-	colReg := {
+	columns := [{
 				column: "Regulation",
 				id: "regulationDirection",
 				spec: {
@@ -67,12 +44,7 @@ getColumns := func(countsSpec, blockId, inputType) {
 						"pl7.app/table/visibility": "default"
 					}
 				}
-			}
-
-	columns = columns + [
-			colFC,
-			colReg
-			]
+			}]
 
 	return {
 		axes: axes,

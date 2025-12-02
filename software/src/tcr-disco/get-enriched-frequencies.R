@@ -128,11 +128,11 @@ da_beta <- opt$da_beta
 output_folder <- opt$output
 
 # test
-# main_alpha <- "/Users/julen/Downloads/m_test/oncolumn_TCR_discovery/platforma/0x5B60C6/mainAlpha.tsv"
-# main_beta <- "/Users/julen/Downloads/m_test/oncolumn_TCR_discovery/platforma/0x5B60C6/mainBeta.tsv"
-# da_alpha <- "/Users/julen/Downloads/m_test/oncolumn_TCR_discovery/platforma/0x5B60C6/forPairing/DA_alpha.csv"
-# da_beta <- "/Users/julen/Downloads/m_test/oncolumn_TCR_discovery/platforma/0x5B60C6/forPairing/DA_beta.csv"
-# output_folder <- "/Users/julen/Downloads/m_test/oncolumn_TCR_discovery/platforma/0x5B60C6/resultsPairing"
+# main_alpha <- "./mainAlpha.tsv"
+# main_beta <- "./mainBeta.tsv"
+# da_alpha <- "./forPairing/DA_alpha.csv"
+# da_beta <- "./forPairing/DA_beta.csv"
+# output_folder <- "./resultsPairing"
 
 
 ## 1.1. TCR Discovery

@@ -155,13 +155,13 @@ fdr_cut <- opt$p_threshold
 output_folder <- opt$output
 
 # test
-# metadata <- "/Users/julen/Downloads/m_test/standard_TCR_discovery/0x168716/metadata.tsv"
-# main_alpha <- "/Users/julen/Downloads/m_test/standard_TCR_discovery/0x168716/mainAlpha.tsv"
-# main_beta <- "/Users/julen/Downloads/m_test/standard_TCR_discovery/0x168716/mainBeta.tsv"
-# da_alpha <- "/Users/julen/Downloads/m_test/standard_TCR_discovery/0x168716/daAlpha.csv"
-# da_beta <- "/Users/julen/Downloads/m_test/standard_TCR_discovery/0x168716/daBeta.csv"
+# metadata <- "./metadata.tsv"
+# main_alpha <- "./mainAlpha.tsv"
+# main_beta <- "./mainBeta.tsv"
+# da_alpha <- "./daAlpha.csv"
+# da_beta <- "./daBeta.csv"
 # contrast_col <- "ag"
-# output_folder <- "/Users/julen/Downloads/m_test/oncolumn_TCR_discovery/platforma/0x5B60C6/resultsPairing"
+# output_folder <- "./resultsPairing"
 # sample_id_col <- "Barcode ID"
 
 # Get from platforma

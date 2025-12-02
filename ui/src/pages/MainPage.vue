@@ -37,7 +37,7 @@ const tableSettings = computed(() => usePlDataTableSettingsV2({
     const columnName = column.spec.name;
 
     // Filter for log2foldchange columns (>= log2FcThreshold or)
-    if (columnName === 'pl7.app/differentialTCRAbundance/log2foldchange') {
+    if (columnName === 'pl7.app/differentialTCRAbundance/log2foldchange_mean') {
       return {
         default: {
           type: 'number_greaterThanOrEqualTo',
@@ -47,12 +47,20 @@ const tableSettings = computed(() => usePlDataTableSettingsV2({
     }
 
     // Filter for adjusted p-value columns (<= pAdjThreshold)
-    if (columnName === 'pl7.app/differentialTCRAbundance/adjustedPValue'
-      || columnName === 'pl7.app/differentialTCRAbundance/padj') {
+    if (columnName === 'pl7.app/differentialTCRAbundance/padj_mean') {
       return {
         default: {
           type: 'number_lessThanOrEqualTo',
           reference: app.model.args.pAdjThreshold,
+        },
+      };
+    }
+
+    if (columnName === 'pl7.app/differentialTCRAbundance/regulationDirection') {
+      return {
+        default: {
+          type: 'string_equals',
+          reference: 'Up',
         },
       };
     }
@@ -112,12 +120,6 @@ const numeratorOptions = useWatchFetch(() => app.model.outputs.denominatorOption
   return [...response.values.data].map((v) => ({ value: String(v), label: String(v) }));
 });
 
-// Only options not selected as numerators[] are accepted as denominator
-const denominatorOptions = computed(() => {
-  return numeratorOptions.value?.filter((op) =>
-    !app.model.args.numerators.includes(op.value));
-});
-
 // Check CD4/CD8 column selection
 // Get all possible numerator/denominator values
 const cdValues = useWatchFetch(() => app.model.outputs.cdSubsetOptions, async (pframeHandle) => {
@@ -150,7 +152,7 @@ const cdValues = useWatchFetch(() => app.model.outputs.cdSubsetOptions, async (p
 // Make sure numerator and denominator are reset when contrast factor is changed
 watch(() => [app.model.args.contrastFactor], (_) => {
   app.model.args.numerators = [];
-  app.model.args.denominator = undefined;
+  app.model.args.denominators = [];
 });
 
 </script>
@@ -227,16 +229,17 @@ watch(() => [app.model.args.contrastFactor], (_) => {
         Select one or more experimental conditions to compare against the baseline (denominator).
       </template>
     </PlDropdownMulti>
-    <PlDropdown
-      v-model="app.model.args.denominator"
-      :options="denominatorOptions"
-      label="Denominator"
+    <PlDropdownMulti
+      v-model="app.model.args.denominators"
+      :options="numeratorOptions.value"
+      label="Denominator/s"
       required
     >
       <template #tooltip>
         Select the control or baseline condition that will serve as the reference for comparison.
+        If multiple denominators are selected, only clonotypes that are differentially enriched for each numerator when compared individually against all selected denominators (excluding cases where the numerator matches the denominator) will be considered as enriched.
       </template>
-    </PlDropdown>
+    </PlDropdownMulti>
     <!-- Content hidden until you click THRESHOLD PARAMETERS -->
     <PlAccordionSection label="THRESHOLD PARAMETERS">
       <PlRow>
@@ -262,7 +265,7 @@ watch(() => [app.model.args.contrastFactor], (_) => {
       <PlRow>
         <PlNumberField
           v-model="app.model.args.thresholdCounts"
-          label="Min counts"
+          label="Min UMI counts"
           :minValue="0"
           :step="1"
           placeholder="0"
