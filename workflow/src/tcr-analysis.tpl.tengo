@@ -179,7 +179,7 @@ self.body(func(inputs) {
 						inputs.mainAlphaSpec.axesSpec[1]
 					]
 				}),
-				degPfAlpha["log2FoldChange_mean.data"]
+				degPfAlpha["log2foldchange_mean.data"]
 			)
 			
 			regDirPframeBuilderAlpha_clonotype.add(
@@ -238,7 +238,7 @@ self.body(func(inputs) {
 							inputs.mainBetaSpec.axesSpec[1]
 						]
 					}),
-					degPfBeta["log2FoldChange_mean.data"]
+					degPfBeta["log2foldchange_mean.data"]
 				)
 				
 				regDirPframeBuilderBeta_clonotype.add(
