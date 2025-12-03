@@ -271,12 +271,12 @@ watch(() => [app.model.args.contrastFactor], (_) => {
           placeholder="0"
         >
           <template #tooltip>
-            A clonotype must have at least "Min counts" in at least "Min samples" to be accepted as significantly enriched. These thresholds are also used to classify clonotypes as "Up" (enriched), "Down" (depleted), or "NS" (not significant) in the regulation direction output.
+            A clonotype must have at least "Min counts" in at least "Min replicates" to be accepted as significantly enriched. These thresholds are also used to classify clonotypes as "Up" (enriched), "Down" (depleted), or "NS" (not significant) in the regulation direction output.
           </template>
         </PlNumberField>
         <PlNumberField
           v-model="app.model.args.thresholdSamples"
-          label="Min samples"
+          label="Min replicates"
           :minValue="0"
           :step="1"
           placeholder="0"
