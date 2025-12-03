@@ -55,32 +55,32 @@ self.body(func(inputs) {
 
 	mainAlphaTsv := undefined
 	mainBetaTsv := undefined
-	// Assiggn CD4/CD8 subsets to main data
-	if !is_undefined(inputs.cdAlphaTsv) && !is_undefined(inputs.cdBetaTsv) {
-		builder := exec.builder().
+	// Assiggn CD4/CD8 subsets to main data and QC the input files
+	builder := exec.builder().
 			software(subsetAssignment).
 			addFile("mainAlpha.tsv", inputs.mainAlphaTsv).
 			addFile("mainBeta.tsv", inputs.mainBetaTsv).
 			addFile("metadata.tsv", inputs.metadataTsv).
-			addFile("cdAlpha.tsv", inputs.cdAlphaTsv).
-			addFile("cdBeta.tsv", inputs.cdBetaTsv).
-			addFile("covariates.tsv", covariatesTsv).
 			arg("--main_alpha").arg("mainAlpha.tsv").
 			arg("--main_beta").arg("mainBeta.tsv").
 			arg("--metadata").arg("metadata.tsv").
-			arg("--cd_alpha").arg("cdAlpha.tsv").
-			arg("--cd_beta").arg("cdBeta.tsv").
-			arg("--cd_subset_col").arg(inputs.cdSubsetCol).
 			arg("-o").arg(".").
 			saveFile("main_alpha_table.tsv").
-			saveFile("main_beta_table.tsv").
-			run()
-		mainAlphaTsv = builder.getFile("main_alpha_table.tsv")
-		mainBetaTsv = builder.getFile("main_beta_table.tsv")
-	} else {
-		mainAlphaTsv = inputs.mainAlphaTsv
-		mainBetaTsv = inputs.mainBetaTsv
-	}
+			saveFile("main_beta_table.tsv")
+	if !is_undefined(inputs.cdAlphaTsv) && !is_undefined(inputs.cdBetaTsv) {
+		builder.
+			addFile("cdAlpha.tsv", inputs.cdAlphaTsv).
+			addFile("cdBeta.tsv", inputs.cdBetaTsv).
+			arg("--cd_alpha").arg("cdAlpha.tsv").
+			arg("--cd_beta").arg("cdBeta.tsv").
+			arg("--cd_subset_col").arg(inputs.cdSubsetCol)
+	} 
+	builder = builder.run()
+
+	// Stored main tables with/out subset information and after QC for samples 
+	// with both alpha and beta chains (we keep only the most frequent one)
+	mainAlphaTsv = builder.getFile("main_alpha_table.tsv")
+	mainBetaTsv = builder.getFile("main_beta_table.tsv")
 
 	// run differential analysis per numerator
 	wf := pt.workflow().cpu(1).mem("2GiB")

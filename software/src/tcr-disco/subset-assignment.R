@@ -87,15 +87,15 @@ option_list <- list(
     help = "Path to metadata TSV file", metavar = "character"
   ),
   make_option(c("--cd_alpha"),
-    type = "character", default = "cdAlpha.tsv",
+    type = "character", default = NA,
     help = "Path to CD alpha clonotypes TSV file", metavar = "character"
   ),
   make_option(c("--cd_beta"),
-    type = "character", default = "cdBeta.tsv",
+    type = "character", default = NA,
     help = "Path to CD beta clonotypes TSV file", metavar = "character"
   ),
   make_option(c("--cd_subset_col"),
-    type = "character", default = "subset",
+    type = "character", default = NA,
     help = "Metadata column with CD4/8 information", metavar = "character"
   ),
   make_option(c("-o", "--output"),
@@ -126,26 +126,51 @@ cd_subset_col <- opt$cd_subset_col
 # output_folder <- "./results"
 # cd_subset_col <- "Subset"
 
-## 1.1. TCR Discovery
-# Load metadata
-metadata_table <- read.table(metadata, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-cd_alpha_table <- read.table(cd_alpha, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-cd_beta_table <- read.table(cd_beta, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-clonotypeKeyCol <- "clonotypeKey"
-# Load CD4 and CD8 dataframe (optional step)
-subsets_tra = NULL
-subsets_trb = NULL
-if (!is.null(cd_alpha) && !is.null(cd_beta)) {
-  subsets_tra = create_subsets_df(metadata_table, cd_subset_col, cd_alpha_table, clonotypeKeyCol)
-  subsets_trb = create_subsets_df(metadata_table, cd_subset_col, cd_beta_table, clonotypeKeyCol)
-}
+print(paste0("cd_alpha: ", cd_alpha))
+print(paste0("cd_beta: ", cd_beta))
+print(paste0("cd_subset_col: ", cd_subset_col))
+print(paste0("output_folder: ", output_folder))
+print(paste0("metadata: ", metadata))
+print(paste0("main_alpha: ", main_alpha))
+print(paste0("main_beta: ", main_beta))
 
+## 1.1. TCR Discovery
 ### Load main data
+metadata_table <- read.table(metadata, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 main_alpha_table <- read.table(main_alpha, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 main_beta_table <- read.table(main_beta, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 
-# Assign T cell subset to main data
-if (!is.null(cd_alpha) && !is.null(cd_beta)) {
+# Check if any internalSampleId appears both in alpha and beta we remove it assuming contamination
+repeatedSamples <- unique(main_alpha_table$internalSampleId)
+repeatedSamples <- repeatedSamples[repeatedSamples %in% unique(main_beta_table$internalSampleId)]
+if (length(repeatedSamples) > 0) {
+  alpha_counts <- table(main_alpha_table$internalSampleId)[repeatedSamples]
+  beta_counts <- table(main_beta_table$internalSampleId)[repeatedSamples]
+  
+  remove_from_alpha <- repeatedSamples[alpha_counts < beta_counts]
+  remove_from_beta <- repeatedSamples[beta_counts <= alpha_counts]
+  # Remove duplicated sampleIds from files in which they appear less (when comparing between tcra and tcrb)
+  main_alpha_table <- main_alpha_table[!main_alpha_table$internalSampleId %in% remove_from_alpha, ]
+  main_beta_table <- main_beta_table[!main_beta_table$internalSampleId %in% remove_from_beta, ]
+  
+  print(paste0("Removed ", length(remove_from_alpha), " repeated sample(s) from alpha"))
+  print(paste0("Removed ", length(remove_from_beta), " repeated sample(s) from beta"))
+
+}
+
+# Load CD4 and CD8 dataframe (optional step)
+if (!is.na(cd_alpha) && !is.na(cd_beta) && !is.na(cd_subset_col)) {
+  # Load CD data
+  cd_alpha_table <- read.table(cd_alpha, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+  cd_beta_table <- read.table(cd_beta, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+  clonotypeKeyCol <- "clonotypeKey"
+
+  subsets_tra = NULL
+  subsets_trb = NULL
+  subsets_tra = create_subsets_df(metadata_table, cd_subset_col, cd_alpha_table, clonotypeKeyCol)
+  subsets_trb = create_subsets_df(metadata_table, cd_subset_col, cd_beta_table, clonotypeKeyCol)
+
+  # Assign T cell subset to main data
   cat("\n Assigning T cell subset...")
   reorder_cols = function(tbl) {
     cols = colnames(tbl)
