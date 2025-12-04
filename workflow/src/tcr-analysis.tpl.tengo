@@ -153,7 +153,7 @@ self.body(func(inputs) {
 			}
 			
 			// Process alpha chain
-			degImportParams := tcrdiscoDaPfconvParamsLib.getColumns(inputs.mainAlphaSpec, inputs.cdSubsetCol, comparison)
+			degImportParams := tcrdiscoDaPfconvParamsLib.getColumns(inputs.mainAlphaSpec, inputs.cdSubsetCol, numerator, comparison)
 			degPfAlpha := xsv.importFile(diffExec.getFile("robust_enrichment_alpha.csv"), "csv", degImportParams, {mem: defaultConvMem, cpu: defaultConvCpu})
 
 			// We just export robust enrichment for now, that will have a unique value per clonotype
@@ -165,7 +165,7 @@ self.body(func(inputs) {
 			
 			// Process beta chain if available
 			if !is_undefined(inputs.mainBetaSpec) {
-				degImportParamsBeta := tcrdiscoDaPfconvParamsLib.getColumns(inputs.mainBetaSpec, inputs.cdSubsetCol, comparison)
+				degImportParamsBeta := tcrdiscoDaPfconvParamsLib.getColumns(inputs.mainBetaSpec, inputs.cdSubsetCol, numerator, comparison)
 				degPfBeta := xsv.importFile(diffExec.getFile("robust_enrichment_beta.csv"), "csv", degImportParamsBeta, {mem: defaultConvMem, cpu: defaultConvCpu})
 				
 				/// We just export robust enrichment for now, that will have a unique value per clonotype

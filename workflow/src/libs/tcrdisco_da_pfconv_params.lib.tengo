@@ -1,6 +1,6 @@
 ll := import("@platforma-sdk/workflow-tengo:ll")
 
-getColumns := func(countsSpec, cdSubsetCol, comparison) {
+getColumns := func(countsSpec, cdSubsetCol, numerator, comparison) {
 
 	// Get runID label
 	runIdLabel := countsSpec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
@@ -19,10 +19,11 @@ getColumns := func(countsSpec, cdSubsetCol, comparison) {
 					name: "pl7.app/differentialTCRAbundance/robustEnrichment",
 					valueType: "String",
 					annotations: {
-						"pl7.app/label": comparison + " Robust enrichment",
+						"pl7.app/label": numerator + " Robust enrichment",
 						"pl7.app/isAbundance": "true",
 						"pl7.app/table/visibility": "optional",
-						"pl7.app/table/orderPriority": "84000"
+						"pl7.app/table/orderPriority": "84000",
+						"pl7.app/hideDataFromGraphs": "true"
 					},
 					domain: {
 						runIdLabel: countsSpec.axesSpec[1].domain[runIdLabel],
