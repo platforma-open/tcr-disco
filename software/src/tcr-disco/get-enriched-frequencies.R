@@ -4,92 +4,6 @@
 suppressMessages(library("optparse"))
 #----------------------------------------
 
-# Required functions
-# 1.  generate fraction matrices
-get_fraction_matrix = function(main_table) {
-  # Generate frequency matrices for both alpha and beta
-  # Aggregate fractions by useSampleId and clonotypeKey
-  # Use clonotypeKey first to match group_by order
-  aggregated <- aggregate(fraction ~ clonotypeKey + useSampleId, 
-                          data = main_table, FUN = sum)
-
-  # Get unique values in the order they first appear in aggregated (matches group_by + summarise order)
-  unique_clonotypes <- unique(aggregated$clonotypeKey)
-  unique_samples <- unique(aggregated$useSampleId)
-
-  # Create matrix with proper dimensions and fill with 0
-  fraction_matrix <- matrix(0, 
-                        nrow = length(unique_clonotypes), 
-                        ncol = length(unique_samples),
-                        dimnames = list(unique_clonotypes, unique_samples))
-
-  # Fill matrix with aggregated values using match for efficiency
-  row_indices <- match(aggregated$clonotypeKey, unique_clonotypes)
-  col_indices <- match(aggregated$useSampleId, unique_samples)
-  fraction_matrix[cbind(row_indices, col_indices)] <- aggregated$fraction
-
-  # Ensure it's a numeric matrix
-  fraction_matrix <- as.matrix(fraction_matrix)
-  fraction_matrix[is.na(fraction_matrix)] <- 0
-
-  return (fraction_matrix)
-}
-
-# 2.  find pairs
-find_pairs = function(deg_alpha_table, deg_beta_table, metadata_table, 
-      contrast_col, alpha_matrix, beta_matrix, num) {
-  # samples related to the selected numerator
-  alpha_clonotypes <- deg_alpha_table[deg_alpha_table$Numerator == num, "clonotypeKey"]
-  beta_clonotypes <- deg_beta_table[deg_beta_table$Numerator == num, "clonotypeKey"]
-  contrast_label <- unique(deg_alpha_table[deg_alpha_table$Numerator == num, "Contrast"])
-  numerator_samples <- metadata_table[metadata_table[,contrast_col] == num, "useSampleId"]
-  alpha_matrix <- alpha_matrix[alpha_clonotypes, 
-      colnames(alpha_matrix)[colnames(alpha_matrix) %in% numerator_samples], drop = FALSE]
-  beta_matrix <- beta_matrix[beta_clonotypes, 
-      colnames(beta_matrix)[colnames(beta_matrix) %in% numerator_samples], drop = FALSE]
-
-  # merge TRA and TRB clonotypes into one dataframe
-  fraction_table_ab <- t(rbind(alpha_matrix, beta_matrix))
-
-  # Generate all possible alpha-beta pairs using base R
-  pairs_grid <- expand.grid(
-    tra = rownames(alpha_matrix),
-    trb = rownames(beta_matrix),
-    stringsAsFactors = FALSE
-  )
-
-  # Run correlation tests for each pair
-  test_results <- mapply(function(tra, trb) {
-    df_small <- fraction_table_ab[, c(tra, trb), drop = FALSE]
-    # Check whether both chains are present or absent within replicates
-    if (all(rowSums(df_small == 0) != 1)) {
-      cor.test(df_small[, 1], df_small[, 2])
-    } else {
-      NULL
-    }
-  }, pairs_grid$tra, pairs_grid$trb, SIMPLIFY = FALSE)
-
-  # Filter out NULL results and extract estimates and p-values
-  valid_indices <- !sapply(test_results, is.null)
-  predicted_pairs <- pairs_grid[valid_indices, , drop = FALSE]
-  predicted_pairs$estimate <- sapply(test_results[valid_indices], function(x) x$estimate)
-  predicted_pairs$p.value <- sapply(test_results[valid_indices], function(x) x$p.value)
-
-  # Perform FDR adjustment and filter by R & FDR threshold
-  predicted_pairs$p.adj <- p.adjust(predicted_pairs$p.value, method = "fdr")
-  # predicted_pairs <- predicted_pairs[
-  #   predicted_pairs$p.adj <= fdr_cut & predicted_pairs$estimate >= estimate_cut,
-  #   , drop = FALSE
-  # ]
-
-  # Add contrast column
-  predicted_pairs["Contrast"] = contrast_label
-
-  return (predicted_pairs)
-}
-
-#----------------------------------------
-
 # Main code
 
 # Parse command line arguments
@@ -130,8 +44,8 @@ output_folder <- opt$output
 # test
 # main_alpha <- "./mainAlpha.tsv"
 # main_beta <- "./mainBeta.tsv"
-# da_alpha <- "./forPairing/DA_alpha.csv"
-# da_beta <- "./forPairing/DA_beta.csv"
+# da_alpha <- "./DA_alpha.csv"
+# da_beta <- "./DA_beta.csv"
 # output_folder <- "./resultsPairing"
 
 
@@ -145,8 +59,8 @@ deg_alpha_table <- read.csv(da_alpha, header = TRUE, sep = ",", stringsAsFactors
 deg_beta_table <- read.csv(da_beta, header = TRUE, sep = ",", stringsAsFactors = FALSE)
 
 # Keep only DA clonotypes from main tables
-main_alpha_table <- main_alpha_table[main_alpha_table$clonotypeKey %in% deg_alpha_table$clonotypeKey, ]
-main_beta_table <- main_beta_table[main_beta_table$clonotypeKey %in% deg_beta_table$clonotypeKey, ]
+main_alpha_table <- main_alpha_table[main_alpha_table$clonotypeKey %in% unique(deg_alpha_table$clonotypeKey), ]
+main_beta_table <- main_beta_table[main_beta_table$clonotypeKey %in% unique(deg_beta_table$clonotypeKey), ]
 
 # Store the tables
 if (!dir.exists(output_folder)) {

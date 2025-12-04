@@ -7,14 +7,14 @@ getColumns := func(countsSpecAlpha, countsSpecBeta) {
 
 	axes := [
 			{
-				column: "Contrast",
-				id: "contrast",
+				column: "Numerator",
+				id: "numerator",
 				allowNA: false,
 				spec: {
-					name: "pl7.app/" + field + "/contrastGroup",
+					name: "pl7.app/" + field + "/numerator",
 					type: "String",
 					annotations: {
-						"pl7.app/label": "Contrast"
+						"pl7.app/label": "Numerator"
 					}
 				}
 			},

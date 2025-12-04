@@ -40,7 +40,7 @@ run_deseq = function(main_table, covariates_table, contrast_col,
   # Filters prior to DE analysis to have minimum data quality
   min_samples <- max(floor(ncol(count_matrix) * fraction_for_filter), 1)
   count_matrix <- count_matrix[rowSums(count_matrix >= min_counts) >= min_samples, ]
-  # For differentialclonotype abundance we add 1 as minimum clonotype count (after filtering)
+  # For differential clonotype abundance we add 1 as minimum clonotype count (after filtering)
   count_matrix <- count_matrix + 1
   # Hence update user provided threshold
   threshold_counts <- threshold_counts + 1
@@ -67,99 +67,83 @@ run_deseq = function(main_table, covariates_table, contrast_col,
     stop("No valid denominators found after excluding numerator")
   }
   
-  # Process each denominator and merge results
+  # Process each denominator and combine results
   res_list <- lapply(valid_denominators, function(denom) {
     res_df <- as.data.frame(results(dds, contrast = c(make.names(contrast_col), numerator, denom)))
     res_df$clonotypeKey <- rownames(res_df)
     
-    # Add suffix to relevant columns
-    suffix <- paste0("_", make.names(denom))
-    cols_to_rename <- c("log2FoldChange", "padj", "pvalue", "baseMean", "lfcSE", "stat")
-    idx <- colnames(res_df) %in% cols_to_rename
-    colnames(res_df)[idx] <- paste0(colnames(res_df)[idx], suffix)
+    # Add contrast column indicating "numerator vs denominator"
+    res_df$Contrast <- paste0(numerator, " vs ", denom)
     
     # Calculate minlog10padj
-    padj_col <- paste0("padj", suffix)
-    minlog10padj_col <- paste0("minlog10padj", suffix)
-    res_df[[minlog10padj_col]] <- -log10(res_df[[padj_col]])
+    res_df$minlog10padj <- -log10(res_df$padj)
     
     # Cap infinite values to 1.05 * max finite value
-    max_finite_value <- max(res_df[[minlog10padj_col]][is.finite(res_df[[minlog10padj_col]])], na.rm = TRUE)
-    res_df[[minlog10padj_col]][!is.finite(res_df[[minlog10padj_col]])] <- 1.05 * max_finite_value
+    max_finite_value <- max(res_df$minlog10padj[is.finite(res_df$minlog10padj)], na.rm = TRUE)
+    res_df$minlog10padj[!is.finite(res_df$minlog10padj)] <- 1.05 * max(max_finite_value, 1)
     
-    res_df[, c("clonotypeKey", grep(suffix, colnames(res_df), value = TRUE))]
+    # Select relevant columns (no suffix needed)
+    res_df[, c("clonotypeKey", "Contrast", "log2FoldChange", "padj", "pvalue", 
+               "baseMean", "lfcSE", "stat", "minlog10padj")]
   })
   
-  # Merge all results
-  res_df <- Reduce(function(x, y) merge(x, y, by = "clonotypeKey", all = TRUE), res_list)
+  # Combine all results into long format
+  res_df <- do.call(rbind, res_list)
   
   # Add CDR3 aa and VGene columns
   clonoMatch <- match(res_df$clonotypeKey, main_table$clonotypeKey)
   res_df$CDR3aa <- main_table$CDR3aa[clonoMatch]
   res_df$VGene <- main_table$VGene[clonoMatch]
   
-  # Calculate Regulation based on ALL log2FoldChange columns
-  lfc_cols <- grep("^log2FoldChange_", colnames(res_df), value = TRUE)
+  # Calculate Regulation direction based on log2FoldChange column
   res_df$Regulation <- "NS"
-  lfc_data <- res_df[, lfc_cols, drop = FALSE]
-  # Check if all values are non-NA and meet thresholds
-  no_na_mask <- rowSums(is.na(lfc_data)) == 0
-  up_mask <- no_na_mask & (rowSums(lfc_data >= fc_cut, na.rm = TRUE) == length(lfc_cols))
-  down_mask <- no_na_mask & (rowSums(lfc_data <= -fc_cut, na.rm = TRUE) == length(lfc_cols))
+  res_df$Regulation[res_df$log2FoldChange >= fc_cut] <- "Up"
+  res_df$Regulation[res_df$log2FoldChange <= -fc_cut] <- "Down"
+
+  # Calculate Robust_Enrichment based on log2FoldChange and adjusted p-value thresholds
+  ## Use vectorized aggregation for efficiency: compute min/max log2FoldChange and max padj per clonotype
+  lfc_agg <- aggregate(log2FoldChange ~ clonotypeKey, data = res_df, 
+                       FUN = function(x) min(x, na.rm = TRUE))
+  pval_agg <- aggregate(padj ~ clonotypeKey, data = res_df, 
+                       FUN = function(x) max(x, na.rm = TRUE))
   
-  res_df$Regulation[up_mask] <- "Up"
-  res_df$Regulation[down_mask] <- "Down"
+  ## Merge aggregations to ensure proper alignment
+  robust_agg <- merge(lfc_agg, pval_agg, by = "clonotypeKey", all = TRUE)
   
-  # Apply threshold filter: check if clonotype has at least threshold_counts in at least threshold_samples numerator samples
+  ## Robust: all contrasts have log2FoldChange >= fc_cut AND all have padj <= fdr_cut
+  robust_agg$Robust_Enrichment <- "Non-robust"
+  robust_mask <- (robust_agg$log2FoldChange >= fc_cut) & (robust_agg$padj <= fdr_cut)
+  robust_agg$Robust_Enrichment[robust_mask] <- "Robust"
+  
+  ## Merge back to res_df
+  res_df <- merge(res_df, robust_agg[, c("clonotypeKey", "Robust_Enrichment")], 
+                  by = "clonotypeKey", all.x = TRUE)
+  
+  # Delete clonotypes that do not have at least threshold_counts in at least threshold_samples numerator samples
   numerator_samples <- colnames(count_matrix)[metadata_short[[contrast_col]] == numerator]
   numerator_counts <- count_matrix[, numerator_samples, drop = FALSE]
   passing_clonotypes <- rownames(count_matrix)[rowSums(numerator_counts >= threshold_counts) >= threshold_samples]
-  res_df$Regulation[!res_df$clonotypeKey %in% passing_clonotypes] <- "NS"
+  pos <- res_df$clonotypeKey %in% passing_clonotypes
+  res_df <- res_df[pos,]
+  
+  # Recalculate clonoMatch after filtering to ensure indices align
+  clonoMatch <- match(res_df$clonotypeKey, main_table$clonotypeKey)
 
-  # Get median minlog10padj and log2FoldChange values
-  padj_cols <- grep("^padj_", colnames(res_df), value = TRUE)
-  minlog10padj_cols <- grep("^minlog10padj_", colnames(res_df), value = TRUE)
-  res_df$log2FoldChange_mean <- apply(res_df[, lfc_cols, drop = FALSE], 1, mean, na.rm = TRUE)
-  res_df$minlog10padj_mean <- apply(res_df[, minlog10padj_cols, drop = FALSE], 1, mean, na.rm = TRUE)
-  res_df$padj_mean <- apply(res_df[, padj_cols, drop = FALSE], 1, mean, na.rm = TRUE)
+  # Add Numerator column (needed for pairing script)
+  res_df$Numerator <- numerator
   
   # Add subset columns if available
-  deg_cols <- c("clonotypeKey", "Contrast", "CDR3aa", "VGene", "Regulation", "Numerator",
-                lfc_cols, padj_cols, minlog10padj_cols, "log2FoldChange_mean", "minlog10padj_mean")
+  deg_cols <- c("clonotypeKey", "Contrast", "CDR3aa", "VGene", "Regulation", "Robust_Enrichment",
+                "log2FoldChange", "padj", "pvalue", "baseMean", "lfcSE", "stat", "minlog10padj", "Numerator")
   if ("subset" %in% colnames(main_table)) {
     subset_cols <- c("umi_count_CD4", "umi_freq_CD4", "umi_count_CD8", "umi_freq_CD8", "subset", "subset_frequency")
     res_df[subset_cols] <- main_table[subset_cols][clonoMatch, ]
     deg_cols <- c(deg_cols, subset_cols)
   }
 
-  # If numerator is among denominators, add columns with NaN values for concatenation and pcolumn usage
-  if (numerator %in% denominators) {
-    numerator_suffix <- paste0("_", make.names(numerator))
-    new_cols <- c(paste0("pvalue", numerator_suffix), paste0("padj", numerator_suffix), 
-      paste0("log2FoldChange", numerator_suffix), paste0("lfcSE", numerator_suffix), 
-      paste0("baseMean", numerator_suffix), paste0("stat", numerator_suffix))
-    for (col in new_cols) {
-      res_df[[col]] <- NA_real_
-    }
-    # Update deg_cols
-    deg_cols <- c(deg_cols, new_cols)
-  }
 
-  # Add contrast and numerator columns, reorder alphabetically
-  res_df$Contrast <- paste0(numerator, " vs ", paste(denominators, collapse = "-"))
-  res_df$Numerator <- numerator
-  res_df <- res_df[order(colnames(res_df))]
-
-  # Filter DEGs: use Regulation column (includes fc and count/sample thresholds) and also check fc_cut
-  # We only return DEGs with FC >= fc_cut (only greater) and padj <= fdr_cut
-  padj_data <- res_df[, padj_cols, drop = FALSE]
-  padj_no_na_mask <- rowSums(is.na(padj_data)) == 0
-  # Only keep FC above threshold
-  padj_pass <- padj_no_na_mask & (rowSums(padj_data <= fdr_cut, na.rm = TRUE) == length(padj_cols))
-  deg_indices <- (res_df$Regulation == "Up") & padj_pass
-
-  # Select DEG columns
-  deg_df <- res_df[deg_indices, sort(deg_cols), drop = FALSE]
+  # Filter DEGs
+  deg_df <- res_df[res_df$Robust_Enrichment == "Robust", deg_cols, drop = FALSE]
 
   return (list(res_df = res_df, deg_df = deg_df))
 
@@ -282,3 +266,11 @@ write.csv(res_alpha, paste0(output_folder, "/topTable_alpha.csv"), row.names = F
 write.csv(deg_alpha, paste0(output_folder, "/DA_alpha.csv"), row.names = FALSE)
 write.csv(res_beta, paste0(output_folder, "/topTable_beta.csv"), row.names = FALSE)
 write.csv(deg_beta, paste0(output_folder, "/DA_beta.csv"), row.names = FALSE)
+
+# Store clonotypeKey to Robust_Enrichment mapping for exports
+robust_enrichment_mapping_alpha <- unique(res_alpha[, c("clonotypeKey", "Robust_Enrichment")])
+robust_enrichment_mapping_beta <- unique(res_beta[, c("clonotypeKey", "Robust_Enrichment")])
+write.csv(robust_enrichment_mapping_alpha, paste0(output_folder, "/robust_enrichment_alpha.csv"),
+            row.names = FALSE)
+write.csv(robust_enrichment_mapping_beta, paste0(output_folder, "/robust_enrichment_beta.csv"),
+            row.names = FALSE)
