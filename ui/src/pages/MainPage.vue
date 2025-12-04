@@ -270,12 +270,12 @@ watch(() => [app.model.args.contrastFactor], (_) => {
           placeholder="0"
         >
           <template #tooltip>
-            A clonotype must have at least "Min counts" in at least "Min (numerator) samples" to be accepted as significantly enriched.
+            A clonotype must have at least "Min counts" in at least "Min (numerator) replicates" to be accepted as significantly enriched.
           </template>
         </PlNumberField>
         <PlNumberField
           v-model="app.model.args.thresholdSamples"
-          label="Min samples"
+          label="Min replicates"
           :minValue="0"
           :step="1"
           placeholder="0"
