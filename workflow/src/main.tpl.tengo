@@ -13,7 +13,6 @@ tcrAnalysisTpl := assets.importTemplate(":tcr-analysis")
 tcrAbPairsTpl := assets.importTemplate(":tcr-ab-pairs")
 
 topTablePfconvParamsLib := import(":libs.top_table_pfconv_params")
-generalDaPfconvLib := import(":libs.general_da_pfconv")
 tcrPairsParamsLib := import(":libs.tcr_pairs_params")
 topFrequenciesLib := import(":libs.top_frequencies")
 cdSubsetParamsLib := import(":libs.cd_subset_params")
@@ -35,8 +34,8 @@ createJsonPColumnData := func(data) {
 
 // Helper function to process results for one chain type
 processChainResults := func(mainSpec, inputType, log2FcThreshold, pAdjThreshold, trace,
-blockId, denominators, topTableFile, daFile, defaultConvMem, defaultConvCpu, degBuilder, 
-							regDirBuilder, topDegBuilder, cdSubsetCol) {
+blockId, denominators, topTableFile, daFile, defaultConvMem, defaultConvCpu,
+							topDegBuilder, cdSubsetCol) {
 	topTableImportParams := topTablePfconvParamsLib.getColumns(copy(mainSpec), inputType,
 															log2FcThreshold,
 															pAdjThreshold,
@@ -46,10 +45,6 @@ blockId, denominators, topTableFile, daFile, defaultConvMem, defaultConvCpu, deg
 														// This changes output format from default to per column
 														// So key will be column name and values spec and data
 														{splitDataAndSpec: true, mem: defaultConvMem, cpu: defaultConvCpu})
-
-	// Add DEG export with specific import params. Adding new csv output to script with only DEGs and logFC
-	degImportParams := generalDaPfconvLib.getColumns(mainSpec, blockId, inputType)
-	degPf := xsv.importFile(daFile, "csv", degImportParams, {mem: defaultConvMem, cpu: defaultConvCpu})
 	
 	for columnName, value in topTablePf { 
 		columnData := value.data
@@ -59,12 +54,6 @@ blockId, denominators, topTableFile, daFile, defaultConvMem, defaultConvCpu, deg
 			columnData
 		)
 	}
-
-	regDirBuilder.add(
-		"Regulation Direction",
-		trace.inject(degPf["regulationDirection.spec"]),
-		degPf["regulationDirection.data"]
-	)
 }
 
 wf.prepare(func(args) {
@@ -411,16 +400,10 @@ wf.body(func(args) {
 	mainBetaFrequenciesTsv := tcrAnalysis.output("mainBetaFrequenciesTsv")
 	clonotypeToSubsetAlpha := tcrAnalysis.output("clonotypeToSubsetAlpha")
 	clonotypeToSubsetBeta := tcrAnalysis.output("clonotypeToSubsetBeta")
-	degPFAlpha_clonotype := tcrAnalysis.output("degPFAlpha_clonotype")
-	regDirPFAlpha_clonotype := tcrAnalysis.output("regDirPFAlpha_clonotype")
-	degPFBeta_clonotype := tcrAnalysis.output("degPFBeta_clonotype")
-	regDirPFBeta_clonotype := tcrAnalysis.output("regDirPFBeta_clonotype")
+	robustEnrichmentPFAlpha_clonotype := tcrAnalysis.output("robustEnrichmentPFAlpha_clonotype")
+	robustEnrichmentPFBeta_clonotype := tcrAnalysis.output("robustEnrichmentPFBeta_clonotype")
 
 	////////////////// Spec preparation ////////////////
-	degPframeBuilderAlpha := pframes.pFrameBuilder()
-	degPframeBuilderBeta := pframes.pFrameBuilder()
-	regDirPframeBuilderAlpha := pframes.pFrameBuilder()
-	regDirPframeBuilderBeta := pframes.pFrameBuilder()
 	topDegPframeBuilderAlpha := pframes.pFrameBuilder()
 	topDegPframeBuilderBeta := pframes.pFrameBuilder()
 	
@@ -474,13 +457,13 @@ wf.body(func(args) {
 	// Process alpha chain results
 	processChainResults(mainAlphaSpec, inputType, log2FcThreshold, pAdjThreshold,
 						trace, blockId, denominators, topTableFileAlpha, daFileAlpha, defaultConvMem, defaultConvCpu, 
-						degPframeBuilderAlpha, regDirPframeBuilderAlpha, topDegPframeBuilderAlpha, cdSubsetCol)
+						topDegPframeBuilderAlpha, cdSubsetCol)
 
 	// Process beta chain results (only if beta data exists)
 	if mainBetaSpec != undefined {
 		processChainResults(mainBetaSpec, inputType, log2FcThreshold, pAdjThreshold,
 							trace, blockId, denominators, topTableFileBeta, daFileBeta, defaultConvMem, defaultConvCpu, 
-							degPframeBuilderBeta, regDirPframeBuilderBeta, topDegPframeBuilderBeta, cdSubsetCol)
+							topDegPframeBuilderBeta, cdSubsetCol)
 	}
 
 
@@ -587,10 +570,8 @@ wf.body(func(args) {
 	return {
 		outputs: outputs,
 		exports: {
-			DEGAlpha: degPFAlpha_clonotype,
-			regDirAlpha: regDirPFAlpha_clonotype,
-			DEGBeta: degPFBeta_clonotype,
-			regDirBeta: regDirPFBeta_clonotype,
+			robustEnrichmentAlpha: robustEnrichmentPFAlpha_clonotype,
+			robustEnrichmentBeta: robustEnrichmentPFBeta_clonotype,
 			contrastExport: contrastExport
 		}
 	}

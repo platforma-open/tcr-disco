@@ -23,6 +23,7 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
     && p.spec.axesSpec[0].domain?.['pl7.app/vdj/chain'] === 'TCRAlpha');
   const cdr3BetaIndex = pcols.findIndex((p) => p.spec.domain?.['pl7.app/vdj/feature'] === 'CDR3'
     && p.spec.axesSpec[0].domain?.['pl7.app/vdj/chain'] === 'TCRBeta');
+  const padjustedIndex = getIndex('pl7.app/differentialTCRAbundance/padj', pcols);
 
   if (estimateIndex === -1 || !pcols[estimateIndex]?.spec.axesSpec) {
     return undefined;
@@ -55,6 +56,13 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
     {
       inputName: 'tabBy',
       selectedSource: axesSpec[0],
+    },
+    {
+      inputName: 'filters',
+      selectedSource: pcols[padjustedIndex].spec,
+      selectedFilterRange: {
+        max: 0.05,
+      },
     },
   ];
 

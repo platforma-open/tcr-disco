@@ -55,8 +55,8 @@ function filterPCols(
   PColumn<TreeNodeAccessor>[] {
   // Allow only log2 FC and -log10 Padjust as options for volcano axis
   pCols = pCols.filter(
-    (col) => col.spec.name === 'pl7.app/differentialTCRAbundance/log2foldchange_mean'
-      || col.spec.name === 'pl7.app/differentialTCRAbundance/minlog10padj_mean'
+    (col) => col.spec.name === 'pl7.app/differentialTCRAbundance/log2foldchange'
+      || col.spec.name === 'pl7.app/differentialTCRAbundance/minlog10padj'
       || col.spec.name === 'pl7.app/differentialTCRAbundance/regulationDirection'
       || col.spec.name === 'pl7.app/differentialTCRAbundance/contrastGroup'
       || col.spec.name === 'pl7.app/differentialTCRAbundance/chain'

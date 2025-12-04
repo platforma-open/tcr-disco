@@ -39,8 +39,8 @@ self.validateInputs({
 
 self.defineOutputs("topTableFileAlpha","topTableFileBeta","daFileAlpha",
 "daFileBeta","contrastMap","mainAlphaFrequenciesTsv","mainBetaFrequenciesTsv",
-"clonotypeToSubsetAlpha","clonotypeToSubsetBeta","degPFAlpha_clonotype",
-"regDirPFAlpha_clonotype","degPFBeta_clonotype","regDirPFBeta_clonotype")
+"clonotypeToSubsetAlpha","clonotypeToSubsetBeta",
+"robustEnrichmentPFAlpha_clonotype","robustEnrichmentPFBeta_clonotype")
 
 self.body(func(inputs) {
 
@@ -95,6 +95,8 @@ self.body(func(inputs) {
 	degPframeBuilderBeta_clonotype := pframes.pFrameBuilder()
 	regDirPframeBuilderAlpha_clonotype := pframes.pFrameBuilder()
 	regDirPframeBuilderBeta_clonotype := pframes.pFrameBuilder()
+	robustEnrichmentPframeBuilderAlpha_clonotype := pframes.pFrameBuilder()
+	robustEnrichmentPframeBuilderBeta_clonotype := pframes.pFrameBuilder()
 	
 	// Create trace if specs are provided
 	trace := undefined
@@ -128,6 +130,8 @@ self.body(func(inputs) {
 			saveFile("topTable_alpha.csv").
 			saveFile("DA_beta.csv").
 			saveFile("topTable_beta.csv").
+			saveFile("robust_enrichment_alpha.csv").
+			saveFile("robust_enrichment_beta.csv").
 			run()
 
 		dfsDegAlpha += [wf.frame(diffExec.getFile("DA_alpha.csv"), {xsvType: "csv", inferSchema: false})]
@@ -136,6 +140,7 @@ self.body(func(inputs) {
 		dfsTopTableBeta += [wf.frame(diffExec.getFile("topTable_beta.csv"), {xsvType: "csv", inferSchema: false})]
 		
 		// Process format 2 specs (with contrast in domain) if specs are provided
+		// Delete this part once filters in tcr-leads allow axis value selection
 		if !is_undefined(inputs.mainAlphaSpec) {
 			comparison := numerator + " - vs - " + denominatorString
 			defaultConvMem := inputs.defaultConvMem
@@ -148,120 +153,26 @@ self.body(func(inputs) {
 			}
 			
 			// Process alpha chain
-			degImportParams := tcrdiscoDaPfconvParamsLib.getColumns(inputs.mainAlphaSpec, inputs.cdSubsetCol)
-			degPfAlpha := xsv.importFile(diffExec.getFile("topTable_alpha.csv"), "csv", degImportParams, {mem: defaultConvMem, cpu: defaultConvCpu})
-			
-			// Get runID label
-			runIdLabel := inputs.mainAlphaSpec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
-			if runIdLabel == undefined {
-				runIdLabel = "pl7.app/vdj/vdjImport"
-			} else {
-				runIdLabel = "pl7.app/vdj/clonotypingRunId"
-			}
-			
-			degPframeBuilderAlpha_clonotype.add(
+			degImportParams := tcrdiscoDaPfconvParamsLib.getColumns(inputs.mainAlphaSpec, inputs.cdSubsetCol, comparison)
+			degPfAlpha := xsv.importFile(diffExec.getFile("robust_enrichment_alpha.csv"), "csv", degImportParams, {mem: defaultConvMem, cpu: defaultConvCpu})
+
+			// We just export robust enrichment for now, that will have a unique value per clonotype
+			robustEnrichmentPframeBuilderAlpha_clonotype.add(
 				numerator,
-				trace.inject({
-					kind: "PColumn",
-					name: "pl7.app/differentialAbundance/DCA",
-					domain: {
-						runIdLabel: inputs.mainAlphaSpec.axesSpec[1].domain[runIdLabel],
-						"pl7.app/differentialAbundance/comparison": comparison
-					},
-					valueType: "Double",
-					annotations: {
-						"pl7.app/label": comparison + " (Mean Log2FC)",
-						"pl7.app/isAbundance": "true",
-						"pl7.app/table/visibility": "default",
-						"pl7.app/table/orderPriority": "85000"
-					},
-					axesSpec: [
-						inputs.mainAlphaSpec.axesSpec[1]
-					]
-				}),
-				degPfAlpha["log2foldchange_mean.data"]
-			)
-			
-			regDirPframeBuilderAlpha_clonotype.add(
-				numerator,
-				trace.inject({
-					kind: "PColumn",
-					name: "pl7.app/differentialAbundance/regulationDirection",
-					domain: {
-						runIdLabel: inputs.mainAlphaSpec.axesSpec[1].domain[runIdLabel],
-						"pl7.app/differentialAbundance/comparison": comparison
-					},
-					valueType: "String",
-					annotations: {
-						"pl7.app/label": comparison + " (UP\\Down-regulated clonotype list)",
-						"pl7.app/isAbundance": "true",
-						"pl7.app/table/visibility": "optional",
-						"pl7.app/table/orderPriority": "84000"
-					},
-					axesSpec: [
-						inputs.mainAlphaSpec.axesSpec[1]
-					]
-				}),
-				degPfAlpha["regulationDirection.data"]
+				trace.inject(degPfAlpha["robustEnrichment.spec"]),
+				degPfAlpha["robustEnrichment.data"]
 			)
 			
 			// Process beta chain if available
 			if !is_undefined(inputs.mainBetaSpec) {
-				degImportParamsBeta := tcrdiscoDaPfconvParamsLib.getColumns(inputs.mainBetaSpec, inputs.cdSubsetCol)
-				degPfBeta := xsv.importFile(diffExec.getFile("topTable_beta.csv"), "csv", degImportParamsBeta, {mem: defaultConvMem, cpu: defaultConvCpu})
+				degImportParamsBeta := tcrdiscoDaPfconvParamsLib.getColumns(inputs.mainBetaSpec, inputs.cdSubsetCol, comparison)
+				degPfBeta := xsv.importFile(diffExec.getFile("robust_enrichment_beta.csv"), "csv", degImportParamsBeta, {mem: defaultConvMem, cpu: defaultConvCpu})
 				
-				// Get runID label for beta
-				runIdLabelBeta := inputs.mainBetaSpec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
-				if runIdLabelBeta == undefined {
-					runIdLabelBeta = "pl7.app/vdj/vdjImport"
-				} else {
-					runIdLabelBeta = "pl7.app/vdj/clonotypingRunId"
-				}
-				
-				degPframeBuilderBeta_clonotype.add(
+				/// We just export robust enrichment for now, that will have a unique value per clonotype
+				robustEnrichmentPframeBuilderBeta_clonotype.add(
 					numerator,
-					trace.inject({
-						kind: "PColumn",
-						name: "pl7.app/differentialAbundance/DCA",
-						domain: {
-							runIdLabelBeta: inputs.mainBetaSpec.axesSpec[1].domain[runIdLabelBeta],
-							"pl7.app/differentialAbundance/comparison": comparison
-						},
-						valueType: "Double",
-						annotations: {
-							"pl7.app/label": comparison + " (Mean Log2FC)",
-							"pl7.app/isAbundance": "true",
-							"pl7.app/table/visibility": "default",
-							"pl7.app/table/orderPriority": "85000"
-						},
-						axesSpec: [
-							inputs.mainBetaSpec.axesSpec[1]
-						]
-					}),
-					degPfBeta["log2foldchange_mean.data"]
-				)
-				
-				regDirPframeBuilderBeta_clonotype.add(
-					numerator,
-					trace.inject({
-						kind: "PColumn",
-						name: "pl7.app/differentialAbundance/regulationDirection",
-						domain: {
-							runIdLabelBeta: inputs.mainBetaSpec.axesSpec[1].domain[runIdLabelBeta],
-							"pl7.app/differentialAbundance/comparison": comparison
-						},
-						valueType: "String",
-						annotations: {
-							"pl7.app/label": comparison + " (UP\\Down-regulated clonotype list)",
-							"pl7.app/isAbundance": "true",
-							"pl7.app/table/visibility": "optional",
-							"pl7.app/table/orderPriority": "84000"
-						},
-						axesSpec: [
-							inputs.mainBetaSpec.axesSpec[1]
-						]
-					}),
-					degPfBeta["regulationDirection.data"]
+					trace.inject(degPfBeta["robustEnrichment.spec"]),
+					degPfBeta["robustEnrichment.data"]
 				)
 			}
 		}
@@ -299,16 +210,12 @@ self.body(func(inputs) {
 	clonotypeToSubsetBeta := getEnrichedFrequenciesExec.getFile("clonotype_to_subset_beta.tsv")
 
 	// Build format 2 PFrames
-	degPFAlpha_clonotype := undefined
-	regDirPFAlpha_clonotype := undefined
-	degPFBeta_clonotype := undefined
-	regDirPFBeta_clonotype := undefined
+	robustEnrichmentPFAlpha_clonotype := undefined
+	robustEnrichmentPFBeta_clonotype := undefined
 	if !is_undefined(inputs.mainAlphaSpec) {
-		degPFAlpha_clonotype = degPframeBuilderAlpha_clonotype.build()
-		regDirPFAlpha_clonotype = regDirPframeBuilderAlpha_clonotype.build()
+		robustEnrichmentPFAlpha_clonotype = robustEnrichmentPframeBuilderAlpha_clonotype.build()
 		if !is_undefined(inputs.mainBetaSpec) {
-			degPFBeta_clonotype = degPframeBuilderBeta_clonotype.build()
-			regDirPFBeta_clonotype = regDirPframeBuilderBeta_clonotype.build()
+			robustEnrichmentPFBeta_clonotype = robustEnrichmentPframeBuilderBeta_clonotype.build()
 		}
 	}
 
@@ -322,10 +229,8 @@ self.body(func(inputs) {
 		mainBetaFrequenciesTsv: mainBetaFrequenciesTsv,
 		clonotypeToSubsetAlpha: clonotypeToSubsetAlpha,
 		clonotypeToSubsetBeta: clonotypeToSubsetBeta,
-		degPFAlpha_clonotype: degPFAlpha_clonotype,
-		regDirPFAlpha_clonotype: regDirPFAlpha_clonotype,
-		degPFBeta_clonotype: degPFBeta_clonotype,
-		regDirPFBeta_clonotype: regDirPFBeta_clonotype
+		robustEnrichmentPFAlpha_clonotype: robustEnrichmentPFAlpha_clonotype,
+		robustEnrichmentPFBeta_clonotype: robustEnrichmentPFBeta_clonotype
 	}
 })
 

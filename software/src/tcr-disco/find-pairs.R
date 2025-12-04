@@ -39,9 +39,8 @@ get_fraction_matrix = function(main_table) {
 find_pairs = function(deg_alpha_table, deg_beta_table, metadata_table, 
       contrast_col, alpha_matrix, beta_matrix, num) {
   # samples related to the selected numerator
-  alpha_clonotypes <- deg_alpha_table[deg_alpha_table$Numerator == num, "clonotypeKey"]
-  beta_clonotypes <- deg_beta_table[deg_beta_table$Numerator == num, "clonotypeKey"]
-  contrast_label <- unique(deg_alpha_table[deg_alpha_table$Numerator == num, "Contrast"])
+  alpha_clonotypes <- unique(deg_alpha_table[deg_alpha_table$Numerator == num, "clonotypeKey"])
+  beta_clonotypes <- unique(deg_beta_table[deg_beta_table$Numerator == num, "clonotypeKey"])
   numerator_samples <- metadata_table[metadata_table[,contrast_col] == num, "useSampleId"]
   alpha_matrix <- alpha_matrix[alpha_clonotypes, 
       colnames(alpha_matrix)[colnames(alpha_matrix) %in% numerator_samples], drop = FALSE]
@@ -83,7 +82,7 @@ find_pairs = function(deg_alpha_table, deg_beta_table, metadata_table,
   # ]
 
   # Add contrast column
-  predicted_pairs["Contrast"] = contrast_label
+  predicted_pairs["Numerator"] = num
 
   return (predicted_pairs)
 }
@@ -165,9 +164,9 @@ output_folder <- opt$output
 # sample_id_col <- "Barcode ID"
 
 # Get from platforma
-# @TODO: Filters are not yet especifical, implement them separately for DA and pairing
+# @TODO: Filters are not yet script-specific, implement them separately for DA and pairing
 # fdr_cut <- 0.05
-estimate_cut <- 0.95
+# estimate_cut <- 0.95
 
 ## Control prints
 print(paste("metadata file: ", metadata))
@@ -190,7 +189,7 @@ if (nrow(deg_alpha_table) == 0 || nrow(deg_beta_table) == 0) {
   print("Warning: The DA alpha or beta tables are empty. No pairs will be found.")
 
   # Create an emtpy output table with sall the required columns
-  required_cols <- c("Contrast", "tra", "trb", "estimate", "p.value", "p.adj", "tra_CDR3aa", "tra_VGene", "trb_CDR3aa", "trb_VGene", "is_max_correlation")
+  required_cols <- c("Numerator", "tra", "trb", "estimate", "p.value", "p.adj", "tra_CDR3aa", "tra_VGene", "trb_CDR3aa", "trb_VGene", "is_max_correlation")
   empty_table <- data.frame(matrix(ncol = length(required_cols), nrow = 0))
   colnames(empty_table) <- required_cols
   predicted_pairs_all <- empty_table
@@ -218,10 +217,17 @@ if (nrow(deg_alpha_table) == 0 || nrow(deg_beta_table) == 0) {
   if (!identical(sort(unique(main_alpha_table$useSampleId)), sort(unique(main_beta_table$useSampleId)))) {
     stop("Error: The sets of samples in the alpha and beta tables are not the same")
   }
+
+  # Filter main tables to only include DEG clonotypes to reduce memory and processing time
+  # We will loose samples, so it's important to have it after the check above
+  deg_alpha_clonotypes <- unique(deg_alpha_table$clonotypeKey)
+  deg_beta_clonotypes <- unique(deg_beta_table$clonotypeKey)
+  main_alpha_table <- main_alpha_table[main_alpha_table$clonotypeKey %in% deg_alpha_clonotypes, ]
+  main_beta_table <- main_beta_table[main_beta_table$clonotypeKey %in% deg_beta_clonotypes, ]
+
   # Get alpha/beta fraction matrices
   alpha_matrix <- get_fraction_matrix(main_alpha_table)
   beta_matrix <- get_fraction_matrix(main_beta_table)
-
 
   # Get all possible values from Numerator column in both tables
   numerators <- unique(c(deg_alpha_table$Numerator, deg_beta_table$Numerator))
@@ -239,12 +245,11 @@ if (nrow(deg_alpha_table) == 0 || nrow(deg_beta_table) == 0) {
 
   
   # Add TRA and TRB CDR3 aa and VGene data
-  # Match tra column with alpha table (match returns first occurrence, which is fine since CDR3aa/VGene are always the same for repeated clonotypeKeys)
+  ## Match tra column with alpha table 
   alpha_match_idx <- match(predicted_pairs_all$tra, main_alpha_table$clonotypeKey)
   predicted_pairs_all$tra_CDR3aa <- main_alpha_table$CDR3aa[alpha_match_idx]
   predicted_pairs_all$tra_VGene <- main_alpha_table$VGene[alpha_match_idx]
-
-  # Match trb column with beta table
+  ## Match trb column with beta table
   beta_match_idx <- match(predicted_pairs_all$trb, main_beta_table$clonotypeKey)
   predicted_pairs_all$trb_CDR3aa <- main_beta_table$CDR3aa[beta_match_idx]
   predicted_pairs_all$trb_VGene <- main_beta_table$VGene[beta_match_idx]

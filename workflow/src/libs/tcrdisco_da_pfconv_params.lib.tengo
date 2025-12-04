@@ -1,64 +1,37 @@
 ll := import("@platforma-sdk/workflow-tengo:ll")
 
-getColumns := func(countsSpec, cdSubsetCol) {
+getColumns := func(countsSpec, cdSubsetCol, comparison) {
+
+	// Get runID label
+	runIdLabel := countsSpec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
+	if runIdLabel == undefined {
+		runIdLabel = "pl7.app/vdj/vdjImport"
+	} else {
+		runIdLabel = "pl7.app/vdj/clonotypingRunId"
+	}
+
 	columns := [
 			{
-				column: "log2FoldChange_mean",
-				id: "log2foldchange_mean",
+				column: "Robust_Enrichment",
+				id: "robustEnrichment",
 				allowNA: true,
 				spec: {
-					name: "pl7.app/differentialTCRAbundance/log2foldchange_mean",
-					valueType: "Double",
-					annotations: {
-						"pl7.app/label": "Mean Log2FC",
-						"pl7.app/table/orderPriority": "60"
-					}
-				}
-			},
-			{
-				column: "Regulation",
-				id: "regulationDirection",
-				allowNA: true,
-				spec: {
-					name: "pl7.app/differentialTCRAbundance/regulationDirection",
+					name: "pl7.app/differentialTCRAbundance/robustEnrichment",
 					valueType: "String",
 					annotations: {
-						"pl7.app/label": "Regulation direction (Up\\Down\\NS)",
-						"pl7.app/table/orderPriority": "5"
-					}
-				}
-			},
-			{
-				column: "padj_mean",
-				id: "padj_mean",
-				allowNA: true,
-				spec: {
-					name: "pl7.app/differentialTCRAbundance/adjustedPValue_mean",
-					valueType: "Double",
-					annotations: {
-						"pl7.app/label": "Mean Adjusted p-value",
-						"pl7.app/table/orderPriority": "10"
+						"pl7.app/label": comparison + " Robust enrichment",
+						"pl7.app/isAbundance": "true",
+						"pl7.app/table/visibility": "optional",
+						"pl7.app/table/orderPriority": "84000"
+					},
+					domain: {
+						runIdLabel: countsSpec.axesSpec[1].domain[runIdLabel],
+						"pl7.app/differentialTCRAbundance/comparison": comparison
 					}
 				}
 			}
 			]
-	if cdSubsetCol != undefined {
-		columns += [{
-				column: "subset",
-				id: "subset",
-				allowNA: true,
-				spec: {
-					name: "pl7.app/differentialTCRAbundance/cdsubset",
-					valueType: "String",
-					annotations: {
-						"pl7.app/label": "CD4/CD8 subset",
-						"pl7.app/table/visibility": "default",
-						"pl7.app/table/orderPriority": "60"
-					}
-				}
-			}]
-	}
-			
+
 	return {
 		"axes": [
 			{

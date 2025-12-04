@@ -37,7 +37,7 @@ const tableSettings = computed(() => usePlDataTableSettingsV2({
     const columnName = column.spec.name;
 
     // Filter for log2foldchange columns (>= log2FcThreshold or)
-    if (columnName === 'pl7.app/differentialTCRAbundance/log2foldchange_mean') {
+    if (columnName === 'pl7.app/differentialTCRAbundance/log2foldchange') {
       return {
         default: {
           type: 'number_greaterThanOrEqualTo',
@@ -47,7 +47,7 @@ const tableSettings = computed(() => usePlDataTableSettingsV2({
     }
 
     // Filter for adjusted p-value columns (<= pAdjThreshold)
-    if (columnName === 'pl7.app/differentialTCRAbundance/padj_mean') {
+    if (columnName === 'pl7.app/differentialTCRAbundance/padj') {
       return {
         default: {
           type: 'number_lessThanOrEqualTo',
@@ -56,11 +56,11 @@ const tableSettings = computed(() => usePlDataTableSettingsV2({
       };
     }
 
-    if (columnName === 'pl7.app/differentialTCRAbundance/regulationDirection') {
+    if (columnName === 'pl7.app/differentialTCRAbundance/robustEnrichment') {
       return {
         default: {
           type: 'string_equals',
-          reference: 'Up',
+          reference: 'Robust',
         },
       };
     }
@@ -250,8 +250,7 @@ watch(() => [app.model.args.contrastFactor], (_) => {
           :step="0.1"
         >
           <template #tooltip>
-            Set the minimum absolute log2 fold change threshold (keep ≥ log2(FC)) and the maximum adjusted p-value threshold (keep ≤ adjusted p-value) for identifying significantly enriched or depleted clonotypes.
-            The log2(FC) threshold alone is also used to classify clonotypes as "Up" (enriched), "Down" (depleted), or "NS" (not significant) in the regulation direction output.
+            Set the minimum log2 fold change threshold (keep ≥ log2(FC)) and the maximum adjusted p-value threshold (keep ≤ adjusted p-value) for identifying significantly enriched or depleted clonotypes.
           </template>
         </PlNumberField>
         <PlNumberField
@@ -271,7 +270,7 @@ watch(() => [app.model.args.contrastFactor], (_) => {
           placeholder="0"
         >
           <template #tooltip>
-            A clonotype must have at least "Min counts" in at least "Min samples" to be accepted as significantly enriched. These thresholds are also used to classify clonotypes as "Up" (enriched), "Down" (depleted), or "NS" (not significant) in the regulation direction output.
+            A clonotype must have at least "Min counts" in at least "Min (numerator) samples" to be accepted as significantly enriched.
           </template>
         </PlNumberField>
         <PlNumberField
