@@ -60,7 +60,8 @@ function filterPCols(
       || col.spec.name === 'pl7.app/differentialTCRAbundance/regulationDirection'
       || col.spec.name === 'pl7.app/differentialTCRAbundance/contrastGroup'
       || col.spec.name === 'pl7.app/differentialTCRAbundance/chain'
-      || col.spec.name === 'pl7.app/differentialTCRAbundance/cdsubset',
+      || col.spec.name === 'pl7.app/differentialTCRAbundance/cdsubset'
+      || col.spec.name === 'pl7.app/differentialTCRAbundance/robustEnrichment',
   );
   return pCols;
 }
