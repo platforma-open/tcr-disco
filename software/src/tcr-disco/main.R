@@ -36,9 +36,9 @@ run_deseq = function(main_table, covariates_table, contrast_col,
   count_matrix <- as.matrix(count_matrix)
   count_matrix[is.na(count_matrix)] <- 0
 
-  # Apply filter by low counts (at least filter by values in one sample)
+  # Apply filter by low counts (at least filter by values in two samples)
   # Filters prior to DE analysis to have minimum data quality
-  min_samples <- max(floor(ncol(count_matrix) * fraction_for_filter), 1)
+  min_samples <- max(floor(ncol(count_matrix) * fraction_for_filter), 2)
   count_matrix <- count_matrix[rowSums(count_matrix >= min_counts) >= min_samples, ]
   # For differential clonotype abundance we add 1 as minimum clonotype count (after filtering)
   count_matrix <- count_matrix + 1
@@ -225,7 +225,7 @@ threshold_samples <- opt$threshold_samples
 # covariates="covariates.tsv"
 # contrast_col="ag"
 # numerator="CMV"
-# denominators="[\"CMV\",\"Control\",\"EBV\",\"MART1\"]"
+# denominators="[\"CMV\",\"Cov\",\"noAg\"]"
 # fc_cut=0
 # fdr_cut=0.05
 # threshold_counts=10

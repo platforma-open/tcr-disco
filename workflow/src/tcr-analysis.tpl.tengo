@@ -55,7 +55,7 @@ self.body(func(inputs) {
 
 	mainAlphaTsv := undefined
 	mainBetaTsv := undefined
-	// Assiggn CD4/CD8 subsets to main data and QC the input files
+	// Assign CD4/CD8 subsets to main data and QC the input files
 	builder := exec.builder().
 			software(subsetAssignment).
 			addFile("mainAlpha.tsv", inputs.mainAlphaTsv).
