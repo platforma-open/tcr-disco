@@ -1,4 +1,5 @@
 ll := import("@platforma-sdk/workflow-tengo:ll")
+json := import("json")
 
 getColumns := func(countsSpec, cdSubsetCol, numerator, comparison) {
 
@@ -20,10 +21,11 @@ getColumns := func(countsSpec, cdSubsetCol, numerator, comparison) {
 					valueType: "String",
 					annotations: {
 						"pl7.app/label": numerator + " Robust enrichment",
-						"pl7.app/isAbundance": "true",
 						"pl7.app/table/visibility": "optional",
 						"pl7.app/table/orderPriority": "84000",
-						"pl7.app/hideDataFromGraphs": "true"
+						"pl7.app/hideDataFromGraphs": "true",
+						"pl7.app/isDiscreteFilter": "true",
+						"pl7.app/discreteValues": string(json.encode(["Robust", "Non-robust"]))
 					},
 					domain: {
 						runIdLabel: countsSpec.axesSpec[1].domain[runIdLabel],

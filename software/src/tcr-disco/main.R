@@ -9,7 +9,7 @@ suppressMessages(library("jsonlite"))
 # Required functions
 # 1.  *run DESeq2*
 run_deseq = function(main_table, covariates_table, contrast_col,
-  numerator, denominators, output_folder, fraction_for_filter, min_counts, threshold_counts,
+  numerators, denominators, output_folder, fraction_for_filter, min_counts, threshold_counts,
   threshold_samples, fdr_cut, fc_cut) {
 
   # Aggregate counts by internalSampleId and clonotypeKey
@@ -53,6 +53,7 @@ run_deseq = function(main_table, covariates_table, contrast_col,
     c("Sample", "internalSampleId",contrast_col))
   metadata_short <- covariates_table[,c(contrast_col, non_contrast_cols)]
   metadata_short <- metadata_short[colnames(count_matrix),]
+  metadata_short[[contrast_col]] <- as.factor(metadata_short[[contrast_col]])
   set.seed(42)
   dds <- DESeqDataSetFromMatrix(
     countData = count_matrix,
@@ -61,19 +62,31 @@ run_deseq = function(main_table, covariates_table, contrast_col,
   )
   dds <- DESeq(dds, fitType = "local")
 
-  # Extract topTable for each denominator (excluding numerator)
-  valid_denominators <- denominators[denominators != numerator]
-  if (length(valid_denominators) == 0) {
-    stop("No valid denominators found after excluding numerator")
+  # Extract results for all numerator vs denominator combinations
+  # Create all valid numerator-denominator pairs
+  contrast_pairs <- expand.grid(numerator = numerators, denominator = denominators, stringsAsFactors = FALSE)
+  contrast_pairs <- contrast_pairs[contrast_pairs$numerator != contrast_pairs$denominator, ]
+  
+  if (nrow(contrast_pairs) == 0) {
+    stop("No valid numerator-denominator pairs found")
   }
   
-  # Process each denominator and combine results
-  res_list <- lapply(valid_denominators, function(denom) {
-    res_df <- as.data.frame(results(dds, contrast = c(make.names(contrast_col), numerator, denom)))
+  # Process each contrast pair using lapply (more efficient than for loops)
+  res_list <- lapply(seq_len(nrow(contrast_pairs)), function(i) {
+    numerator <- contrast_pairs$numerator[i]
+    denom <- contrast_pairs$denominator[i]
+    
+    # We disable independentFiltering to avoid situations with all NA adjusted 
+    # p-values due to excessive filtering
+    res_df <- as.data.frame(results(dds, contrast = c(make.names(contrast_col), numerator, denom),
+                                    independentFiltering = FALSE))
     res_df$clonotypeKey <- rownames(res_df)
     
     # Add contrast column indicating "numerator vs denominator"
     res_df$Contrast <- paste0(numerator, " vs ", denom)
+    
+    # Add Numerator column (needed for pairing script)
+    res_df$Numerator <- numerator
     
     # Calculate minlog10padj
     res_df$minlog10padj <- -log10(res_df$padj)
@@ -82,8 +95,8 @@ run_deseq = function(main_table, covariates_table, contrast_col,
     max_finite_value <- max(res_df$minlog10padj[is.finite(res_df$minlog10padj)], na.rm = TRUE)
     res_df$minlog10padj[!is.finite(res_df$minlog10padj)] <- 1.05 * max(max_finite_value, 1)
     
-    # Select relevant columns (no suffix needed)
-    res_df[, c("clonotypeKey", "Contrast", "log2FoldChange", "padj", "pvalue", 
+    # Select relevant columns
+    res_df[, c("clonotypeKey", "Contrast", "Numerator", "log2FoldChange", "padj", "pvalue", 
                "baseMean", "lfcSE", "stat", "minlog10padj")]
   })
   
@@ -101,14 +114,14 @@ run_deseq = function(main_table, covariates_table, contrast_col,
   res_df$Regulation[res_df$log2FoldChange <= -fc_cut] <- "Down"
 
   # Calculate Robust_Enrichment based on log2FoldChange and adjusted p-value thresholds
-  ## Use vectorized aggregation for efficiency: compute min/max log2FoldChange and max padj per clonotype
-  lfc_agg <- aggregate(log2FoldChange ~ clonotypeKey, data = res_df, 
+  # Group by clonotypeKey AND Numerator to compute robust enrichment per numerator
+  lfc_agg <- aggregate(log2FoldChange ~ clonotypeKey + Numerator, data = res_df, 
                        FUN = function(x) min(x, na.rm = TRUE))
-  pval_agg <- aggregate(padj ~ clonotypeKey, data = res_df, 
+  pval_agg <- aggregate(padj ~ clonotypeKey + Numerator, data = res_df, 
                        FUN = function(x) max(x, na.rm = TRUE))
   
   ## Merge aggregations to ensure proper alignment
-  robust_agg <- merge(lfc_agg, pval_agg, by = "clonotypeKey", all = TRUE)
+  robust_agg <- merge(lfc_agg, pval_agg, by = c("clonotypeKey", "Numerator"), all = TRUE)
   
   ## Robust: all contrasts have log2FoldChange >= fc_cut AND all have padj <= fdr_cut
   robust_agg$Robust_Enrichment <- "Non-robust"
@@ -116,21 +129,20 @@ run_deseq = function(main_table, covariates_table, contrast_col,
   robust_agg$Robust_Enrichment[robust_mask] <- "Robust"
   
   ## Merge back to res_df
-  res_df <- merge(res_df, robust_agg[, c("clonotypeKey", "Robust_Enrichment")], 
-                  by = "clonotypeKey", all.x = TRUE)
+  res_df <- merge(res_df, robust_agg[, c("clonotypeKey", "Numerator", "Robust_Enrichment")], 
+                  by = c("clonotypeKey", "Numerator"), all.x = TRUE)
   
-  # Delete clonotypes that do not have at least threshold_counts in at least threshold_samples numerator samples
-  numerator_samples <- colnames(count_matrix)[metadata_short[[contrast_col]] == numerator]
-  numerator_counts <- count_matrix[, numerator_samples, drop = FALSE]
-  passing_clonotypes <- rownames(count_matrix)[rowSums(numerator_counts >= threshold_counts) >= threshold_samples]
-  pos <- res_df$clonotypeKey %in% passing_clonotypes
-  res_df <- res_df[pos,]
+  # Filter clonotypes per numerator: must have at least threshold_counts in at least threshold_samples numerator samples
+  filtered_res_list <- lapply(numerators, function(numerator) {
+    numerator_samples <- colnames(count_matrix)[metadata_short[[contrast_col]] == numerator]
+    numerator_counts <- count_matrix[, numerator_samples, drop = FALSE]
+    passing_clonotypes <- rownames(count_matrix)[rowSums(numerator_counts >= threshold_counts) >= threshold_samples]
+    res_df[res_df$Numerator == numerator & res_df$clonotypeKey %in% passing_clonotypes, ]
+  })
+  res_df <- do.call(rbind, filtered_res_list)
   
   # Recalculate clonoMatch after filtering to ensure indices align
   clonoMatch <- match(res_df$clonotypeKey, main_table$clonotypeKey)
-
-  # Add Numerator column (needed for pairing script)
-  res_df$Numerator <- numerator
   
   # Add subset columns if available
   deg_cols <- c("clonotypeKey", "Contrast", "CDR3aa", "VGene", "Regulation", "Robust_Enrichment",
@@ -140,7 +152,6 @@ run_deseq = function(main_table, covariates_table, contrast_col,
     res_df[subset_cols] <- main_table[subset_cols][clonoMatch, ]
     deg_cols <- c(deg_cols, subset_cols)
   }
-
 
   # Filter DEGs
   deg_df <- res_df[res_df$Robust_Enrichment == "Robust", deg_cols, drop = FALSE]
@@ -224,7 +235,7 @@ threshold_samples <- opt$threshold_samples
 # main_beta="mainBeta.tsv"
 # covariates="covariates.tsv"
 # contrast_col="ag"
-# numerator="CMV"
+# numerator="[\"CMV\",\"Cov\"]"
 # denominators="[\"CMV\",\"Cov\",\"noAg\"]"
 # fc_cut=0
 # fdr_cut=0.05
@@ -238,7 +249,8 @@ fraction_for_filter <- 0.01
 min_counts <- 1
 # convert denominator from json to vector
 denominators <- fromJSON(denominators)
-
+# convert numerator from json to vector
+numerators <- fromJSON(numerator)
 
 ## 1.1. TCR Discovery
 # Load metadata
@@ -246,19 +258,20 @@ covariates_table <- read.table(covariates, header = TRUE, sep = "\t", stringsAsF
 main_alpha_table <- read.table(main_alpha, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 main_beta_table <- read.table(main_beta, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 
+# Run DESeq2 once per chain for all numerators (efficient)
 deseq_results_alpha <- run_deseq(main_alpha_table, covariates_table, contrast_col,
-  numerator, denominators, output_folder, fraction_for_filter, min_counts,
+  numerators, denominators, output_folder, fraction_for_filter, min_counts,
   threshold_counts, threshold_samples, fdr_cut, fc_cut)
 res_alpha <- deseq_results_alpha$res_df
 deg_alpha <- deseq_results_alpha$deg_df
 
 deseq_results_beta <- run_deseq(main_beta_table, covariates_table, contrast_col,
-  numerator, denominators, output_folder, fraction_for_filter, min_counts,
+  numerators, denominators, output_folder, fraction_for_filter, min_counts,
   threshold_counts, threshold_samples, fdr_cut, fc_cut)
 res_beta <- deseq_results_beta$res_df
 deg_beta <- deseq_results_beta$deg_df
 
-# Save merged results
+# Create output folder if it doesn't exist
 if (!dir.exists(output_folder)) {
   dir.create(output_folder, recursive = TRUE)
 }
@@ -267,10 +280,12 @@ write.csv(deg_alpha, paste0(output_folder, "/DA_alpha.csv"), row.names = FALSE)
 write.csv(res_beta, paste0(output_folder, "/topTable_beta.csv"), row.names = FALSE)
 write.csv(deg_beta, paste0(output_folder, "/DA_beta.csv"), row.names = FALSE)
 
-# Store clonotypeKey to Robust_Enrichment mapping for exports
-robust_enrichment_mapping_alpha <- unique(res_alpha[, c("clonotypeKey", "Robust_Enrichment")])
-robust_enrichment_mapping_beta <- unique(res_beta[, c("clonotypeKey", "Robust_Enrichment")])
-write.csv(robust_enrichment_mapping_alpha, paste0(output_folder, "/robust_enrichment_alpha.csv"),
+# Store clonotypeKey to Robust_Enrichment mapping for exports per numerator
+for (num in numerators) {
+  robust_enrichment_mapping_alpha <- unique(res_alpha[res_alpha$Numerator == num, c("clonotypeKey", "Robust_Enrichment")])
+  robust_enrichment_mapping_beta <- unique(res_beta[res_beta$Numerator == num, c("clonotypeKey", "Robust_Enrichment")])
+  write.csv(robust_enrichment_mapping_alpha, paste0(output_folder, "/robust_enrichment_alpha_", num, ".csv"),
             row.names = FALSE)
-write.csv(robust_enrichment_mapping_beta, paste0(output_folder, "/robust_enrichment_beta.csv"),
+  write.csv(robust_enrichment_mapping_beta, paste0(output_folder, "/robust_enrichment_beta_", num, ".csv"),
             row.names = FALSE)
+}
