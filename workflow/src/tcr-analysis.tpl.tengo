@@ -106,11 +106,8 @@ self.body(func(inputs) {
 			label: "DA - Denominator: " + denominatorString + " (log2FC: " + log2FcThreshold + ", pAdj: " + pAdjThreshold + ")"}
 		)
 	}
-	
-	for numerator in inputs.numerators {
-		numerator = string(numerator)
-		contrastMap[numerator + " vs " + denominatorString] = numerator + " vs " + denominatorString
-		diffExec := exec.builder().
+
+	diffExec := exec.builder().
 			software(diffSoftware).
 			addFile("mainAlpha.tsv", mainAlphaTsv).
 			addFile("mainBeta.tsv", mainBetaTsv).
@@ -119,7 +116,7 @@ self.body(func(inputs) {
 			arg("--main_beta").arg("mainBeta.tsv").
 			arg("--covariates").arg("covariates.tsv").
 			arg("-t").arg(contrastColLabel).
-			arg("-n").arg(numerator).
+			arg("-n").arg(string(json.encode(inputs.numerators))).
 			arg("-d").arg(string(json.encode(denominators))).
 			arg("-f").arg(string(log2FcThreshold)).
 			arg("-p").arg(string(pAdjThreshold)).
@@ -129,18 +126,21 @@ self.body(func(inputs) {
 			saveFile("DA_alpha.csv").
 			saveFile("topTable_alpha.csv").
 			saveFile("DA_beta.csv").
-			saveFile("topTable_beta.csv").
-			saveFile("robust_enrichment_alpha.csv").
-			saveFile("robust_enrichment_beta.csv").
-			run()
+			saveFile("topTable_beta.csv")
+	
+	for numerator in inputs.numerators {
+		numerator = string(numerator)
+		contrastMap[numerator + " vs " + denominatorString] = numerator + " vs " + denominatorString
 
-		dfsDegAlpha += [wf.frame(diffExec.getFile("DA_alpha.csv"), {xsvType: "csv", inferSchema: false})]
-		dfsTopTableAlpha += [wf.frame(diffExec.getFile("topTable_alpha.csv"), {xsvType: "csv", inferSchema: false})]
-		dfsDegBeta += [wf.frame(diffExec.getFile("DA_beta.csv"), {xsvType: "csv", inferSchema: false})]
-		dfsTopTableBeta += [wf.frame(diffExec.getFile("topTable_beta.csv"), {xsvType: "csv", inferSchema: false})]
-		
-		// Process format 2 specs (with contrast in domain) if specs are provided
-		// Delete this part once filters in tcr-leads allow axis value selection
+		diffExec.saveFile("robust_enrichment_alpha_" + numerator + ".csv").
+				saveFile("robust_enrichment_beta_" + numerator + ".csv")
+	}
+	diffExec = diffExec.run()
+
+	// Process format 2 specs (with contrast in domain) if specs are provided
+	// Delete this part once filters in tcr-leads allow axis value selection
+	for numerator in inputs.numerators {
+		numerator = string(numerator)
 		if !is_undefined(inputs.mainAlphaSpec) {
 			comparison := numerator + " - vs - " + denominatorString
 			defaultConvMem := inputs.defaultConvMem
@@ -154,7 +154,7 @@ self.body(func(inputs) {
 			
 			// Process alpha chain
 			degImportParams := tcrdiscoDaPfconvParamsLib.getColumns(inputs.mainAlphaSpec, inputs.cdSubsetCol, numerator, comparison)
-			degPfAlpha := xsv.importFile(diffExec.getFile("robust_enrichment_alpha.csv"), "csv", degImportParams, {mem: defaultConvMem, cpu: defaultConvCpu})
+			degPfAlpha := xsv.importFile(diffExec.getFile("robust_enrichment_alpha_" + numerator + ".csv"), "csv", degImportParams, {mem: defaultConvMem, cpu: defaultConvCpu})
 
 			// We just export robust enrichment for now, that will have a unique value per clonotype
 			robustEnrichmentPframeBuilderAlpha_clonotype.add(
@@ -166,7 +166,7 @@ self.body(func(inputs) {
 			// Process beta chain if available
 			if !is_undefined(inputs.mainBetaSpec) {
 				degImportParamsBeta := tcrdiscoDaPfconvParamsLib.getColumns(inputs.mainBetaSpec, inputs.cdSubsetCol, numerator, comparison)
-				degPfBeta := xsv.importFile(diffExec.getFile("robust_enrichment_beta.csv"), "csv", degImportParamsBeta, {mem: defaultConvMem, cpu: defaultConvCpu})
+				degPfBeta := xsv.importFile(diffExec.getFile("robust_enrichment_beta_" + numerator + ".csv"), "csv", degImportParamsBeta, {mem: defaultConvMem, cpu: defaultConvCpu})
 				
 				/// We just export robust enrichment for now, that will have a unique value per clonotype
 				robustEnrichmentPframeBuilderBeta_clonotype.add(
@@ -177,23 +177,13 @@ self.body(func(inputs) {
 			}
 		}
 	}
-	// Concatenate all DEG and topTable files
-	concatenatedDegAlpha := pt.concat(dfsDegAlpha)
-	concatenatedDegAlpha.save("concatenated_output_DA_alpha.csv")
-	concatenatedTopTableAlpha := pt.concat(dfsTopTableAlpha)
-	concatenatedTopTableAlpha.save("concatenated_output_topTable_alpha.csv")
-	concatenatedDegBeta := pt.concat(dfsDegBeta)
-	concatenatedDegBeta.save("concatenated_output_DA_beta.csv")
-	concatenatedTopTableBeta := pt.concat(dfsTopTableBeta)
-	concatenatedTopTableBeta.save("concatenated_output_topTable_beta.csv")
-	ptablerResult := wf.run()
 
 	getEnrichedFrequenciesExec := exec.builder().
 		software(getEnrichedFrequenciesSoftware).
 		addFile("mainAlpha.tsv", mainAlphaTsv).
 		addFile("mainBeta.tsv", mainBetaTsv).
-		addFile("DA_alpha.csv", ptablerResult.getFile("concatenated_output_DA_alpha.csv")).
-		addFile("DA_beta.csv", ptablerResult.getFile("concatenated_output_DA_beta.csv")).
+		addFile("DA_alpha.csv", diffExec.getFile("DA_alpha.csv")).
+		addFile("DA_beta.csv", diffExec.getFile("DA_beta.csv")).
 		arg("--main_alpha").arg("mainAlpha.tsv").
 		arg("--main_beta").arg("mainBeta.tsv").
 		arg("--da_alpha").arg("DA_alpha.csv").
@@ -220,10 +210,10 @@ self.body(func(inputs) {
 	}
 
 	return {
-		topTableFileAlpha: ptablerResult.getFile("concatenated_output_topTable_alpha.csv"),
-		topTableFileBeta: ptablerResult.getFile("concatenated_output_topTable_beta.csv"),
-		daFileAlpha: ptablerResult.getFile("concatenated_output_DA_alpha.csv"),
-		daFileBeta: ptablerResult.getFile("concatenated_output_DA_beta.csv"),
+		topTableFileAlpha: diffExec.getFile("topTable_alpha.csv"),
+		topTableFileBeta: diffExec.getFile("topTable_beta.csv"),
+		daFileAlpha: diffExec.getFile("DA_alpha.csv"),
+		daFileBeta: diffExec.getFile("DA_beta.csv"),
 		contrastMap: contrastMap,
 		mainAlphaFrequenciesTsv: mainAlphaFrequenciesTsv,
 		mainBetaFrequenciesTsv: mainBetaFrequenciesTsv,
