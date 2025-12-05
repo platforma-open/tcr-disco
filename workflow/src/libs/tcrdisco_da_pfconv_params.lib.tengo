@@ -20,7 +20,7 @@ getColumns := func(countsSpec, cdSubsetCol, numerator, comparison) {
 					name: "pl7.app/differentialTCRAbundance/robustEnrichment",
 					valueType: "String",
 					annotations: {
-						"pl7.app/label": numerator + " Robust enrichment",
+						"pl7.app/label": "Robust enrichment - " + numerator,
 						"pl7.app/table/visibility": "optional",
 						"pl7.app/table/orderPriority": "84000",
 						"pl7.app/hideDataFromGraphs": "true",
