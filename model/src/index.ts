@@ -95,8 +95,6 @@ export const model = BlockModel.create()
       template: 'heatmapClustered',
       layersSettings: {
         heatmapClustered: {
-          normalizationDirection: 'column',
-          normalizationMethod: 'standardScaling',
           dendrogramX: false,
           dendrogramY: false,
         },
