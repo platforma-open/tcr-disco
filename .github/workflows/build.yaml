@@ -22,8 +22,8 @@ jobs:
       - init
     uses: milaboratory/github-ci/.github/workflows/node-simple-pnpm.yaml@v4
     with:
-      app-name: 'Block: Import V(D)J Data'
-      app-name-slug: 'block-import-vdj-data'
+      app-name: 'Block: TCR Disco'
+      app-name-slug: 'block-tcr-disco'
       pl-docker-tag: '1.34.2'
       node-version: '20.x'
       build-script-name: 'build'
@@ -31,7 +31,7 @@ jobs:
       test: false
       test-script-name: 'test'
       pnpm-recursive-tests: false
-      team-id: 'ciplopen-import-vdj-data'
+      team-id: 'ciplopen-tcr-disco'
       publish-to-public: 'true'
       package-path: 'block'
       create-tag: 'true'
