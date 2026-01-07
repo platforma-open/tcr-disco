@@ -1,6 +1,6 @@
 {
   "name": "@platforma-open/milaboratories.tcrdisco-enrichment",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "scripts": {
     "pretty": "prettier --write \"./**/*.{js,jsx,mjs,cjs,ts,tsx,json,vue}\"",
     "build": "rm -rf ./block-pack && block-tools pack",
@@ -33,7 +33,11 @@
       "description": "Calculates differential abundances of clonotypes between conditions in TCR alpha and beta chains using DESeq2.",
       "longDescription": "file:../docs/description.md",
       "changelog": "file:../CHANGELOG.md",
-      "tags": ["vdj", "tcr", "downstream"],
+      "tags": [
+        "vdj",
+        "tcr",
+        "downstream"
+      ],
       "organization": {
         "name": "Miltenyi Biotec",
         "url": "https://www.miltenyibiotec.com/",
