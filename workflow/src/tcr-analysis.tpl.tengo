@@ -1,0 +1,226 @@
+self := import("@platforma-sdk/workflow-tengo:tpl")
+exec := import("@platforma-sdk/workflow-tengo:exec")
+assets := import("@platforma-sdk/workflow-tengo:assets")
+pt := import("@platforma-sdk/workflow-tengo:pt")
+xsv := import("@platforma-sdk/workflow-tengo:pframes.xsv")
+pframes := import("@platforma-sdk/workflow-tengo:pframes")
+pSpec := import("@platforma-sdk/workflow-tengo:pframes.spec")
+smart := import("@platforma-sdk/workflow-tengo:smart")
+text := import("text")
+json := import("json")
+
+subsetAssignment := assets.importSoftware("@platforma-open/milaboratories.run-tcrdisco-enrichment.software:subset-assignment")
+diffSoftware := assets.importSoftware("@platforma-open/milaboratories.run-tcrdisco-enrichment.software:tcr-disco")
+getEnrichedFrequenciesSoftware := assets.importSoftware("@platforma-open/milaboratories.run-tcrdisco-enrichment.software:get-enriched-frequencies")
+tcrdiscoDaPfconvParamsLib := import(":libs.tcrdisco_da_pfconv_params")
+self.validateInputs({
+    "__options__,closed": "",
+	"numerators": "any",
+	"denominators": "any",
+	"mainAlphaTsv": "any",
+	"mainBetaTsv": "any",
+	"metadataTsv": "any",
+	"cdAlphaTsv,?": "any",
+	"cdBetaTsv,?": "any",
+	"cdMetadataTsv,?": "any",
+	"cdSubsetCol,?": "string",
+	"covariatesTsv": "any",
+	"contrastColLabel": "string",
+	"thresholdCounts": "number",
+	"thresholdSamples": "number",
+	"log2FcThreshold": "number",
+	"pAdjThreshold": "number",
+	"mainAlphaSpec,?": "any",
+	"mainBetaSpec,?": "any",
+	"blockId,?": "string",
+	"defaultConvMem,?": "string",
+	"defaultConvCpu,?": "number"
+})
+
+self.defineOutputs("topTableFileAlpha","topTableFileBeta","daFileAlpha",
+"daFileBeta","contrastMap","mainAlphaFrequenciesTsv","mainBetaFrequenciesTsv",
+"clonotypeToSubsetAlpha","clonotypeToSubsetBeta",
+"robustEnrichmentPFAlpha_clonotype","robustEnrichmentPFBeta_clonotype")
+
+self.body(func(inputs) {
+
+	denominators := inputs.denominators
+	denominatorString := text.join(denominators, "-")
+	covariatesTsv := inputs.covariatesTsv
+	contrastColLabel := inputs.contrastColLabel
+	thresholdCounts := inputs.thresholdCounts
+	thresholdSamples := inputs.thresholdSamples
+	log2FcThreshold := inputs.log2FcThreshold
+	pAdjThreshold := inputs.pAdjThreshold
+
+	mainAlphaTsv := undefined
+	mainBetaTsv := undefined
+	// Assign CD4/CD8 subsets to main data and QC the input files
+	builder := exec.builder().
+			software(subsetAssignment).
+			addFile("mainAlpha.tsv", inputs.mainAlphaTsv).
+			addFile("mainBeta.tsv", inputs.mainBetaTsv).
+			addFile("metadata.tsv", inputs.metadataTsv).
+			arg("--main_alpha").arg("mainAlpha.tsv").
+			arg("--main_beta").arg("mainBeta.tsv").
+			arg("--metadata").arg("metadata.tsv").
+			arg("-o").arg(".").
+			saveFile("main_alpha_table.tsv").
+			saveFile("main_beta_table.tsv")
+	if !is_undefined(inputs.cdAlphaTsv) && !is_undefined(inputs.cdBetaTsv) {
+		builder.
+			addFile("cdAlpha.tsv", inputs.cdAlphaTsv).
+			addFile("cdBeta.tsv", inputs.cdBetaTsv).
+			arg("--cd_alpha").arg("cdAlpha.tsv").
+			arg("--cd_beta").arg("cdBeta.tsv").
+			arg("--cd_subset_col").arg(inputs.cdSubsetCol)
+	} 
+	builder = builder.run()
+
+	// Stored main tables with/out subset information and after QC for samples 
+	// with both alpha and beta chains (we keep only the most frequent one)
+	mainAlphaTsv = builder.getFile("main_alpha_table.tsv")
+	mainBetaTsv = builder.getFile("main_beta_table.tsv")
+
+	// run differential analysis per numerator
+	wf := pt.workflow().cpu(1).mem("2GiB")
+	dfsDegAlpha := []
+	dfsDegBeta := []
+	dfsTopTableAlpha := []
+	dfsTopTableBeta := []
+	contrastMap := {}
+	
+	// Format 2 specs (with contrast in domain) - process outside workflow
+	degPframeBuilderAlpha_clonotype := pframes.pFrameBuilder()
+	degPframeBuilderBeta_clonotype := pframes.pFrameBuilder()
+	regDirPframeBuilderAlpha_clonotype := pframes.pFrameBuilder()
+	regDirPframeBuilderBeta_clonotype := pframes.pFrameBuilder()
+	robustEnrichmentPframeBuilderAlpha_clonotype := pframes.pFrameBuilder()
+	robustEnrichmentPframeBuilderBeta_clonotype := pframes.pFrameBuilder()
+	
+	// Create trace if specs are provided
+	trace := undefined
+	if !is_undefined(inputs.mainAlphaSpec) {
+		trace = pSpec.makeTrace(inputs.mainAlphaSpec,
+			{type: "milaboratories.tcr-disco-enrichment", importance: 30, 
+			label: "DA - Denominator: " + denominatorString + " (log2FC: " + log2FcThreshold + ", pAdj: " + pAdjThreshold + ")"}
+		)
+	}
+
+	diffExec := exec.builder().
+			software(diffSoftware).
+			addFile("mainAlpha.tsv", mainAlphaTsv).
+			addFile("mainBeta.tsv", mainBetaTsv).
+			addFile("covariates.tsv", covariatesTsv).
+			arg("--main_alpha").arg("mainAlpha.tsv").
+			arg("--main_beta").arg("mainBeta.tsv").
+			arg("--covariates").arg("covariates.tsv").
+			arg("-t").arg(contrastColLabel).
+			arg("-n").arg(string(json.encode(inputs.numerators))).
+			arg("-d").arg(string(json.encode(denominators))).
+			arg("-f").arg(string(log2FcThreshold)).
+			arg("-p").arg(string(pAdjThreshold)).
+			arg("--threshold_counts").arg(string(thresholdCounts)).
+			arg("-s").arg(string(thresholdSamples)).
+			arg("-o").arg(".").
+			saveFile("DA_alpha.csv").
+			saveFile("topTable_alpha.csv").
+			saveFile("DA_beta.csv").
+			saveFile("topTable_beta.csv")
+	
+	for numerator in inputs.numerators {
+		numerator = string(numerator)
+		contrastMap[numerator + " vs " + denominatorString] = numerator + " vs " + denominatorString
+
+		diffExec.saveFile("robust_enrichment_alpha_" + numerator + ".csv").
+				saveFile("robust_enrichment_beta_" + numerator + ".csv")
+	}
+	diffExec = diffExec.run()
+
+	// Process format 2 specs (with contrast in domain) if specs are provided
+	// Delete this part once filters in tcr-leads allow axis value selection
+	for numerator in inputs.numerators {
+		numerator = string(numerator)
+		if !is_undefined(inputs.mainAlphaSpec) {
+			comparison := numerator + " - vs - " + denominatorString
+			defaultConvMem := inputs.defaultConvMem
+			if defaultConvMem == undefined {
+				defaultConvMem = "16GiB"
+			}
+			defaultConvCpu := inputs.defaultConvCpu
+			if defaultConvCpu == undefined {
+				defaultConvCpu = 1
+			}
+			
+			// Process alpha chain
+			degImportParams := tcrdiscoDaPfconvParamsLib.getColumns(inputs.mainAlphaSpec, inputs.cdSubsetCol, numerator, comparison)
+			degPfAlpha := xsv.importFile(diffExec.getFile("robust_enrichment_alpha_" + numerator + ".csv"), "csv", degImportParams, {mem: defaultConvMem, cpu: defaultConvCpu})
+
+			// We just export robust enrichment for now, that will have a unique value per clonotype
+			robustEnrichmentPframeBuilderAlpha_clonotype.add(
+				numerator,
+				trace.inject(degPfAlpha["robustEnrichment.spec"]),
+				degPfAlpha["robustEnrichment.data"]
+			)
+			
+			// Process beta chain if available
+			if !is_undefined(inputs.mainBetaSpec) {
+				degImportParamsBeta := tcrdiscoDaPfconvParamsLib.getColumns(inputs.mainBetaSpec, inputs.cdSubsetCol, numerator, comparison)
+				degPfBeta := xsv.importFile(diffExec.getFile("robust_enrichment_beta_" + numerator + ".csv"), "csv", degImportParamsBeta, {mem: defaultConvMem, cpu: defaultConvCpu})
+				
+				/// We just export robust enrichment for now, that will have a unique value per clonotype
+				robustEnrichmentPframeBuilderBeta_clonotype.add(
+					numerator,
+					trace.inject(degPfBeta["robustEnrichment.spec"]),
+					degPfBeta["robustEnrichment.data"]
+				)
+			}
+		}
+	}
+
+	getEnrichedFrequenciesExec := exec.builder().
+		software(getEnrichedFrequenciesSoftware).
+		addFile("mainAlpha.tsv", mainAlphaTsv).
+		addFile("mainBeta.tsv", mainBetaTsv).
+		addFile("DA_alpha.csv", diffExec.getFile("DA_alpha.csv")).
+		addFile("DA_beta.csv", diffExec.getFile("DA_beta.csv")).
+		arg("--main_alpha").arg("mainAlpha.tsv").
+		arg("--main_beta").arg("mainBeta.tsv").
+		arg("--da_alpha").arg("DA_alpha.csv").
+		arg("--da_beta").arg("DA_beta.csv").
+		arg("-o").arg(".").
+		saveFile("main_alpha_frequencies.tsv").
+		saveFile("main_beta_frequencies.tsv").
+		saveFile("clonotype_to_subset_alpha.tsv").
+		saveFile("clonotype_to_subset_beta.tsv").
+		run()
+	mainAlphaFrequenciesTsv := getEnrichedFrequenciesExec.getFile("main_alpha_frequencies.tsv")
+	mainBetaFrequenciesTsv := getEnrichedFrequenciesExec.getFile("main_beta_frequencies.tsv")
+	clonotypeToSubsetAlpha := getEnrichedFrequenciesExec.getFile("clonotype_to_subset_alpha.tsv")
+	clonotypeToSubsetBeta := getEnrichedFrequenciesExec.getFile("clonotype_to_subset_beta.tsv")
+
+	// Build format 2 PFrames
+	robustEnrichmentPFAlpha_clonotype := undefined
+	robustEnrichmentPFBeta_clonotype := undefined
+	if !is_undefined(inputs.mainAlphaSpec) {
+		robustEnrichmentPFAlpha_clonotype = robustEnrichmentPframeBuilderAlpha_clonotype.build()
+		if !is_undefined(inputs.mainBetaSpec) {
+			robustEnrichmentPFBeta_clonotype = robustEnrichmentPframeBuilderBeta_clonotype.build()
+		}
+	}
+
+	return {
+		topTableFileAlpha: diffExec.getFile("topTable_alpha.csv"),
+		topTableFileBeta: diffExec.getFile("topTable_beta.csv"),
+		daFileAlpha: diffExec.getFile("DA_alpha.csv"),
+		daFileBeta: diffExec.getFile("DA_beta.csv"),
+		contrastMap: contrastMap,
+		mainAlphaFrequenciesTsv: mainAlphaFrequenciesTsv,
+		mainBetaFrequenciesTsv: mainBetaFrequenciesTsv,
+		clonotypeToSubsetAlpha: clonotypeToSubsetAlpha,
+		clonotypeToSubsetBeta: clonotypeToSubsetBeta,
+		robustEnrichmentPFAlpha_clonotype: robustEnrichmentPFAlpha_clonotype,
+		robustEnrichmentPFBeta_clonotype: robustEnrichmentPFBeta_clonotype
+	}
+})
+

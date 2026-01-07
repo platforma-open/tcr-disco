@@ -1,0 +1,60 @@
+self := import("@platforma-sdk/workflow-tengo:tpl")
+exec := import("@platforma-sdk/workflow-tengo:exec")
+assets := import("@platforma-sdk/workflow-tengo:assets")
+pt := import("@platforma-sdk/workflow-tengo:pt")
+ll := import("@platforma-sdk/workflow-tengo:ll")
+
+tcrAbPairsSoftware := assets.importSoftware("@platforma-open/milaboratories.run-tcrdisco-enrichment.software:tcr-ab-pairs")
+
+self.validateInputs({
+    "__options__,closed": "",
+	"mainAlphaTsv": "any",
+	"mainBetaTsv": "any",
+	"daFileAlphaCsv": "any",
+	"daFileBetaCsv": "any",
+	"metadataTsv": "any",
+	"pairingMetadataCol": "string",
+	"contrastColLabel": "string",
+	"log2FcThreshold": "number",
+	"pAdjThreshold": "number"
+})
+
+self.defineOutputs("pairsTsvFile")
+
+self.body(func(inputs) {
+
+	mainAlphaTsv := inputs.mainAlphaTsv
+	mainBetaTsv := inputs.mainBetaTsv
+	daFileAlphaCsv := inputs.daFileAlphaCsv
+	daFileBetaCsv := inputs.daFileBetaCsv
+	metadataTsv := inputs.metadataTsv
+	pairingMetadataCol := inputs.pairingMetadataCol
+	contrastColLabel := inputs.contrastColLabel
+	log2FcThreshold := inputs.log2FcThreshold
+	pAdjThreshold := inputs.pAdjThreshold
+
+	pairExec := exec.builder().
+		software(tcrAbPairsSoftware).
+		addFile("mainAlpha.tsv", mainAlphaTsv).
+		addFile("daAlpha.csv", daFileAlphaCsv).
+		addFile("mainBeta.tsv", mainBetaTsv).
+		addFile("daBeta.csv", daFileBetaCsv).
+		addFile("metadata.tsv", metadataTsv).
+		arg("--main_alpha").arg("mainAlpha.tsv").
+		arg("--main_beta").arg("mainBeta.tsv").
+		arg("--da_alpha").arg("daAlpha.csv").
+		arg("--da_beta").arg("daBeta.csv").
+		arg("--metadata").arg("metadata.tsv").
+		arg("--contrast_col").arg(contrastColLabel).
+		arg("--sample_id_col").arg(pairingMetadataCol).
+		arg("-f").arg(string(log2FcThreshold)).
+		arg("-p").arg(string(pAdjThreshold)).
+		arg("-o").arg(".").
+		saveFile("ab_pairs.tsv").
+		run()		
+
+	return {
+		pairsTsvFile: pairExec.getFile("ab_pairs.tsv")
+	}
+})
+

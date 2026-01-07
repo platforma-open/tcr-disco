@@ -1,0 +1,238 @@
+ll := import("@platforma-sdk/workflow-tengo:ll")
+math := import("math")
+
+getColumns := func(countsSpec, inputType, log2FCThreshold, pAdjFCThreshold, cdSubsetCol, denominators) {
+	field := "differentialTCRAbundance"
+
+	// Define volcano plot significant line cut points
+	thresholds := "[{\"columnId\": {\"name\": \"pl7.app/" + field + "/log2foldchange_mean\",\"valueType\": \"Double\"},\"label\": \"Min LogFC (left vertical)\",\"value\": " + string(-log2FCThreshold) + "},"
+	thresholds = thresholds + "{\"columnId\": {\"name\": \"pl7.app/" + field + "/log2foldchange_mean\",\"valueType\": \"Double\"},\"label\": \"Max LogFC (right vertical)\",\"value\": " + string(log2FCThreshold) + "},"
+	thresholds = thresholds + "{\"columnId\": {\"name\": \"pl7.app/" + field + "/minlog10padj_mean\",\"valueType\": \"Double\"},\"label\": \"Y bound\",\"value\": " + string(-math.log10(pAdjFCThreshold)) + "}]"
+	
+
+	axes := [
+			{
+				column: "Contrast",
+				id: "contrast",
+				allowNA: false,
+				spec: {
+					name: "pl7.app/" + field + "/contrastGroup",
+					type: "String",
+					annotations: {
+						"pl7.app/label": "Contrast"
+					}
+				}
+			},
+			{
+				column: "clonotypeKey",
+				spec: countsSpec.axesSpec[1]
+			}
+			]
+
+	columns := [
+			{
+				column: "CDR3aa",
+				id: "cdr3aa",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/" + field + "/cdr3aa",
+					valueType: "String",
+					annotations: {
+						"pl7.app/label": "CDR3 aa",
+						"pl7.app/table/orderPriority": "200",
+						"pl7.app/table/visibility": "default"
+					}
+				}
+			},
+			{
+				column: "VGene",
+				id: "vgene",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/" + field + "/vgene",
+					valueType: "String",
+					annotations: {
+						"pl7.app/label": "VGene",
+						"pl7.app/table/orderPriority": "195",
+						"pl7.app/table/visibility": "default"
+					}
+				}
+			},
+			{
+				column: "log2FoldChange",
+				id: "log2foldchange",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/" + field + "/log2foldchange",
+					valueType: "Double",
+					annotations: {
+						"pl7.app/label": "Log2FC",
+						"pl7.app/table/orderPriority": "95",
+						"pl7.app/graph/axis/symmetricRange": "0",
+						"pl7.app/table/visibility": "default"
+					}
+				}
+			},
+			{
+				column: "pvalue",
+				id: "pvalue",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/" + field + "/pvalue",
+					valueType: "Double",
+					annotations: {
+						"pl7.app/label": "P-value",
+						"pl7.app/table/orderPriority": "110",
+						"pl7.app/table/visibility": "optional"
+					}
+				}
+			},
+			{
+				column: "padj",
+				id: "padj",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/" + field + "/padj",
+					valueType: "Double",
+					annotations: {
+						"pl7.app/label": "Adjusted p-value",
+						"pl7.app/table/orderPriority": "105",
+						"pl7.app/table/visibility": "default"
+					}
+				}
+			},
+			{
+				column: "minlog10padj",
+				id: "minlog10padj",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/" + field + "/minlog10padj",
+					valueType: "Double",
+					annotations: {
+						"pl7.app/label": "-log10 adjusted p-value",
+						"pl7.app/table/orderPriority": "100",
+						"pl7.app/table/visibility": "optional"
+					}
+				}
+			},
+			{
+				column: "Regulation",
+				id: "regulationDirection",
+				spec: {
+					name: "pl7.app/" + field + "/regulationDirection",
+					valueType: "String",
+					annotations: {
+						"pl7.app/label": "Regulation direction",
+						"pl7.app/graph/palette": "{\"name\":\"triadic\",\"mapping\":{\"Up\":\"19\",\"Down\":\"22\",\"NS\":\"25\"}}",
+						"pl7.app/graph/thresholds": thresholds,
+						"pl7.app/table/orderPriority": "80",
+						"pl7.app/table/visibility": "optional"
+					}
+				}
+			},
+			{
+				column: "Robust_Enrichment",
+				id: "robustEnrichment",
+				spec: {
+					name: "pl7.app/" + field + "/robustEnrichment",
+					valueType: "String",
+					annotations: {
+						"pl7.app/label": "Robust enrichment",
+						"pl7.app/table/orderPriority": "155",
+						"pl7.app/table/visibility": "optional"
+					}
+				}
+			}
+			]
+	if cdSubsetCol != undefined {
+		columns += [{
+				column: "subset",
+				id: "subset",
+				spec: {
+					name: "pl7.app/" + field + "/cdsubset",
+					valueType: "String",
+					annotations: {
+						"pl7.app/label": "CD4/CD8 subset",
+						"pl7.app/table/visibility": "default",
+						"pl7.app/table/orderPriority": "150"
+					}
+				}
+			},
+			{
+				column: "umi_count_CD4",
+				id: "umi_count_CD4",
+				spec: {
+					name: "pl7.app/" + field + "/umi_count_CD4",
+					valueType: "Double",
+					annotations: {
+						"pl7.app/label": "UMI count CD4",
+						"pl7.app/table/visibility": "optional",
+						"pl7.app/table/orderPriority": "145"
+					}
+				}
+			},
+			{
+				column: "umi_freq_CD4",
+				id: "umi_freq_CD4",
+				spec: {
+					name: "pl7.app/" + field + "/umi_freq_CD4",
+					valueType: "Double",
+					annotations: {
+						"pl7.app/label": "UMI frequency CD4",
+						"pl7.app/table/visibility": "optional",
+						"pl7.app/table/orderPriority": "140"
+					}
+				}
+			},
+			{
+				column: "umi_count_CD8",
+				id: "umi_count_CD8",
+				spec: {
+					name: "pl7.app/" + field + "/umi_count_CD8",
+					valueType: "Double",
+					annotations: {
+						"pl7.app/label": "UMI count CD8",
+						"pl7.app/table/visibility": "optional",
+						"pl7.app/table/orderPriority": "135"
+					}
+				}
+			},
+			{
+				column: "umi_freq_CD8",
+				id: "umi_freq_CD8",
+				spec: {
+					name: "pl7.app/" + field + "/umi_freq_CD8",
+					valueType: "Double",
+					annotations: {
+						"pl7.app/label": "UMI frequency CD8",
+						"pl7.app/table/visibility": "optional",
+						"pl7.app/table/orderPriority": "130"
+					}
+				}
+			},
+			{
+				column: "subset_frequency",
+				id: "subset_frequency",
+				spec: {
+					name: "pl7.app/" + field + "/cdsubset_frequency",
+					valueType: "Double",
+					annotations: {
+						"pl7.app/label": "Log(10) major subset frequency",
+						"pl7.app/table/visibility": "optional",
+						"pl7.app/table/orderPriority": "125"
+					}
+				}
+			}]
+	}
+			
+	return {
+		axes: axes,
+		columns: columns,
+		"storageFormat": "Parquet",
+		"partitionKeyLength": 1
+	}
+}
+
+export ll.toStrict({
+	getColumns: getColumns
+})

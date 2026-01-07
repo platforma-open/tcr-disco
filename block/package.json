@@ -1,0 +1,48 @@
+{
+  "name": "@platforma-open/milaboratories.tcrdisco-enrichment",
+  "version": "1.0.0",
+  "scripts": {
+    "pretty": "prettier --write \"./**/*.{js,jsx,mjs,cjs,ts,tsx,json,vue}\"",
+    "build": "rm -rf ./block-pack && block-tools pack",
+    "mark-stable": "block-tools mark-stable -r 's3://prod-miltenyi-registry-euce1/pub/releases/?region=eu-central-1'",
+    "prepublishOnly": "block-tools pack && block-tools publish -r 's3://prod-miltenyi-registry-euce1/pub/releases/?region=eu-central-1'",
+    "do-pack": "rm -f *.tgz && block-tools pack && pnpm pack && mv *.tgz package.tgz"
+  },
+  "files": [
+    "index.d.ts",
+    "index.js"
+  ],
+  "dependencies": {
+    "@platforma-sdk/model": "catalog:",
+    "@platforma-open/milaboratories.tcrdisco-enrichment.workflow": "workspace:*",
+    "@platforma-open/milaboratories.tcrdisco-enrichment.model": "workspace:*",
+    "@platforma-open/milaboratories.tcrdisco-enrichment.ui": "workspace:*",
+    "@platforma-open/milaboratories.run-tcrdisco-enrichment.software": "workspace:*"
+  },
+  "block": {
+    "components": {
+      "workflow": "@platforma-open/milaboratories.tcrdisco-enrichment.workflow/dist/tengo/tpl/main.plj.gz",
+      "model": "@platforma-open/milaboratories.tcrdisco-enrichment.model/dist/model.json",
+      "ui": "@platforma-open/milaboratories.tcrdisco-enrichment.ui/dist"
+    },
+    "meta": {
+      "title": "TCR Disco",
+      "logo": "file:../logos/block-logo.png",
+      "url": "https://github.com/platforma-open/tcrdisco-enrichment",
+      "support": "mailto:support@milaboratories.com",
+      "description": "Calculates differential abundances of clonotypes between conditions in TCR alpha and beta chains using DESeq2.",
+      "longDescription": "file:../docs/description.md",
+      "changelog": "file:../CHANGELOG.md",
+      "tags": ["vdj", "tcr", "downstream"],
+      "organization": {
+        "name": "Miltenyi Biotec",
+        "url": "https://www.miltenyibiotec.com/",
+        "logo": "file:../logos/organization-logo.png"
+      }
+    }
+  },
+  "devDependencies": {
+    "@platforma-sdk/block-tools": "catalog:"
+  },
+  "packageManager": "pnpm@9.12.0"
+}

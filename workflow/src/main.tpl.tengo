@@ -1,0 +1,579 @@
+wf := import("@platforma-sdk/workflow-tengo:workflow")
+assets := import("@platforma-sdk/workflow-tengo:assets")
+pframes := import("@platforma-sdk/workflow-tengo:pframes")
+render := import("@platforma-sdk/workflow-tengo:render")
+text := import("text")
+xsv := import("@platforma-sdk/workflow-tengo:pframes.xsv")
+ll := import("@platforma-sdk/workflow-tengo:ll")
+smart := import("@platforma-sdk/workflow-tengo:smart")
+pSpec := import("@platforma-sdk/workflow-tengo:pframes.spec")
+json := import("json")
+
+tcrAnalysisTpl := assets.importTemplate(":tcr-analysis")
+tcrAbPairsTpl := assets.importTemplate(":tcr-ab-pairs")
+
+topTablePfconvParamsLib := import(":libs.top_table_pfconv_params")
+tcrPairsParamsLib := import(":libs.tcr_pairs_params")
+topFrequenciesLib := import(":libs.top_frequencies")
+cdSubsetParamsLib := import(":libs.cd_subset_params")
+
+mapToPValueData := func(map) {
+	data := {}
+	for key, value in map {
+		data[json.encode([key])] = value
+	}
+	result := {
+		keyLength: 1,
+		data: data
+	}
+	return result
+}
+createJsonPColumnData := func(data) {
+	return smart.createValueResource({ Name: "PColumnData/Json", Version: "1" }, data)
+}
+
+// Helper function to process results for one chain type
+processChainResults := func(mainSpec, inputType, log2FcThreshold, pAdjThreshold, trace,
+blockId, denominators, topTableFile, daFile, defaultConvMem, defaultConvCpu,
+							topDegBuilder, cdSubsetCol) {
+	topTableImportParams := topTablePfconvParamsLib.getColumns(copy(mainSpec), inputType,
+															log2FcThreshold,
+															pAdjThreshold,
+															cdSubsetCol,
+															denominators)
+	topTablePf := xsv.importFile(topTableFile, "csv", topTableImportParams, 
+														// This changes output format from default to per column
+														// So key will be column name and values spec and data
+														{splitDataAndSpec: true, mem: defaultConvMem, cpu: defaultConvCpu})
+	
+	for columnName, value in topTablePf { 
+		columnData := value.data
+		topDegBuilder.add(
+			columnName,
+			trace.inject(value.spec),
+			columnData
+		)
+	}
+}
+
+wf.prepare(func(args) {
+	bundleBuilder := wf.createPBundleBuilder()
+	
+	// Load mainRef and its associated sequences
+	bundleBuilder.addAnchor("mainAlpha", args.mainRef)
+	bundleBuilder.addSingle({
+		annotations: {
+			"pl7.app/isAbundance": "true",
+			"pl7.app/abundance/normalized": "true",
+			"pl7.app/abundance/isPrimary": "true"
+		},
+		axes: [{anchor: "mainAlpha", idx: 0},
+				{anchor: "mainAlpha", idx: 1}]
+	}, "mainAlphaFraction");
+	bundleBuilder.addMulti({
+		name: "pl7.app/vdj/sequence",
+		domain: {
+			"pl7.app/vdj/feature": "CDR3"
+		},
+		axes: [{anchor: "mainAlpha", idx: 1}]
+	}, "mainCdr3s");
+	bundleBuilder.addMulti({
+		name: "pl7.app/vdj/geneHit",
+		axes: [{anchor: "mainAlpha", idx: 1}]
+	}, "mainVDJGenes");
+
+	// Load other chain counts
+	// @TODO: Once override option is available in axis update code to load TCRBeta chains, we can remove this part only
+	bundleBuilder.addMulti({
+		annotations: {
+			"pl7.app/isAbundance": "true",
+			"pl7.app/abundance/normalized": "false",
+			"pl7.app/abundance/isPrimary": "true"
+		},
+		axes: [{anchor: "mainAlpha", idx: 0}],
+		partialAxesMatch: true
+	}, "mainCounts");
+	bundleBuilder.addMulti({
+		annotations: {
+			"pl7.app/isAbundance": "true",
+			"pl7.app/abundance/normalized": "true",
+			"pl7.app/abundance/isPrimary": "true"
+		},
+		axes: [{anchor: "mainAlpha", idx: 0}]
+	}, "mainFractions");
+
+	// Load all sequence and CDR3 columns
+	bundleBuilder.addMulti({
+		name: "pl7.app/vdj/sequence",
+		domain: {
+			"pl7.app/vdj/feature": "CDR3"
+		}
+	}, "otherCdr3s");
+	bundleBuilder.addMulti({
+		name: "pl7.app/vdj/geneHit"
+	}, "otherVDJGenes");
+
+	// Load all metadata columns
+	bundleBuilder.addMulti({
+		name: "pl7.app/metadata",
+		axes: [{anchor: "mainAlpha", idx: 0}]
+	}, "allMetadata");
+	
+
+	// If cdRef is provided, load it and its metadata
+	if args.cdRef != undefined {
+		// Get the CD4/8 dataset and its associated sequences
+		bundleBuilder.addAnchor("cdAlpha", args.cdRef)
+		bundleBuilder.addSingle({
+			axes: [{anchor: "cdAlpha", idx: 0},
+				{anchor: "cdAlpha", idx: 1}],
+			annotations: {
+				"pl7.app/isAbundance": "true",
+				"pl7.app/abundance/normalized": "true",
+				"pl7.app/abundance/isPrimary": "true"
+			}
+		}, "cdAlphaFraction");
+		bundleBuilder.addSingle({
+			name: "pl7.app/vdj/sequence",
+			domain: {
+				"pl7.app/alphabet": "aminoacid",
+				"pl7.app/vdj/feature": "CDR3"
+			},
+			axes: [{anchor: "cdAlpha", idx: 1}]
+		}, "cdCdr3");
+		bundleBuilder.addSingle({
+			name: "pl7.app/vdj/geneHit",
+			domain: {
+				"pl7.app/vdj/reference": "VGene"
+			},
+			axes: [{anchor: "cdAlpha", idx: 1}]
+		}, "cdVGene");
+	}
+
+	metaRefs := {}
+	i := 0
+	for metaRef in args.covariateRefs {
+		metaRefs["metaRef" + i ] = wf.resolve(metaRef, { errIfMissing: true })
+		i = i + 1
+	}
+	
+	return {
+		columns: bundleBuilder.build(),
+		resolvedContrastFactor: wf.resolve(args.contrastFactor),
+		resolvedCdSubsetCol: wf.resolve(args.cdSubsetCol),
+		metaRefs: metaRefs
+	}
+})
+
+wf.body(func(args) {
+	blockId := wf.blockId().getDataAsJson()
+	columns := args.columns
+	denominators := args.denominators
+	denominatorString := text.join(denominators, "-")
+	cdSubsetCol := undefined
+	// This is needed for cases in which user selects a value and then removes the CD4/8 dataset
+	if args.cdRef != undefined {
+		cdSubsetCol = string(args.resolvedCdSubsetCol.spec.annotations["pl7.app/label"])
+	}
+	thresholdCounts := args.thresholdCounts
+	thresholdSamples := args.thresholdSamples
+	log2FcThreshold := args.log2FcThreshold
+	pAdjThreshold := args.pAdjThreshold
+	contrastColLabel := args.resolvedContrastFactor.spec.annotations["pl7.app/label"]
+	pairingMetadataCol := args.pairingMetadataCol
+	// Barcode ID is the default pairing metadata column when we have demultiplexed data
+	if pairingMetadataCol == undefined {
+		pairingMetadataCol = "Barcode ID"
+	}
+	outputs := {}
+
+	// Set default conversion memory and CPU
+	defaultConvMem := "16GiB"
+	defaultConvCpu := 1
+
+	covariates := []
+	for _, v in args.metaRefs {
+		covariates = append(covariates, v)
+	}
+	// convert PColumns to csv
+	covariatesTsv := xsv.exportFrame(covariates, "tsv", {mem: defaultConvMem, cpu: defaultConvCpu})
+
+	//////////////// Load input data ////////////////
+	// Get the main dataset
+	mainAlpha := columns.getColumn(args.mainRef)
+	mainAlphaSpec := mainAlpha.spec
+	mainAlphaClonoStructure := mainAlphaSpec.axesSpec[1].domain["pl7.app/vdj/clonotypeKey/structure"]
+	// Get counts block id from mainAlpha key
+	countsBlockId := mainAlphaSpec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
+	
+	// Build TSV file for main dataset (Alpha)
+	mainAlphaTable := pframes.tsvFileBuilder()
+	mainAlphaTable.setAxisHeader("pl7.app/sampleId", "internalSampleId")
+	mainAlphaTable.setAxisHeader(mainAlphaSpec.axesSpec[1].name, "clonotypeKey")
+	mainAlphaTable.add(mainAlpha, {header: "count"})
+	mainAlphaTable.add(columns.getColumn("mainAlphaFraction"), {header: "fraction"})
+	for cdr3Col in columns.getColumns("mainCdr3s") {
+		if cdr3Col.spec.domain["pl7.app/alphabet"] == "aminoacid" {
+			mainAlphaTable.add(cdr3Col, {header: "CDR3aa"})
+		} else if cdr3Col.spec.domain["pl7.app/alphabet"] == "nucleotide" {
+			mainAlphaTable.add(cdr3Col, {header: "CDR3nt"})
+		}
+	}
+	for geneCol in columns.getColumns("mainVDJGenes") {
+		if geneCol.spec.domain["pl7.app/vdj/reference"] == "VGene" {
+			mainAlphaTable.add(geneCol, {header: "VGene"})
+		} else if geneCol.spec.domain["pl7.app/vdj/reference"] == "JGene" {
+			mainAlphaTable.add(geneCol, {header: "JGene"})
+		}
+	}
+	mainAlphaTable.mem(defaultConvMem)
+	mainAlphaTable.cpu(defaultConvCpu)
+	mainAlphaTsv := mainAlphaTable.build()
+	
+	// Build TSV file for main dataset (Beta)
+	// Load beta chain using subtemplate
+	mainBetaTable := pframes.tsvFileBuilder()
+	mainBetaTable.setAxisHeader("pl7.app/sampleId", "internalSampleId")
+	mainBetaTable.setAxisHeader(mainAlphaSpec.axesSpec[1].name, "clonotypeKey")
+	mainBetaSpec := undefined
+	for countCol in columns.getColumns("mainCounts") {
+		colChain := countCol.spec.axesSpec[1].domain["pl7.app/vdj/chain"]
+		colBlockId := countCol.spec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
+		clonoStructure := countCol.spec.axesSpec[1].domain["pl7.app/vdj/clonotypeKey/structure"]
+		if colChain == "TCRBeta" && colBlockId == countsBlockId && clonoStructure == mainAlphaClonoStructure {
+			mainBetaTable.add(countCol, {header: "count"})
+			mainBetaSpec = countCol.spec
+		}
+	}
+	for fractionCol in columns.getColumns("mainFractions") {
+		colChain := fractionCol.spec.axesSpec[1].domain["pl7.app/vdj/chain"]
+		colBlockId := fractionCol.spec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
+		clonoStructure := fractionCol.spec.axesSpec[1].domain["pl7.app/vdj/clonotypeKey/structure"]
+		if colChain == "TCRBeta" && colBlockId == countsBlockId && clonoStructure == mainAlphaClonoStructure {
+			mainBetaTable.add(fractionCol, {header: "fraction"})
+		}
+	}
+	for cdr3Col in columns.getColumns("otherCdr3s") {
+		colChain := cdr3Col.spec.axesSpec[0].domain["pl7.app/vdj/chain"]
+		colBlockId := cdr3Col.spec.axesSpec[0].domain["pl7.app/vdj/clonotypingRunId"]
+		clonoStructure := cdr3Col.spec.axesSpec[0].domain["pl7.app/vdj/clonotypeKey/structure"]
+		if colChain == "TCRBeta" && colBlockId == countsBlockId && clonoStructure == mainAlphaClonoStructure {
+			if cdr3Col.spec.domain["pl7.app/alphabet"] == "aminoacid" {
+				mainBetaTable.add(cdr3Col, {header: "CDR3aa"})
+			} else if cdr3Col.spec.domain["pl7.app/alphabet"] == "nucleotide" {
+				mainBetaTable.add(cdr3Col, {header: "CDR3nt"})
+			}
+		}
+	}
+	for vGeneCol in columns.getColumns("otherVDJGenes") {
+		colChain := vGeneCol.spec.axesSpec[0].domain["pl7.app/vdj/chain"]
+		colBlockId := vGeneCol.spec.axesSpec[0].domain["pl7.app/vdj/clonotypingRunId"]
+		clonoStructure := vGeneCol.spec.axesSpec[0].domain["pl7.app/vdj/clonotypeKey/structure"]
+		if colChain == "TCRBeta" && colBlockId == countsBlockId && clonoStructure == mainAlphaClonoStructure {
+			if vGeneCol.spec.domain["pl7.app/vdj/reference"] == "VGene" {
+				mainBetaTable.add(vGeneCol, {header: "VGene"})
+			} else if vGeneCol.spec.domain["pl7.app/vdj/reference"] == "JGene" {
+				mainBetaTable.add(vGeneCol, {header: "JGene"})
+			}
+		}
+	}
+	mainBetaTable.mem(defaultConvMem)
+	mainBetaTable.cpu(defaultConvCpu)
+	mainBetaTsv := mainBetaTable.build()
+
+	// Load main metadata
+	metadataTable := pframes.tsvFileBuilder()
+	metadataTable.setAxisHeader("pl7.app/sampleId", "internalSampleId")
+	for metadataCol in columns.getColumns("allMetadata") {
+		metadataTable.add(metadataCol, {header: metadataCol.spec.annotations["pl7.app/label"]})
+	}
+	metadataTable.mem(defaultConvMem)
+	metadataTable.cpu(defaultConvCpu)
+	metadataTsv := metadataTable.build()
+	
+	// Get CD info and its beta alternative (if available)
+	cdAlphaTsv := undefined
+	cdBetaTsv := undefined
+	if args.cdRef != undefined {
+		cdAlpha := columns.getColumn(args.cdRef)
+		cdAlphaSpec := cdAlpha.spec
+		cdAlphaClonoStructure := cdAlphaSpec.axesSpec[1].domain["pl7.app/vdj/clonotypeKey/structure"]
+		// Get counts block id from mainAlpha key
+		cdCountsBlockId := cdAlphaSpec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
+		
+		// Build TSV file for CD dataset (Alpha)
+		cdAlphaTable := pframes.tsvFileBuilder()
+		cdAlphaTable.setAxisHeader("pl7.app/sampleId", "internalSampleId")
+		cdAlphaTable.setAxisHeader(mainAlphaSpec.axesSpec[1].name, "clonotypeKey")
+		cdAlphaTable.add(cdAlpha, {header: "count"})
+		cdAlphaTable.add(columns.getColumn("cdAlphaFraction"), {header: "fraction"})
+		cdAlphaTable.add(columns.getColumn("cdCdr3"), {header: "CDR3aa"})
+		cdAlphaTable.add(columns.getColumn("cdVGene"), {header: "VGene"})
+		cdAlphaTable.mem(defaultConvMem)
+		cdAlphaTable.cpu(defaultConvCpu)
+		cdAlphaTsv = cdAlphaTable.build()
+		
+		// Build TSV file for CD dataset (Beta)
+		cdBetaTable := pframes.tsvFileBuilder()
+		cdBetaTable.setAxisHeader("pl7.app/sampleId", "internalSampleId")
+		cdBetaTable.setAxisHeader(mainAlphaSpec.axesSpec[1].name, "clonotypeKey")
+		for countCol in columns.getColumns("mainCounts") {
+			colChain := countCol.spec.axesSpec[1].domain["pl7.app/vdj/chain"]
+			colBlockId := countCol.spec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
+			clonoStructure := countCol.spec.axesSpec[1].domain["pl7.app/vdj/clonotypeKey/structure"]
+			if colChain == "TCRBeta" && colBlockId == cdCountsBlockId && clonoStructure == cdAlphaClonoStructure {
+				cdBetaTable.add(countCol, {header: "count"})
+			}
+		}
+		for fractionCol in columns.getColumns("mainFractions") {
+			colChain := fractionCol.spec.axesSpec[1].domain["pl7.app/vdj/chain"]
+			colBlockId := fractionCol.spec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
+			clonoStructure := fractionCol.spec.axesSpec[1].domain["pl7.app/vdj/clonotypeKey/structure"]
+			if colChain == "TCRBeta" && colBlockId == cdCountsBlockId && clonoStructure == cdAlphaClonoStructure {
+				cdBetaTable.add(fractionCol, {header: "fraction"})
+			}
+		}
+		for cdr3Col in columns.getColumns("otherCdr3s") {
+			colChain := cdr3Col.spec.axesSpec[0].domain["pl7.app/vdj/chain"]
+			colBlockId := cdr3Col.spec.axesSpec[0].domain["pl7.app/vdj/clonotypingRunId"]
+			clonoStructure := cdr3Col.spec.axesSpec[0].domain["pl7.app/vdj/clonotypeKey/structure"]
+			if colChain == "TCRBeta" && colBlockId == cdCountsBlockId && clonoStructure == cdAlphaClonoStructure {
+				if cdr3Col.spec.domain["pl7.app/alphabet"] == "aminoacid" {
+					cdBetaTable.add(cdr3Col, {header: "CDR3aa"})
+				} 
+			}
+		}
+		for vGeneCol in columns.getColumns("otherVDJGenes") {
+			colChain := vGeneCol.spec.axesSpec[0].domain["pl7.app/vdj/chain"]
+			colBlockId := vGeneCol.spec.axesSpec[0].domain["pl7.app/vdj/clonotypingRunId"]
+			clonoStructure := vGeneCol.spec.axesSpec[0].domain["pl7.app/vdj/clonotypeKey/structure"]
+			if colChain == "TCRBeta" && colBlockId == cdCountsBlockId && clonoStructure == cdAlphaClonoStructure {
+				if vGeneCol.spec.domain["pl7.app/vdj/reference"] == "VGene" {
+				cdBetaTable.add(vGeneCol, {header: "VGene"})
+				}
+			}
+		}
+		cdBetaTable.mem(defaultConvMem)
+		cdBetaTable.cpu(defaultConvCpu)
+		cdBetaTsv = cdBetaTable.build()
+	}
+
+	//////////////// Run TCR Disco ////////////////
+
+	// Get type of input
+	inputType := undefined
+	if (mainAlphaSpec.axesSpec[1].name == "pl7.app/vdj/clonotypeKey" || mainAlphaSpec.axesSpec[1].name == "pl7.app/vdj/scClonotypeKey") {
+		inputType = "Clonotype"
+	// } else if (mainAlphaSpec.axesSpec[1].name == "pl7.app/vdj/clusterId") {
+	// 	inputType = "Cluster"
+	} else {
+		ll.panic("\n\nNot yet supported input data. Please contact Milaboratories to include it:\n%v\n", mainAlphaSpec)
+	}
+
+	tcrAnalysis := render.create(tcrAnalysisTpl, {
+		numerators: args.numerators,
+		denominators: denominators,
+		mainAlphaTsv: mainAlphaTsv,
+		mainBetaTsv: mainBetaTsv,
+		metadataTsv: metadataTsv,
+		cdAlphaTsv: cdAlphaTsv,
+		cdBetaTsv: cdBetaTsv,
+		cdSubsetCol: cdSubsetCol,
+		covariatesTsv: covariatesTsv,
+		contrastColLabel: contrastColLabel,
+		thresholdCounts: thresholdCounts,
+		thresholdSamples: thresholdSamples,
+		log2FcThreshold: log2FcThreshold,
+		pAdjThreshold: pAdjThreshold,
+		mainAlphaSpec: mainAlphaSpec,
+		mainBetaSpec: mainBetaSpec,
+		blockId: blockId,
+		defaultConvMem: defaultConvMem,
+		defaultConvCpu: defaultConvCpu
+	})
+	
+	topTableFileAlpha := tcrAnalysis.output("topTableFileAlpha")
+	topTableFileBeta := tcrAnalysis.output("topTableFileBeta")
+	daFileAlpha := tcrAnalysis.output("daFileAlpha")
+	daFileBeta := tcrAnalysis.output("daFileBeta")
+	mainAlphaFrequenciesTsv := tcrAnalysis.output("mainAlphaFrequenciesTsv")
+	mainBetaFrequenciesTsv := tcrAnalysis.output("mainBetaFrequenciesTsv")
+	clonotypeToSubsetAlpha := tcrAnalysis.output("clonotypeToSubsetAlpha")
+	clonotypeToSubsetBeta := tcrAnalysis.output("clonotypeToSubsetBeta")
+	robustEnrichmentPFAlpha_clonotype := tcrAnalysis.output("robustEnrichmentPFAlpha_clonotype")
+	robustEnrichmentPFBeta_clonotype := tcrAnalysis.output("robustEnrichmentPFBeta_clonotype")
+
+	////////////////// Spec preparation ////////////////
+	topDegPframeBuilderAlpha := pframes.pFrameBuilder()
+	topDegPframeBuilderBeta := pframes.pFrameBuilder()
+	
+
+	trace := pSpec.makeTrace(mainAlphaSpec,
+			{type: "milaboratories.tcr-disco-enrichment", importance: 30, 
+			label: "DA - Denominator: " + denominatorString + " (log2FC: " + log2FcThreshold + ", pAdj: " + pAdjThreshold + ", threshold counts: " + thresholdCounts + ", threshold samples: " + thresholdSamples + ")"}
+		)
+
+
+	// Run TCR AB pairing if stated
+	pairsTsvFile := undefined
+	pairsPF := undefined
+	if args.findTcrAbPairs && mainBetaSpec != undefined {
+		tcrAbPairs := render.create(tcrAbPairsTpl, {
+			mainAlphaTsv: mainAlphaTsv,
+			mainBetaTsv: mainBetaTsv,
+			daFileAlphaCsv: daFileAlpha,
+			daFileBetaCsv: daFileBeta,
+			metadataTsv: metadataTsv,
+			pairingMetadataCol: pairingMetadataCol,
+			contrastColLabel: contrastColLabel,
+			log2FcThreshold: log2FcThreshold,
+			pAdjThreshold: pAdjThreshold
+		})
+		pairsTsvFile = tcrAbPairs.output("pairsTsvFile")
+		
+		// Convert pairs TSV to PFrame
+		pairsImportParams := tcrPairsParamsLib.getColumns(copy(mainAlphaSpec), copy(mainBetaSpec))
+		pairsPf := xsv.importFile(pairsTsvFile, "tsv", pairsImportParams, 
+			{splitDataAndSpec: true, mem: defaultConvMem, cpu: defaultConvCpu})
+		
+		// Build PFrame for pairs
+		pairsPframeBuilder := pframes.pFrameBuilder()
+		pairsTrace := pSpec.makeTrace(mainAlphaSpec,
+			{type: "milaboratories.tcr-disco-enrichment", importance: 30, 
+			label: "TCR AB Pairs - Denominator: " + denominatorString + " (log2FC: " + log2FcThreshold + ", pAdj: " + pAdjThreshold + ")"}
+		)
+		
+		for columnName, value in pairsPf {
+			columnData := value.data
+			pairsPframeBuilder.add(
+				columnName,
+				pairsTrace.inject(value.spec),
+				columnData
+			)
+		}
+		pairsPF = pairsPframeBuilder.build()
+	}
+
+	// Process alpha chain results
+	processChainResults(mainAlphaSpec, inputType, log2FcThreshold, pAdjThreshold,
+						trace, blockId, denominators, topTableFileAlpha, daFileAlpha, defaultConvMem, defaultConvCpu, 
+						topDegPframeBuilderAlpha, cdSubsetCol)
+
+	// Process beta chain results (only if beta data exists)
+	if mainBetaSpec != undefined {
+		processChainResults(mainBetaSpec, inputType, log2FcThreshold, pAdjThreshold,
+							trace, blockId, denominators, topTableFileBeta, daFileBeta, defaultConvMem, defaultConvCpu, 
+							topDegPframeBuilderBeta, cdSubsetCol)
+	}
+
+
+	// Create contrast label Pcolumn
+	contrastExport := {
+		spec: {
+			kind: "PColumn",
+			name: "pl7.app/label",
+			valueType: "String",
+			annotations: {
+				"pl7.app/label": "Contrast",
+				"pl7.app/isLabel": "true"
+			},
+			axesSpec: [{
+					name: "pl7.app/" + "differentialAbundance" + "/contrastGroup",
+					type: "String",
+					domain: {
+						"pl7.app/blockId": blockId
+					},
+					annotations: {
+						"pl7.app/label": "Contrast"
+					}
+			}]
+		},
+		data: createJsonPColumnData(json.encode(mapToPValueData(tcrAnalysis.output("contrastMap"))))
+	}
+
+	// Build separate PFrames for alpha and beta
+	topDegPFAlpha := topDegPframeBuilderAlpha.build()
+	topDegPFBeta := undefined
+	if mainBetaSpec != undefined {
+		topDegPFBeta = topDegPframeBuilderBeta.build()
+	}
+	
+
+	// Convert frequency TSV files to PFrames
+	frequenciesTrace := pSpec.makeTrace(mainAlphaSpec,
+		{type: "milaboratories.tcr-disco-enrichment", importance: 30, 
+		label: "Frequencies - Denominator: " + denominatorString}
+	)
+	
+	// Convert alpha frequencies
+	alphaFrequenciesImportParams := topFrequenciesLib.getColumns(copy(mainAlphaSpec))
+	alphaFrequenciesPf := xsv.importFile(mainAlphaFrequenciesTsv, "tsv", alphaFrequenciesImportParams, 
+		{splitDataAndSpec: true, mem: defaultConvMem, cpu: defaultConvCpu})
+	
+	alphaFrequenciesBuilder := pframes.pFrameBuilder()
+	for columnName, value in alphaFrequenciesPf {
+		columnData := value.data
+		alphaFrequenciesBuilder.add(
+			columnName,
+			frequenciesTrace.inject(value.spec),
+			columnData
+		)
+	}
+	mainAlphaFrequenciesPF := alphaFrequenciesBuilder.build()
+	
+	// Convert beta frequencies (only if beta data exists)
+	mainBetaFrequenciesPF := undefined
+	if mainBetaSpec != undefined {
+		betaFrequenciesImportParams := topFrequenciesLib.getColumns(copy(mainBetaSpec))
+		betaFrequenciesPf := xsv.importFile(mainBetaFrequenciesTsv, "tsv", betaFrequenciesImportParams, 
+			{splitDataAndSpec: true, mem: defaultConvMem, cpu: defaultConvCpu})
+		
+		betaFrequenciesBuilder := pframes.pFrameBuilder()
+		for columnName, value in betaFrequenciesPf {
+			columnData := value.data
+			betaFrequenciesBuilder.add(
+				columnName,
+				frequenciesTrace.inject(value.spec),
+				columnData
+			)
+		}
+		mainBetaFrequenciesPF = betaFrequenciesBuilder.build()
+	}
+
+	// Export subset pframes without trace
+	alphaSubsetParams := cdSubsetParamsLib.getColumns(copy(mainAlphaSpec))
+	clonotypeToSubsetAlphaPf := xsv.importFile(clonotypeToSubsetAlpha, "tsv", alphaSubsetParams, 
+		{mem: defaultConvMem, cpu: defaultConvCpu})
+
+	clonotypeToSubsetBetaPf := undefined
+	if mainBetaSpec != undefined {
+		betaSubsetParams := cdSubsetParamsLib.getColumns(copy(mainBetaSpec))
+		clonotypeToSubsetBetaPf = xsv.importFile(clonotypeToSubsetBeta, "tsv", betaSubsetParams, 
+			{mem: defaultConvMem, cpu: defaultConvCpu})
+	}
+
+	// Store all generated PFrames in outputs only if they where defined
+	outputs.topDegPFAlpha = pframes.exportFrame(topDegPFAlpha)
+	outputs.mainAlphaFrequenciesPF = pframes.exportFrame(mainAlphaFrequenciesPF)
+	if mainBetaSpec != undefined  {
+		outputs.topDegPFBeta = pframes.exportFrame(topDegPFBeta)
+		outputs.mainBetaFrequenciesPF = pframes.exportFrame(mainBetaFrequenciesPF)
+		if pairsPF != undefined {
+			outputs.pairsPF = pframes.exportFrame(pairsPF)
+		}
+		if !is_undefined(cdAlphaTsv) && !is_undefined(cdBetaTsv) {
+			outputs.clonotypeToSubsetAlpha = pframes.exportFrame(clonotypeToSubsetAlphaPf)
+			outputs.clonotypeToSubsetBeta = pframes.exportFrame(clonotypeToSubsetBetaPf)
+		}
+	}
+
+	return {
+		outputs: outputs,
+		exports: {
+			robustEnrichmentAlpha: robustEnrichmentPFAlpha_clonotype,
+			robustEnrichmentBeta: robustEnrichmentPFBeta_clonotype,
+			contrastExport: contrastExport
+		}
+	}
+})
+
