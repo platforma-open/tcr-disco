@@ -19,8 +19,8 @@ catalogs:
       specifier: ^1.0.7
       version: 1.0.7
     '@platforma-sdk/block-tools':
-      specifier: ^2.6.25
-      version: 2.6.25
+      specifier: ^2.6.29
+      version: 2.6.29
     '@platforma-sdk/blocks-deps-updater':
       specifier: ^2.0.0
       version: 2.0.0
@@ -104,7 +104,7 @@ importers:
     devDependencies:
       '@platforma-sdk/block-tools':
         specifier: 'catalog:'
-        version: 2.6.25
+        version: 2.6.29
 
   model:
     dependencies:
@@ -117,7 +117,7 @@ importers:
     devDependencies:
       '@platforma-sdk/block-tools':
         specifier: 'catalog:'
-        version: 2.6.25
+        version: 2.6.29
       '@platforma-sdk/eslint-config':
         specifier: 'catalog:'
         version: 1.1.0(@eslint/js@9.20.0)(@stylistic/eslint-plugin@2.13.0(eslint@9.20.1)(typescript@5.5.4))(eslint-plugin-n@17.15.1(eslint@9.20.1))(eslint-plugin-vue@9.32.0(eslint@9.20.1))(eslint@9.20.1)(globals@15.14.0)(typescript-eslint@8.24.0(eslint@9.20.1)(typescript@5.5.4))(typescript@5.5.4)
@@ -1051,11 +1051,17 @@ packages:
   '@milaboratories/pl-model-common@1.21.9':
     resolution: {integrity: sha512-0n8oq0e4ZqbMJIzVnP478BGT86vB4gNSRoDic1ai7bNwMiO+jtNSOwGMwR0mFeRLqXidSLcfDxiEMXmak34f7g==}
 
+  '@milaboratories/pl-model-common@1.23.0':
+    resolution: {integrity: sha512-1uHb2pS+hWJyBKvfOlMYmjbFuWn+tNOULWj84mWASdqSjdYyHfVYbLq5esawM+dnZ2GBQIzJRbXrZYIMqH4Peg==}
+
   '@milaboratories/pl-model-middle-layer@1.8.42':
     resolution: {integrity: sha512-S2caaRDyoS/2pQGyrsN00q0qmbnQJw1bQYk8VySkk6CPHGw+Txn0MCUyKLQCdIPcjO69jjtoWYSD7GXr2ozx1w==}
 
   '@milaboratories/pl-model-middle-layer@1.8.44':
     resolution: {integrity: sha512-aLCXZAbrDMRKyZNZMEE3/TV5X8ljhyhZ0yyOb/Q0rMs2wnyUUghN48y8kwOlrsnyqC4C7WlaG54jr/h4MN6ryA==}
+
+  '@milaboratories/pl-model-middle-layer@1.9.1':
+    resolution: {integrity: sha512-iu4G/Xgeop11bdjJoEQWG9jG+7nC1AkS/TW99q2hx8RuOI1FNnqqvYmysKKVwiiGnOfQxgIOEfVn0eNNbVLhhA==}
 
   '@milaboratories/pl-tree@1.8.19':
     resolution: {integrity: sha512-lw77oz3oJuxnmES8TtYdumAyIC118MC/v/NNOzJzGrtpTm6u4zlJMCwSoe0mBGpq6vrS4PQicvuME6VBd1U2TQ==}
@@ -1170,6 +1176,10 @@ packages:
 
   '@platforma-sdk/block-tools@2.6.25':
     resolution: {integrity: sha512-uU6RrdYrEbjoeuWx97B592NF2a6l43UPxIQisvRLaqk2dCYAx5RCimDjpJC0RfY7ReYnmiQi9ehCgFT2P/smiA==}
+    hasBin: true
+
+  '@platforma-sdk/block-tools@2.6.29':
+    resolution: {integrity: sha512-YQWLeYitDgpnqjCPhTvn/HjRVuaK/XK0CtaEkZQqv/6333y9Vbvm5K+niKKnQACN1BGtxlimXCjrNgcWRYNThA==}
     hasBin: true
 
   '@platforma-sdk/blocks-deps-updater@2.0.0':
@@ -6984,6 +6994,12 @@ snapshots:
       canonicalize: 2.1.0
       zod: 3.23.8
 
+  '@milaboratories/pl-model-common@1.23.0':
+    dependencies:
+      '@milaboratories/pl-error-like': 1.12.5
+      canonicalize: 2.1.0
+      zod: 3.23.8
+
   '@milaboratories/pl-model-middle-layer@1.8.42':
     dependencies:
       '@milaboratories/pl-model-common': 1.21.8
@@ -6994,6 +7010,13 @@ snapshots:
   '@milaboratories/pl-model-middle-layer@1.8.44':
     dependencies:
       '@milaboratories/pl-model-common': 1.21.9
+      remeda: 2.30.0
+      utility-types: 3.11.0
+      zod: 3.23.8
+
+  '@milaboratories/pl-model-middle-layer@1.9.1':
+    dependencies:
+      '@milaboratories/pl-model-common': 1.23.0
       remeda: 2.30.0
       utility-types: 3.11.0
       zod: 3.23.8
@@ -7204,6 +7227,29 @@ snapshots:
       '@milaboratories/ts-helpers': 1.5.4
       '@milaboratories/ts-helpers-oclif': 1.1.33
       '@oclif/core': 4.2.6
+      canonicalize: 2.1.0
+      lru-cache: 11.2.2
+      mime-types: 2.1.35
+      remeda: 2.30.0
+      tar: 7.4.3
+      undici: 7.16.0
+      yaml: 2.8.1
+      zod: 3.23.8
+    transitivePeerDependencies:
+      - aws-crt
+      - supports-color
+
+  '@platforma-sdk/block-tools@2.6.29':
+    dependencies:
+      '@aws-sdk/client-s3': 3.859.0
+      '@milaboratories/pl-http': 1.2.0
+      '@milaboratories/pl-model-common': 1.23.0
+      '@milaboratories/pl-model-middle-layer': 1.9.1
+      '@milaboratories/resolve-helper': 1.1.1
+      '@milaboratories/ts-helpers': 1.5.4
+      '@milaboratories/ts-helpers-oclif': 1.1.33
+      '@oclif/core': 4.2.6
+      '@platforma-sdk/blocks-deps-updater': 2.0.0
       canonicalize: 2.1.0
       lru-cache: 11.2.2
       mime-types: 2.1.35
