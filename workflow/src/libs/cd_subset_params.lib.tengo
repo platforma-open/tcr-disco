@@ -1,0 +1,42 @@
+ll := import("@platforma-sdk/workflow-tengo:ll")
+
+getColumns := func(countsSpec) {
+	field := "differentialTCRAbundance"
+	degName := "log2foldchange"
+
+	axes := [
+			{
+				column: "clonotypeKey",
+				spec: countsSpec.axesSpec[1]
+			}
+			]
+
+	columns := [
+			{
+				column: "subset",
+				id: "subset",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/" + field + "/subset",
+					valueType: "String",
+					annotations: {
+						"pl7.app/label": "CD4/CD8 subset",
+						"pl7.app/table/visibility": "default",
+						"pl7.app/table/orderPriority": "60"
+					}
+				}
+			}
+			]
+
+	return {
+		axes: axes,
+		columns: columns,
+		"storageFormat": "Parquet",
+		"partitionKeyLength": 0
+	}
+}
+
+export ll.toStrict({
+	getColumns: getColumns
+})
+

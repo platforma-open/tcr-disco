@@ -1,0 +1,159 @@
+ll := import("@platforma-sdk/workflow-tengo:ll")
+math := import("math")
+
+getColumns := func(countsSpecAlpha, countsSpecBeta) {
+	field := "differentialTCRAbundance"
+	degName := "log2foldchange"
+
+	axes := [
+			{
+				column: "Numerator",
+				id: "numerator",
+				allowNA: false,
+				spec: {
+					name: "pl7.app/" + field + "/numerator",
+					type: "String",
+					annotations: {
+						"pl7.app/label": "Numerator"
+					}
+				}
+			},
+			{
+				column: "tra",
+				spec: countsSpecAlpha.axesSpec[1]
+			},
+			{
+				column: "trb",
+				spec: countsSpecBeta.axesSpec[1]
+			}
+			]
+
+	columns := [
+			{
+				column: "estimate",
+				id: "estimate",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/" + field + "/estimate",
+					valueType: "Double",
+					annotations: {
+						"pl7.app/label": "Correlation",
+						"pl7.app/table/orderPriority": "70",
+						"pl7.app/min":"0",
+            			"pl7.app/max": "1",
+						"pl7.app/table/visibility": "default"
+					}
+				}
+			},
+			{
+				column: "p.value",
+				id: "pvalue",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/" + field + "/pvalue",
+					valueType: "Double",
+					annotations: {
+						"pl7.app/label": "P-value",
+						"pl7.app/table/orderPriority": "60",
+						"pl7.app/graph/axis/symmetricRange": "0",
+						"pl7.app/table/visibility": "optional"
+					}
+				}
+			},
+			{
+				column: "p.adj",
+				id: "padj",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/" + field + "/padj",
+					valueType: "Double",
+					annotations: {
+						"pl7.app/label": "Adjusted p-value",
+						"pl7.app/table/orderPriority": "50",
+						"pl7.app/table/visibility": "default"
+					}
+				}
+			},
+			{
+				column: "tra_CDR3aa",
+				id: "tra_CDR3aa",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/" + field + "/tra_CDR3aa",
+					valueType: "String",
+					annotations: {
+						"pl7.app/label": "TCR Alpha CDR3 aa",
+						"pl7.app/table/orderPriority": "40",
+						"pl7.app/table/visibility": "default"
+					}
+				}
+			},
+			{
+				column: "trb_CDR3aa",
+				id: "trb_CDR3aa",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/" + field + "/trb_CDR3aa",
+					valueType: "String",
+					annotations: {
+						"pl7.app/label": "TCR Beta CDR3 aa",
+						"pl7.app/table/orderPriority": "30",
+						"pl7.app/table/visibility": "default"
+					}
+				}
+			},
+			{
+				column: "tra_VGene",
+				id: "tra_VGene",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/" + field + "/tra_VGene",
+					valueType: "String",
+					annotations: {
+						"pl7.app/label": "TCR Alpha VGene",
+						"pl7.app/table/orderPriority": "20",
+						"pl7.app/table/visibility": "optional"
+					}
+				}
+			},
+			{
+				column: "trb_VGene",
+				id: "trb_VGene",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/" + field + "/trb_VGene",
+					valueType: "String",
+					annotations: {
+						"pl7.app/label": "TCR Beta VGene",
+						"pl7.app/table/orderPriority": "10",
+						"pl7.app/table/visibility": "optional"
+					}
+				}
+			},
+			{
+				column: "is_max_correlation",
+				id: "is_max_correlation",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/" + field + "/max_cc_info",
+					valueType: "String",
+					annotations: {
+						"pl7.app/label": "Maximum correlation",
+						"pl7.app/table/orderPriority": "5",
+						"pl7.app/table/visibility": "optional"
+					}
+				}
+			}
+			]
+
+	return {
+		axes: axes,
+		columns: columns,
+		"storageFormat": "Parquet",
+		"partitionKeyLength": 1
+	}
+}
+
+export ll.toStrict({
+	getColumns: getColumns
+})
