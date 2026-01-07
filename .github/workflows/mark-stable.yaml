@@ -14,7 +14,7 @@ jobs:
       - init
     uses: milaboratory/github-ci/.github/workflows/block-mark-stable.yaml@v4
     with:
-      app-name: 'Block: Import V(D)J Data - Mark Stable'
+      app-name: 'Block: TCR Disco - Mark Stable'
       node-version: '20.x'
       npmrc-config: |
         {
