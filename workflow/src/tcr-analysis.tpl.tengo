@@ -40,7 +40,7 @@ self.validateInputs({
 self.defineOutputs("topTableFileAlpha","topTableFileBeta","daFileAlpha",
 "daFileBeta","contrastMap","mainAlphaFrequenciesTsv","mainBetaFrequenciesTsv",
 "clonotypeToSubsetAlpha","clonotypeToSubsetBeta",
-"robustEnrichmentPFAlpha_clonotype","robustEnrichmentPFBeta_clonotype")
+"robustEnrichmentPFAlpha_clonotype","robustEnrichmentPFBeta_clonotype","reportContent")
 
 self.body(func(inputs) {
 
@@ -126,7 +126,8 @@ self.body(func(inputs) {
 			saveFile("DA_alpha.csv").
 			saveFile("topTable_alpha.csv").
 			saveFile("DA_beta.csv").
-			saveFile("topTable_beta.csv")
+			saveFile("topTable_beta.csv").
+			saveFileContent("report.txt")
 	
 	for numerator in inputs.numerators {
 		numerator = string(numerator)
@@ -220,7 +221,8 @@ self.body(func(inputs) {
 		clonotypeToSubsetAlpha: clonotypeToSubsetAlpha,
 		clonotypeToSubsetBeta: clonotypeToSubsetBeta,
 		robustEnrichmentPFAlpha_clonotype: robustEnrichmentPFAlpha_clonotype,
-		robustEnrichmentPFBeta_clonotype: robustEnrichmentPFBeta_clonotype
+		robustEnrichmentPFBeta_clonotype: robustEnrichmentPFBeta_clonotype,
+		reportContent: diffExec.getFileContent("report.txt")
 	}
 })
 
