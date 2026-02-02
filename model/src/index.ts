@@ -207,7 +207,7 @@ export const model = BlockModel.create()
     return typeof content === 'string' && content.trim().length > 0 ? content.trim() : undefined;
   })
 
-  .output('pt', (ctx) => {
+  .outputWithStatus('pt', (ctx) => {
     const selectedChain = ctx.uiState?.selectedChain ?? 'alpha';
     const outputName = selectedChain === 'alpha' ? 'topDegPFAlpha' : 'topDegPFBeta';
     const pCols = ctx.outputs?.resolve(outputName)?.getPColumns();
@@ -233,7 +233,7 @@ export const model = BlockModel.create()
     return [createPlDataTableSheet(ctx, pCols[0].spec.axesSpec[0], partitionKeys)];
   })
 
-  .output('pairsPt', (ctx) => {
+  .outputWithStatus('pairsPt', (ctx) => {
     const pCols = ctx.outputs?.resolve({ field: 'pairsPF', allowPermanentAbsence: true })?.getPColumns();
     if (pCols === undefined) {
       return undefined;
@@ -255,7 +255,7 @@ export const model = BlockModel.create()
     return [createPlDataTableSheet(ctx, pCols[0].spec.axesSpec[0], partitionKeys)];
   })
 
-  .output('topTablePf', (ctx): PFrameHandle | undefined => {
+  .outputWithStatus('topTablePf', (ctx): PFrameHandle | undefined => {
     const selectedChain = ctx.uiState?.selectedChain ?? 'alpha';
     const outputName = selectedChain === 'alpha' ? 'topDegPFAlpha' : 'topDegPFBeta';
     let pCols = ctx.outputs?.resolve(outputName)?.getPColumns();
@@ -285,7 +285,7 @@ export const model = BlockModel.create()
     );
   })
 
-  .output('pairsHeatmapPf', (ctx): PFrameHandle | undefined => {
+  .outputWithStatus('pairsHeatmapPf', (ctx): PFrameHandle | undefined => {
     const pCols = ctx.outputs?.resolve({ field: 'pairsPF', allowPermanentAbsence: true })?.getPColumns();
     if (pCols === undefined) {
       return undefined;
@@ -354,7 +354,7 @@ export const model = BlockModel.create()
     );
   })
 
-  .output('frequenciesHeatmapPf', (ctx): PFrameHandle | undefined => {
+  .outputWithStatus('frequenciesHeatmapPf', (ctx): PFrameHandle | undefined => {
     const selectedChain = ctx.uiState?.selectedChain ?? 'alpha';
     const outputName = selectedChain === 'alpha' ? 'mainAlphaFrequenciesPF' : 'mainBetaFrequenciesPF';
     let allPcols = ctx.outputs?.resolve(outputName)?.getPColumns();
