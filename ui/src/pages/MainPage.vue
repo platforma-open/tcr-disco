@@ -25,6 +25,8 @@ import { useApp } from '../app';
 
 const app = useApp();
 
+const reportContent = computed(() => (app.model.outputs as { reportContent?: string })?.reportContent);
+
 const settingsAreShown = ref(false);
 const showSettings = () => {
   settingsAreShown.value = true;
@@ -169,6 +171,13 @@ watch(() => [app.model.args.contrastFactor], (_) => {
       </PlBtnGhost>
     </template>
 
+    <PlAlert
+      v-if="reportContent"
+      type="warn"
+      class="report-warning"
+    >
+      <span style="white-space: pre-line">{{ reportContent }}</span>
+    </PlAlert>
     <PlAgDataTableV2
       v-model="app.model.ui.tableState"
       :settings="tableSettings"

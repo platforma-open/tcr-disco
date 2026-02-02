@@ -201,6 +201,12 @@ export const model = BlockModel.create()
     return metadataCols.some((col) => col.spec.annotations?.['pl7.app/label'] === 'Barcode ID');
   })
 
+  // Run report from workflow (report.txt): empty input or threshold filter warnings.
+  .output('reportContent', (ctx): string | undefined => {
+    const content = ctx.outputs?.resolve('reportContent')?.getDataAsString();
+    return typeof content === 'string' && content.trim().length > 0 ? content.trim() : undefined;
+  })
+
   .output('pt', (ctx) => {
     const selectedChain = ctx.uiState?.selectedChain ?? 'alpha';
     const outputName = selectedChain === 'alpha' ? 'topDegPFAlpha' : 'topDegPFBeta';
