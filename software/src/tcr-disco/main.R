@@ -51,8 +51,8 @@ run_deseq = function(main_table, covariates_table, contrast_col,
   # Prepare DESeq2 dataset
   non_contrast_cols <- setdiff(colnames(covariates_table), 
     c("Sample", "internalSampleId",contrast_col))
-  metadata_short <- covariates_table[,c(contrast_col, non_contrast_cols)]
-  metadata_short <- metadata_short[colnames(count_matrix),]
+  metadata_short <- covariates_table[,c(contrast_col, non_contrast_cols), drop = FALSE]
+  metadata_short <- metadata_short[colnames(count_matrix),, drop = FALSE]
   metadata_short[[contrast_col]] <- as.factor(metadata_short[[contrast_col]])
   set.seed(42)
   dds <- DESeqDataSetFromMatrix(
@@ -78,7 +78,7 @@ run_deseq = function(main_table, covariates_table, contrast_col,
     
     # We disable independentFiltering to avoid situations with all NA adjusted 
     # p-values due to excessive filtering
-    res_df <- as.data.frame(results(dds, contrast = c(make.names(contrast_col), numerator, denom),
+    res_df <- as.data.frame(results(dds, contrast = c(contrast_col, numerator, denom),
                                     independentFiltering = FALSE))
     res_df$clonotypeKey <- rownames(res_df)
     
@@ -257,6 +257,9 @@ numerators <- fromJSON(numerator)
 covariates_table <- read.table(covariates, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 main_alpha_table <- read.table(main_alpha, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 main_beta_table <- read.table(main_beta, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+
+# Use R-safe contrast column name internally
+contrast_col <- make.names(contrast_col)
 
 # Run DESeq2 once per chain for all numerators (efficient)
 deseq_results_alpha <- run_deseq(main_alpha_table, covariates_table, contrast_col,
