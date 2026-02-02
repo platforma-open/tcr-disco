@@ -25,6 +25,8 @@ import { useApp } from '../app';
 
 const app = useApp();
 
+const reportContent = computed(() => (app.model.outputs as { reportContent?: string })?.reportContent);
+
 const settingsAreShown = ref(false);
 const showSettings = () => {
   settingsAreShown.value = true;
@@ -93,6 +95,14 @@ const metadataLabels = computed(() => {
   })) ?? [];
 });
 
+// CD4/8 dropdown: same options as main, but exclude the main dataset
+const cdRefInputOptions = computed(() => {
+  const opts = app.model.outputs.inputOptions ?? [];
+  const main = app.model.args.mainRef;
+  if (!main) return opts;
+  return opts.filter((o) => !plRefsEqual(o.ref, main));
+});
+
 const contrastFactorOptions = computed(() => {
   return app.model.args.covariateRefs.map((ref) => ({
     value: ref,
@@ -155,6 +165,14 @@ watch(() => [app.model.args.contrastFactor], (_) => {
   app.model.args.denominators = [];
 });
 
+// Clear CD4/8 selection if user sets main dataset to the same as CD4/8
+watch(() => app.model.args.mainRef, (mainRef) => {
+  const cdRef = app.model.args.cdRef;
+  if (cdRef && mainRef && plRefsEqual(cdRef, mainRef)) {
+    app.model.args.cdRef = undefined;
+  }
+});
+
 </script>
 
 <template>
@@ -169,6 +187,13 @@ watch(() => [app.model.args.contrastFactor], (_) => {
       </PlBtnGhost>
     </template>
 
+    <PlAlert
+      v-if="reportContent"
+      type="warn"
+      class="report-warning"
+    >
+      <span style="white-space: pre-line">{{ reportContent }}</span>
+    </PlAlert>
     <PlAgDataTableV2
       v-model="app.model.ui.tableState"
       :settings="tableSettings"
@@ -305,7 +330,7 @@ watch(() => [app.model.args.contrastFactor], (_) => {
     <PlAccordionSection label="CD4/8 subset assignment">
       <PlDropdownRef
         v-model="app.model.args.cdRef"
-        :options="app.model.outputs.inputOptions"
+        :options="cdRefInputOptions"
         label="Select CD4/8 dataset (optional)"
         clearable
       >
