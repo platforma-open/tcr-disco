@@ -402,6 +402,7 @@ wf.body(func(args) {
 	clonotypeToSubsetBeta := tcrAnalysis.output("clonotypeToSubsetBeta")
 	robustEnrichmentPFAlpha_clonotype := tcrAnalysis.output("robustEnrichmentPFAlpha_clonotype")
 	robustEnrichmentPFBeta_clonotype := tcrAnalysis.output("robustEnrichmentPFBeta_clonotype")
+	reportContent := tcrAnalysis.output("reportContent")
 
 	////////////////// Spec preparation ////////////////
 	topDegPframeBuilderAlpha := pframes.pFrameBuilder()
@@ -566,6 +567,9 @@ wf.body(func(args) {
 			outputs.clonotypeToSubsetBeta = pframes.exportFrame(clonotypeToSubsetBetaPf)
 		}
 	}
+
+	// Report file indicating empty inputs or too much filtering
+	outputs.reportContent = reportContent
 
 	return {
 		outputs: outputs,

@@ -136,7 +136,7 @@ print(paste0("main_beta: ", main_beta))
 
 ## 1.1. TCR Discovery
 ### Load main data
-metadata_table <- read.table(metadata, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+metadata_table <- read.table(metadata, header = TRUE, sep = "\t", stringsAsFactors = FALSE, check.names = FALSE)
 main_alpha_table <- read.table(main_alpha, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 main_beta_table <- read.table(main_beta, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 

@@ -51,8 +51,8 @@ run_deseq = function(main_table, covariates_table, contrast_col,
   # Prepare DESeq2 dataset
   non_contrast_cols <- setdiff(colnames(covariates_table), 
     c("Sample", "internalSampleId",contrast_col))
-  metadata_short <- covariates_table[,c(contrast_col, non_contrast_cols)]
-  metadata_short <- metadata_short[colnames(count_matrix),]
+  metadata_short <- covariates_table[,c(contrast_col, non_contrast_cols), drop = FALSE]
+  metadata_short <- metadata_short[colnames(count_matrix),, drop = FALSE]
   metadata_short[[contrast_col]] <- as.factor(metadata_short[[contrast_col]])
   set.seed(42)
   dds <- DESeqDataSetFromMatrix(
@@ -78,7 +78,7 @@ run_deseq = function(main_table, covariates_table, contrast_col,
     
     # We disable independentFiltering to avoid situations with all NA adjusted 
     # p-values due to excessive filtering
-    res_df <- as.data.frame(results(dds, contrast = c(make.names(contrast_col), numerator, denom),
+    res_df <- as.data.frame(results(dds, contrast = c(contrast_col, numerator, denom),
                                     independentFiltering = FALSE))
     res_df$clonotypeKey <- rownames(res_df)
     
@@ -158,6 +158,15 @@ run_deseq = function(main_table, covariates_table, contrast_col,
 
   return (list(res_df = res_df, deg_df = deg_df))
 
+}
+
+# Returns empty res_df and deg_df with the same column structure as run_deseq output
+empty_deseq_results <- function() {
+  base_cols <- c("clonotypeKey", "Contrast", "CDR3aa", "VGene", "Regulation", "Robust_Enrichment",
+                 "log2FoldChange", "padj", "pvalue", "baseMean", "lfcSE", "stat", "minlog10padj", "Numerator", "umi_count_CD4", "umi_freq_CD4", "umi_count_CD8", "umi_freq_CD8", "subset", "subset_frequency")
+  empty_df <- as.data.frame(matrix(nrow = 0, ncol = length(base_cols)))
+  colnames(empty_df) <- base_cols
+  list(res_df = empty_df, deg_df = empty_df)
 }
 
 #----------------------------------------
@@ -258,18 +267,52 @@ covariates_table <- read.table(covariates, header = TRUE, sep = "\t", stringsAsF
 main_alpha_table <- read.table(main_alpha, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 main_beta_table <- read.table(main_beta, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 
-# Run DESeq2 once per chain for all numerators (efficient)
-deseq_results_alpha <- run_deseq(main_alpha_table, covariates_table, contrast_col,
-  numerators, denominators, output_folder, fraction_for_filter, min_counts,
-  threshold_counts, threshold_samples, fdr_cut, fc_cut)
-res_alpha <- deseq_results_alpha$res_df
-deg_alpha <- deseq_results_alpha$deg_df
+# Use R-safe contrast column name internally
+contrast_col <- make.names(contrast_col)
 
-deseq_results_beta <- run_deseq(main_beta_table, covariates_table, contrast_col,
-  numerators, denominators, output_folder, fraction_for_filter, min_counts,
-  threshold_counts, threshold_samples, fdr_cut, fc_cut)
-res_beta <- deseq_results_beta$res_df
-deg_beta <- deseq_results_beta$deg_df
+# Accumulate user-facing warnings for report.txt
+report_lines <- character(0)
+empty_alpha <- (nrow(main_alpha_table) == 0)
+empty_beta <- (nrow(main_beta_table) == 0)
+if (empty_alpha && empty_beta) {
+  report_lines <- c(report_lines, "Input alpha and beta tables are empty, please review your data.")
+} else {
+  if (empty_alpha) report_lines <- c(report_lines, "Input alpha table is empty, please review your data.")
+  if (empty_beta) report_lines <- c(report_lines, "Input beta table is empty, please review your data.")
+}
+
+# Run DESeq2 per chain (skip empty inputs)
+if (empty_alpha) {
+  empty_alpha_results <- empty_deseq_results()
+  res_alpha <- empty_alpha_results$res_df
+  deg_alpha <- empty_alpha_results$deg_df
+} else {
+  deseq_results_alpha <- run_deseq(main_alpha_table, covariates_table, contrast_col,
+    numerators, denominators, output_folder, fraction_for_filter, min_counts,
+    threshold_counts, threshold_samples, fdr_cut, fc_cut)
+  res_alpha <- deseq_results_alpha$res_df
+  deg_alpha <- deseq_results_alpha$deg_df
+  if (nrow(res_alpha) == 0) {
+    report_lines <- c(report_lines,
+      "User defined threshold parameters (minimum UMI count or replicates) are too restrictive and filtered out all alpha clonotypes. Please consider modifying these thresholds.")
+  }
+}
+
+if (empty_beta) {
+  empty_beta_results <- empty_deseq_results()
+  res_beta <- empty_beta_results$res_df
+  deg_beta <- empty_beta_results$deg_df
+} else {
+  deseq_results_beta <- run_deseq(main_beta_table, covariates_table, contrast_col,
+    numerators, denominators, output_folder, fraction_for_filter, min_counts,
+    threshold_counts, threshold_samples, fdr_cut, fc_cut)
+  res_beta <- deseq_results_beta$res_df
+  deg_beta <- deseq_results_beta$deg_df
+  if (nrow(res_beta) == 0) {
+    report_lines <- c(report_lines,
+      "User defined threshold parameters (minimum UMI count or replicates) are too restrictive and filtered out all beta clonotypes. Please consider modifying these thresholds.")
+  }
+}
 
 # Create output folder if it doesn't exist
 if (!dir.exists(output_folder)) {
@@ -289,3 +332,6 @@ for (num in numerators) {
   write.csv(robust_enrichment_mapping_beta, paste0(output_folder, "/robust_enrichment_beta_", num, ".csv"),
             row.names = FALSE)
 }
+
+# Write user-facing warnings to report.txt for model/UI display (always create file; empty if no warnings)
+writeLines(report_lines, paste0(output_folder, "/report.txt"))
