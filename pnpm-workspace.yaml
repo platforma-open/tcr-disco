@@ -10,7 +10,7 @@ catalog:
   "@platforma-sdk/model": ^1.45.35
   "@platforma-sdk/ui-vue": ^1.46.1
   "@platforma-sdk/workflow-tengo": ^5.6.4
-  "@platforma-sdk/block-tools": ^2.6.29
+  "@platforma-sdk/block-tools": ^2.6.37
   "@platforma-sdk/test": ^1.46.3
   "@platforma-sdk/tengo-builder": ^2.3.14
   "@platforma-sdk/package-builder": ^3.10.7
