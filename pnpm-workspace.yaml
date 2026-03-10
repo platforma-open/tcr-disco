@@ -10,10 +10,10 @@ catalog:
   "@platforma-sdk/model": ^1.53.4
   "@platforma-sdk/ui-vue": ^1.53.4
   "@platforma-sdk/workflow-tengo": ^5.8.1
-  "@platforma-sdk/block-tools": ^2.6.37
+  "@platforma-sdk/block-tools": ^2.6.65
   "@platforma-sdk/test": ^1.53.4
   "@platforma-sdk/tengo-builder": ^2.4.13
-  "@platforma-sdk/package-builder": ^3.11.0
+  "@platforma-sdk/package-builder": ^3.11.6
   "@platforma-sdk/eslint-config": ^1.2.0
   '@milaboratories/multi-sequence-alignment': ^1.46.3
   "@platforma-sdk/blocks-deps-updater": ^2.0.0
