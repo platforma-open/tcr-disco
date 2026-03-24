@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { PredefinedGraphOption } from '@milaboratories/graph-maker';
 import { GraphMaker } from '@milaboratories/graph-maker';
-import '@milaboratories/graph-maker/styles';
 import type { PColumnIdAndSpec } from '@platforma-sdk/model';
 import { plRefsEqual } from '@platforma-sdk/model';
 import { PlTabs } from '@platforma-sdk/ui-vue';
