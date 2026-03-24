@@ -1,5 +1,7 @@
 import type { GraphMakerState } from '@milaboratories/graph-maker';
 import type {
+  CanonicalizedJson,
+  CreatePlDataTableOps,
   InferOutputsType,
   PColumn,
   PColumnDataUniversal,
@@ -8,10 +10,12 @@ import type {
   PlDataTableStateV2,
   PlMultiSequenceAlignmentModel,
   PlRef,
+  PTableColumnId,
   TreeNodeAccessor,
 } from '@platforma-sdk/model';
 import {
   BlockModel,
+  canonicalizeJson,
   createPFrameForGraphs,
   createPlDataTableSheet,
   createPlDataTableStateV2,
@@ -64,6 +68,47 @@ function filterPCols(
       || col.spec.name === 'pl7.app/differentialTCRAbundance/robustEnrichment',
   );
   return pCols;
+}
+
+/** Build default table filters based on threshold args */
+function buildTableFilters(
+  pCols: PColumn<PColumnDataUniversal>[],
+  args: BlockArgs,
+): CreatePlDataTableOps['filters'] {
+  type ColRef = CanonicalizedJson<PTableColumnId>;
+  const filters: (
+    | { type: 'greaterThanOrEqual'; column: ColRef; x: number }
+    | { type: 'lessThanOrEqual'; column: ColRef; x: number }
+    | { type: 'patternEquals'; column: ColRef; value: string }
+  )[] = [];
+
+  for (const col of pCols) {
+    const colRef = canonicalizeJson<PTableColumnId>({ type: 'column', id: col.id });
+    if (col.spec.name === 'pl7.app/differentialTCRAbundance/log2foldchange') {
+      filters.push({ type: 'greaterThanOrEqual', column: colRef, x: args.log2FcThreshold });
+    } else if (col.spec.name === 'pl7.app/differentialTCRAbundance/padj') {
+      filters.push({ type: 'lessThanOrEqual', column: colRef, x: args.pAdjThreshold });
+    } else if (col.spec.name === 'pl7.app/differentialTCRAbundance/robustEnrichment') {
+      filters.push({ type: 'patternEquals', column: colRef, value: 'Robust' });
+    }
+  }
+
+  if (filters.length === 0) return undefined;
+  return { type: 'and', filters };
+}
+
+/** Build default filters for the pairs table */
+function buildPairsTableFilters(
+  pCols: PColumn<PColumnDataUniversal>[],
+  args: BlockArgs,
+): CreatePlDataTableOps['filters'] {
+  for (const col of pCols) {
+    if (col.spec.name === 'pl7.app/differentialTCRAbundance/padj') {
+      const colRef = canonicalizeJson<PTableColumnId>({ type: 'column', id: col.id });
+      return { type: 'and', filters: [{ type: 'lessThanOrEqual', column: colRef, x: args.pAdjThreshold }] };
+    }
+  }
+  return undefined;
 }
 
 export const model = BlockModel.create()
@@ -215,7 +260,9 @@ export const model = BlockModel.create()
       return undefined;
     }
 
-    return createPlDataTableV2(ctx, pCols, ctx.uiState?.tableState);
+    return createPlDataTableV2(ctx, pCols, ctx.uiState?.tableState, {
+      filters: buildTableFilters(pCols, ctx.args),
+    });
   })
 
   .output('sheets', (ctx) => {
@@ -239,7 +286,9 @@ export const model = BlockModel.create()
       return undefined;
     }
 
-    return createPlDataTableV2(ctx, pCols, ctx.uiState?.pairsTableState);
+    return createPlDataTableV2(ctx, pCols, ctx.uiState?.pairsTableState, {
+      filters: buildPairsTableFilters(pCols, ctx.args),
+    });
   })
 
   .output('pairsSheets', (ctx) => {
