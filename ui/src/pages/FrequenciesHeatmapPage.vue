@@ -75,6 +75,17 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
     });
   }
 
+  // Add filters for the contrast values that have been selected
+  const contrastValues = [...app.model.args.numerators, ...app.model.args.denominators];
+  if (contrastValues.length > 0) {
+    defaults.push({
+      inputName: 'filters',
+      selectedSource: pcols[contrastIndex].spec,
+      filterType: 'equals',
+      selectedFilterValues: contrastValues,
+    });
+  }
+
   const robustAnyIndex = getIndex('pl7.app/differentialTCRAbundance/robustEnrichment', pcols);
   if (robustAnyIndex !== -1) {
     defaults.push({
