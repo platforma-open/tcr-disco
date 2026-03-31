@@ -63,12 +63,6 @@ deg_beta_table <- read.csv(da_beta, header = TRUE, sep = ",", stringsAsFactors =
 # main_alpha_table <- main_alpha_table[main_alpha_table$clonotypeKey %in% unique(deg_alpha_table$clonotypeKey), ]
 # main_beta_table <- main_beta_table[main_beta_table$clonotypeKey %in% unique(deg_beta_table$clonotypeKey), ]
 
-### TEST#
-drop_alpha <- unique(main_alpha_table[main_alpha_table$clonotypeKey %in% unique(deg_alpha_table$clonotypeKey), "clonotypeKey"])[1]
-drop_beta <- unique(main_beta_table[main_beta_table$clonotypeKey %in% unique(deg_beta_table$clonotypeKey), "clonotypeKey"])[1]
-main_alpha_table <- main_alpha_table[main_alpha_table$clonotypeKey != drop_alpha, ]
-main_beta_table <- main_beta_table[main_beta_table$clonotypeKey != drop_beta, ]
-
 # Merge Robust_Enrichment from deg tables into main tables
 robust_alpha <- unique(deg_alpha_table[, c("clonotypeKey", "Robust_Enrichment"), drop = FALSE])
 main_alpha_table <- merge(main_alpha_table, robust_alpha, by = "clonotypeKey", all.x = TRUE)
