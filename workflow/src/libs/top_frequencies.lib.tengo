@@ -1,5 +1,4 @@
 ll := import("@platforma-sdk/workflow-tengo:ll")
-json := import("json")
 math := import("math")
 
 getColumns := func(countsSpec) {
@@ -33,22 +32,6 @@ getColumns := func(countsSpec) {
 						"pl7.app/label": "Fraction of counts",
 						"pl7.app/table/orderPriority": "100",
 						"pl7.app/table/visibility": "default"
-					}
-				}
-			},
-			{
-				column: "Robust_Enrichment",
-				id: "robustEnrichment",
-				allowNA: true,
-				spec: {
-					name: "pl7.app/" + field + "/robustEnrichment",
-					valueType: "String",
-					annotations: {
-						"pl7.app/label": "Robust enrichment",
-						"pl7.app/table/orderPriority": "200",
-						"pl7.app/table/visibility": "default",
-						"pl7.app/isDiscreteFilter": "true",
-						"pl7.app/discreteValues": string(json.encode(["Robust", "Non-robust"]))
 					}
 				}
 			}

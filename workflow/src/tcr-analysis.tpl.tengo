@@ -40,7 +40,8 @@ self.validateInputs({
 self.defineOutputs("topTableFileAlpha","topTableFileBeta","daFileAlpha",
 "daFileBeta","contrastMap","mainAlphaFrequenciesTsv","mainBetaFrequenciesTsv",
 "clonotypeToSubsetAlpha","clonotypeToSubsetBeta",
-"robustEnrichmentPFAlpha_clonotype","robustEnrichmentPFBeta_clonotype","reportContent")
+"robustEnrichmentPFAlpha_clonotype","robustEnrichmentPFBeta_clonotype",
+"robustAnyAlphaTsv","robustAnyBetaTsv","reportContent")
 
 self.body(func(inputs) {
 
@@ -163,12 +164,12 @@ self.body(func(inputs) {
 				trace.inject(degPfAlpha["robustEnrichment.spec"]),
 				degPfAlpha["robustEnrichment.data"]
 			)
-			
+
 			// Process beta chain if available
 			if !is_undefined(inputs.mainBetaSpec) {
 				degImportParamsBeta := tcrdiscoDaPfconvParamsLib.getColumns(inputs.mainBetaSpec, inputs.cdSubsetCol, numerator, comparison)
 				degPfBeta := xsv.importFile(diffExec.getFile("robust_enrichment_beta_" + numerator + ".csv"), "csv", degImportParamsBeta, {mem: defaultConvMem, cpu: defaultConvCpu})
-				
+
 				/// We just export robust enrichment for now, that will have a unique value per clonotype
 				robustEnrichmentPframeBuilderBeta_clonotype.add(
 					numerator,
@@ -194,11 +195,15 @@ self.body(func(inputs) {
 		saveFile("main_beta_frequencies.tsv").
 		saveFile("clonotype_to_subset_alpha.tsv").
 		saveFile("clonotype_to_subset_beta.tsv").
+		saveFile("robust_any_alpha.tsv").
+		saveFile("robust_any_beta.tsv").
 		run()
 	mainAlphaFrequenciesTsv := getEnrichedFrequenciesExec.getFile("main_alpha_frequencies.tsv")
 	mainBetaFrequenciesTsv := getEnrichedFrequenciesExec.getFile("main_beta_frequencies.tsv")
 	clonotypeToSubsetAlpha := getEnrichedFrequenciesExec.getFile("clonotype_to_subset_alpha.tsv")
 	clonotypeToSubsetBeta := getEnrichedFrequenciesExec.getFile("clonotype_to_subset_beta.tsv")
+	robustAnyAlphaTsv := getEnrichedFrequenciesExec.getFile("robust_any_alpha.tsv")
+	robustAnyBetaTsv := getEnrichedFrequenciesExec.getFile("robust_any_beta.tsv")
 
 	// Build format 2 PFrames
 	robustEnrichmentPFAlpha_clonotype := undefined
@@ -222,6 +227,8 @@ self.body(func(inputs) {
 		clonotypeToSubsetBeta: clonotypeToSubsetBeta,
 		robustEnrichmentPFAlpha_clonotype: robustEnrichmentPFAlpha_clonotype,
 		robustEnrichmentPFBeta_clonotype: robustEnrichmentPFBeta_clonotype,
+		robustAnyAlphaTsv: robustAnyAlphaTsv,
+		robustAnyBetaTsv: robustAnyBetaTsv,
 		reportContent: diffExec.getFileContent("report.txt")
 	}
 })

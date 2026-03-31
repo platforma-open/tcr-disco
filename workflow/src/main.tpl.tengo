@@ -16,6 +16,7 @@ topTablePfconvParamsLib := import(":libs.top_table_pfconv_params")
 tcrPairsParamsLib := import(":libs.tcr_pairs_params")
 topFrequenciesLib := import(":libs.top_frequencies")
 cdSubsetParamsLib := import(":libs.cd_subset_params")
+tcrdiscoDaPfconvParamsLib := import(":libs.tcrdisco_da_pfconv_params")
 
 mapToPValueData := func(map) {
 	data := {}
@@ -402,6 +403,8 @@ wf.body(func(args) {
 	clonotypeToSubsetBeta := tcrAnalysis.output("clonotypeToSubsetBeta")
 	robustEnrichmentPFAlpha_clonotype := tcrAnalysis.output("robustEnrichmentPFAlpha_clonotype")
 	robustEnrichmentPFBeta_clonotype := tcrAnalysis.output("robustEnrichmentPFBeta_clonotype")
+	robustAnyAlphaTsv := tcrAnalysis.output("robustAnyAlphaTsv")
+	robustAnyBetaTsv := tcrAnalysis.output("robustAnyBetaTsv")
 	reportContent := tcrAnalysis.output("reportContent")
 
 	////////////////// Spec preparation ////////////////
@@ -553,6 +556,18 @@ wf.body(func(args) {
 			{mem: defaultConvMem, cpu: defaultConvCpu})
 	}
 
+	// Import robust enrichment (any comparison) pframes
+	robustAnyAlphaParams := tcrdiscoDaPfconvParamsLib.getColumns(copy(mainAlphaSpec), undefined, "Any", undefined, false)
+	robustAnyAlphaPf := xsv.importFile(robustAnyAlphaTsv, "tsv", robustAnyAlphaParams,
+		{mem: defaultConvMem, cpu: defaultConvCpu})
+
+	robustAnyBetaPf := undefined
+	if mainBetaSpec != undefined {
+		robustAnyBetaParams := tcrdiscoDaPfconvParamsLib.getColumns(copy(mainBetaSpec), undefined, "Any", undefined, false)
+		robustAnyBetaPf = xsv.importFile(robustAnyBetaTsv, "tsv", robustAnyBetaParams,
+			{mem: defaultConvMem, cpu: defaultConvCpu})
+	}
+
 	// Store all generated PFrames in outputs only if they where defined
 	outputs.topDegPFAlpha = pframes.exportFrame(topDegPFAlpha)
 	outputs.mainAlphaFrequenciesPF = pframes.exportFrame(mainAlphaFrequenciesPF)
@@ -566,6 +581,12 @@ wf.body(func(args) {
 			outputs.clonotypeToSubsetAlpha = pframes.exportFrame(clonotypeToSubsetAlphaPf)
 			outputs.clonotypeToSubsetBeta = pframes.exportFrame(clonotypeToSubsetBetaPf)
 		}
+	}
+
+	// Robust enrichment per clonotype - any comparison
+	outputs.robustAnyAlpha = pframes.exportFrame(robustAnyAlphaPf)
+	if robustAnyBetaPf != undefined {
+		outputs.robustAnyBeta = pframes.exportFrame(robustAnyBetaPf)
 	}
 
 	// Report file indicating empty inputs or too much filtering
