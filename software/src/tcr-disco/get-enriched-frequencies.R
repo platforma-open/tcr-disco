@@ -59,8 +59,24 @@ deg_alpha_table <- read.csv(da_alpha, header = TRUE, sep = ",", stringsAsFactors
 deg_beta_table <- read.csv(da_beta, header = TRUE, sep = ",", stringsAsFactors = FALSE)
 
 # Keep only DA clonotypes from main tables
-main_alpha_table <- main_alpha_table[main_alpha_table$clonotypeKey %in% unique(deg_alpha_table$clonotypeKey), ]
-main_beta_table <- main_beta_table[main_beta_table$clonotypeKey %in% unique(deg_beta_table$clonotypeKey), ]
+# Commented out for now, we need the whole data to then include pl7.app/graph/isDenseAxis annotation
+# main_alpha_table <- main_alpha_table[main_alpha_table$clonotypeKey %in% unique(deg_alpha_table$clonotypeKey), ]
+# main_beta_table <- main_beta_table[main_beta_table$clonotypeKey %in% unique(deg_beta_table$clonotypeKey), ]
+
+### TEST#
+drop_alpha <- unique(main_alpha_table[main_alpha_table$clonotypeKey %in% unique(deg_alpha_table$clonotypeKey), "clonotypeKey"])[1]
+drop_beta <- unique(main_beta_table[main_beta_table$clonotypeKey %in% unique(deg_beta_table$clonotypeKey), "clonotypeKey"])[1]
+main_alpha_table <- main_alpha_table[main_alpha_table$clonotypeKey != drop_alpha, ]
+main_beta_table <- main_beta_table[main_beta_table$clonotypeKey != drop_beta, ]
+
+# Merge Robust_Enrichment from deg tables into main tables
+robust_alpha <- unique(deg_alpha_table[, c("clonotypeKey", "Robust_Enrichment"), drop = FALSE])
+main_alpha_table <- merge(main_alpha_table, robust_alpha, by = "clonotypeKey", all.x = TRUE)
+main_alpha_table$Robust_Enrichment[is.na(main_alpha_table$Robust_Enrichment)] <- "Non-robust"
+
+robust_beta <- unique(deg_beta_table[, c("clonotypeKey", "Robust_Enrichment"), drop = FALSE])
+main_beta_table <- merge(main_beta_table, robust_beta, by = "clonotypeKey", all.x = TRUE)
+main_beta_table$Robust_Enrichment[is.na(main_beta_table$Robust_Enrichment)] <- "Non-robust"
 
 # Store the tables
 if (!dir.exists(output_folder)) {
@@ -68,10 +84,10 @@ if (!dir.exists(output_folder)) {
 }
 
 if ("subset" %in% colnames(main_alpha_table)) {
-  keep_cols1 <- c("internalSampleId", "clonotypeKey", "fraction", "subset")
+  keep_cols1 <- c("internalSampleId", "clonotypeKey", "fraction", "Robust_Enrichment", "subset")
   keep_cols2 <- c("clonotypeKey", "subset")
 } else {
-  keep_cols1 <- c("internalSampleId", "clonotypeKey", "fraction")
+  keep_cols1 <- c("internalSampleId", "clonotypeKey", "fraction", "Robust_Enrichment")
   keep_cols2 <- c("clonotypeKey")
 }
 write.table(main_alpha_table[, keep_cols1], 
