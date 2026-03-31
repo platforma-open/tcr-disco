@@ -75,6 +75,16 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
     });
   }
 
+  const robustAnyIndex = getIndex('pl7.app/differentialTCRAbundance/robustEnrichment', pcols);
+  if (robustAnyIndex !== -1) {
+    defaults.push({
+      inputName: 'filters',
+      selectedSource: pcols[robustAnyIndex].spec,
+      filterType: 'equals',
+      selectedFilterValues: ['Robust'],
+    });
+  }
+
   return defaults;
 });
 
