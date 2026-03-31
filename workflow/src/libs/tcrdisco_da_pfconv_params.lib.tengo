@@ -18,12 +18,12 @@ getColumns := func(countsSpec, cdSubsetCol, numerator, comparison, ...options) {
 	annotations := {
 		"pl7.app/label": "Robust enrichment - " + numerator,
 		"pl7.app/table/visibility": "optional",
-		"pl7.app/table/orderPriority": "84000",
-		"pl7.app/isDiscreteFilter": "true",
-		"pl7.app/discreteValues": string(json.encode(["Robust", "Non-robust"]))
+		"pl7.app/table/orderPriority": "84000"
 	}
 	if hideFromGraphs {
 		annotations["pl7.app/hideDataFromGraphs"] = "true"
+		annotations["pl7.app/isDiscreteFilter"] = "true"
+		annotations["pl7.app/discreteValues"] = string(json.encode(["Robust", "Non-robust"]))
 	}
 
 	domain := {

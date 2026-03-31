@@ -10,8 +10,8 @@ catalogs:
       specifier: ^2.29.5
       version: 2.29.6
     '@milaboratories/graph-maker':
-      specifier: 1.1.215
-      version: 1.1.215
+      specifier: 1.2.5
+      version: 1.2.5
     '@milaboratories/multi-sequence-alignment':
       specifier: ^1.46.3
       version: 1.46.3
@@ -52,8 +52,8 @@ catalogs:
       specifier: ^2.5.4
       version: 2.5.6
     typescript:
-      specifier: ~5.5.4
-      version: 5.5.4
+      specifier: ~5.6.3
+      version: 5.6.3
     vite:
       specifier: ^6.3.5
       version: 6.3.5
@@ -110,7 +110,7 @@ importers:
     dependencies:
       '@milaboratories/graph-maker':
         specifier: 'catalog:'
-        version: 1.1.215(@milaboratories/pl-model-common@1.24.2)(@platforma-sdk/model@1.53.4)(@platforma-sdk/ui-vue@1.53.4(sortablejs@1.15.6)(typescript@5.5.4))(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)(typescript@5.5.4)
+        version: 1.2.5(@milaboratories/pl-model-common@1.24.2)(@platforma-sdk/model@1.53.4)(@platforma-sdk/ui-vue@1.53.4(sortablejs@1.15.6)(typescript@5.6.3))(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)(typescript@5.6.3)
       '@platforma-sdk/model':
         specifier: 'catalog:'
         version: 1.53.4
@@ -120,16 +120,16 @@ importers:
         version: 2.6.37
       '@platforma-sdk/eslint-config':
         specifier: 'catalog:'
-        version: 1.2.0(@eslint/js@9.39.2)(@stylistic/eslint-plugin@2.13.0(eslint@9.39.2)(typescript@5.5.4))(eslint-plugin-n@17.15.1(eslint@9.39.2))(eslint-plugin-vue@9.32.0(eslint@9.39.2))(eslint@9.39.2)(globals@15.14.0)(typescript-eslint@8.24.0(eslint@9.39.2)(typescript@5.5.4))(typescript@5.5.4)
+        version: 1.2.0(@eslint/js@9.39.2)(@stylistic/eslint-plugin@2.13.0(eslint@9.39.2)(typescript@5.6.3))(eslint-plugin-n@17.15.1(eslint@9.39.2))(eslint-plugin-vue@9.32.0(eslint@9.39.2))(eslint@9.39.2)(globals@15.14.0)(typescript-eslint@8.24.0(eslint@9.39.2)(typescript@5.6.3))(typescript@5.6.3)
       typescript:
         specifier: 'catalog:'
-        version: 5.5.4
+        version: 5.6.3
       vite:
         specifier: 'catalog:'
         version: 6.3.5(@types/node@24.5.2)(yaml@2.8.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@24.5.2)(rollup@4.49.0)(typescript@5.5.4)(vite@6.3.5(@types/node@24.5.2)(yaml@2.8.1))
+        version: 4.5.4(@types/node@24.5.2)(rollup@4.49.0)(typescript@5.6.3)(vite@6.3.5(@types/node@24.5.2)(yaml@2.8.1))
 
   software:
     devDependencies:
@@ -148,10 +148,10 @@ importers:
     devDependencies:
       '@platforma-sdk/test':
         specifier: 'catalog:'
-        version: 1.53.4(@eslint/js@9.39.2)(@stylistic/eslint-plugin@2.13.0(eslint@9.39.2)(typescript@5.5.4))(@types/node@24.5.2)(eslint-plugin-n@17.15.1(eslint@9.39.2))(eslint-plugin-vue@9.32.0(eslint@9.39.2))(globals@15.14.0)(typescript-eslint@8.24.0(eslint@9.39.2)(typescript@5.5.4))(typescript@5.5.4)(yaml@2.8.1)
+        version: 1.53.4(@eslint/js@9.39.2)(@stylistic/eslint-plugin@2.13.0(eslint@9.39.2)(typescript@5.6.3))(@types/node@24.5.2)(eslint-plugin-n@17.15.1(eslint@9.39.2))(eslint-plugin-vue@9.32.0(eslint@9.39.2))(globals@15.14.0)(typescript-eslint@8.24.0(eslint@9.39.2)(typescript@5.6.3))(typescript@5.6.3)(yaml@2.8.1)
       typescript:
         specifier: 'catalog:'
-        version: 5.5.4
+        version: 5.6.3
       vitest:
         specifier: 'catalog:'
         version: 2.1.9(@types/node@24.5.2)
@@ -160,10 +160,10 @@ importers:
     dependencies:
       '@milaboratories/graph-maker':
         specifier: 'catalog:'
-        version: 1.1.215(@milaboratories/pl-model-common@1.24.2)(@platforma-sdk/model@1.53.4)(@platforma-sdk/ui-vue@1.53.4(sortablejs@1.15.6)(typescript@5.5.4))(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)(typescript@5.5.4)
+        version: 1.2.5(@milaboratories/pl-model-common@1.24.2)(@platforma-sdk/model@1.53.4)(@platforma-sdk/ui-vue@1.53.4(sortablejs@1.15.6)(typescript@5.6.3))(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)(typescript@5.6.3)
       '@milaboratories/multi-sequence-alignment':
         specifier: 'catalog:'
-        version: 1.46.3(@platforma-sdk/model@1.53.4)(@platforma-sdk/ui-vue@1.53.4(sortablejs@1.15.6)(typescript@5.5.4))(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)(typescript@5.5.4)
+        version: 1.46.3(@platforma-sdk/model@1.53.4)(@platforma-sdk/ui-vue@1.53.4(sortablejs@1.15.6)(typescript@5.6.3))(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)(typescript@5.6.3)
       '@platforma-open/milaboratories.tcrdisco-enrichment.model':
         specifier: workspace:*
         version: link:../model
@@ -172,26 +172,26 @@ importers:
         version: 1.53.4
       '@platforma-sdk/ui-vue':
         specifier: 'catalog:'
-        version: 1.53.4(sortablejs@1.15.6)(typescript@5.5.4)
+        version: 1.53.4(sortablejs@1.15.6)(typescript@5.6.3)
       vue:
         specifier: 'catalog:'
-        version: 3.5.24(typescript@5.5.4)
+        version: 3.5.24(typescript@5.6.3)
     devDependencies:
       '@platforma-sdk/eslint-config':
         specifier: 'catalog:'
-        version: 1.2.0(@eslint/js@9.39.2)(@stylistic/eslint-plugin@2.13.0(eslint@9.39.2)(typescript@5.5.4))(eslint-plugin-n@17.15.1(eslint@9.39.2))(eslint-plugin-vue@9.32.0(eslint@9.39.2))(eslint@9.39.2)(globals@15.14.0)(typescript-eslint@8.24.0(eslint@9.39.2)(typescript@5.5.4))(typescript@5.5.4)
+        version: 1.2.0(@eslint/js@9.39.2)(@stylistic/eslint-plugin@2.13.0(eslint@9.39.2)(typescript@5.6.3))(eslint-plugin-n@17.15.1(eslint@9.39.2))(eslint-plugin-vue@9.32.0(eslint@9.39.2))(eslint@9.39.2)(globals@15.14.0)(typescript-eslint@8.24.0(eslint@9.39.2)(typescript@5.6.3))(typescript@5.6.3)
       '@vitejs/plugin-vue':
         specifier: 'catalog:'
-        version: 5.2.4(vite@6.3.5(@types/node@24.5.2)(yaml@2.8.1))(vue@3.5.24(typescript@5.5.4))
+        version: 5.2.4(vite@6.3.5(@types/node@24.5.2)(yaml@2.8.1))(vue@3.5.24(typescript@5.6.3))
       typescript:
         specifier: 'catalog:'
-        version: 5.5.4
+        version: 5.6.3
       vite:
         specifier: 'catalog:'
         version: 6.3.5(@types/node@24.5.2)(yaml@2.8.1)
       vue-tsc:
         specifier: 'catalog:'
-        version: 2.2.12(typescript@5.5.4)
+        version: 2.2.12(typescript@5.6.3)
 
   workflow:
     dependencies:
@@ -1059,11 +1059,11 @@ packages:
       typescript: ~5.6.3
       typescript-eslint: ^8.17.0
 
-  '@milaboratories/graph-maker@1.1.215':
-    resolution: {integrity: sha512-/oBn73Y3AvKMpC6oIXJK6myXd9UgkKXLa7cShlIW+xtw9CTfeszY/ZDXBm7vbcS9V01DN14tw20pbocUNb61hg==}
+  '@milaboratories/graph-maker@1.2.5':
+    resolution: {integrity: sha512-OS0hZIfW1Fe/Qar24D2zEJTVJ7L1+RsyO2WaacVneFf2NdQNPNEINeqbjZL+wbpGvP5gpGb+GYl0g1qPzx2TuQ==}
     peerDependencies:
-      '@platforma-sdk/model': ^1.53.0
-      '@platforma-sdk/ui-vue': ^1.53.0
+      '@platforma-sdk/model': ^1.61.1
+      '@platforma-sdk/ui-vue': ^1.61.1
 
   '@milaboratories/helpers@1.12.0':
     resolution: {integrity: sha512-Eg3AQMJbVClYhdvhogdlW3Ys9EdLLl8ZTqG675iLwoO64ZJcQOAnIPjXwl4zJ/bZWx4nEhRF9AvwxRdc08fikQ==}
@@ -1073,11 +1073,15 @@ packages:
     resolution: {integrity: sha512-gsrH9uXQZ6eXM3E3fJZWIS5E5UMEQyohtyjzVXG69aQoecTctC88XUxBv0CgNoA+IAuiB2hE+whZmWU7ifq8wA==}
     engines: {node: '>=22'}
 
-  '@milaboratories/miplots4@1.0.168':
-    resolution: {integrity: sha512-PN9f+lJhdG6BeSBmZQ6cyo39+YPLGVkOc0mL9XfSty4QJln2oP7eYIL13mruIioqTIrNavbDEVAmCn78vioOGQ==}
+  '@milaboratories/helpers@1.14.0':
+    resolution: {integrity: sha512-lKzbuUJHBiGEVxqS9+EaYkuMAQt0iAohQUiIviu+2rNZHrTIvJGLBIiLBHC7fmjJM45xCKzyLG6c0tPjDUi2kQ==}
+    engines: {node: '>=22'}
 
   '@milaboratories/miplots4@1.0.170':
     resolution: {integrity: sha512-Jgo59uJ2KDWabnbKgDojVvtRdVNpHkw42BhshxguJXx7RCHdKv1TVLULPAdCOFwyY5MrBjHF0zHXY8Wqs9Xw9A==}
+
+  '@milaboratories/miplots4@1.0.176':
+    resolution: {integrity: sha512-PT2kw5H+YVYR8RNp4SOeP8Pi+sEbnptDQYsQYnwAhjNqfLjBG2kFvDeIXTrULPMW2L1L+hKwdRcEpDrO1ysUKg==}
 
   '@milaboratories/multi-sequence-alignment@1.46.3':
     resolution: {integrity: sha512-u+FaEnQ3cz6dHqrJK9VFMUKhkLVh9lk/RcvYQs8PGUXaMe1GFazTeoHIBclXdsv4BtOL2l8eoOc11X0tfmkDjQ==}
@@ -1089,11 +1093,11 @@ packages:
     resolution: {integrity: sha512-qQmw5uUitFx1kv6ErxnxIiao8tp18412EnHHDq3vgCOCQH5CnRWeJQIinm+il3IN87CltnGxrx4d6pKTh6XHiw==}
     engines: {node: '>=22.19.0'}
 
-  '@milaboratories/pf-plots@1.1.61':
-    resolution: {integrity: sha512-B7kIFDoIxGuuN8M0xejvrMXbcIAnRoEWd6T/AEtCFtvRUwF+Oa1ZMHim1N1hPmVgnGa46Ww5egI5CXcLijZ3Rw==}
+  '@milaboratories/pf-plots@1.1.67':
+    resolution: {integrity: sha512-AAIzIrGETHCGB4pXvAxaVKXvBIG2crAqqJNVOVCKUHoQlI/HrtL7NQyqi1jD0W85ziqFmKa7jFK4u9+wqRCcsw==}
     peerDependencies:
-      '@milaboratories/pl-model-common': ^1.24.1
-      '@platforma-sdk/model': ^1.53.0
+      '@milaboratories/pl-model-common': ^1.29.0
+      '@platforma-sdk/model': ^1.61.1
 
   '@milaboratories/pframes-rs-node@1.0.109':
     resolution: {integrity: sha512-3eqK+/rqx3fyN21bnbMgY+8XgwWTaIjOiySrE5IgUVbCD9rr2OzSnEiLGkGjx/1O0PX6UEZ05St3oYxCsrq6Jw==}
@@ -4989,8 +4993,17 @@ packages:
     peerDependencies:
       react: ^18.3.1
 
+  react-dom@19.2.4:
+    resolution: {integrity: sha512-AXJdLo8kgMbimY95O2aKQqsz2iWi9jMgKJhRBAxECE4IFxfcazB2LmzloIoibJI3C12IlY20+KFaLv+71bUJeQ==}
+    peerDependencies:
+      react: ^19.2.4
+
   react@18.3.1:
     resolution: {integrity: sha512-wS+hAgJShR0KhEvPJArfuPVN1+Hz1t0Y6n5jLrGQbkb4urgPE/0Rve+1kMB1v/oWgHgm4WIcV+i7F2pTVj+2iQ==}
+    engines: {node: '>=0.10.0'}
+
+  react@19.2.4:
+    resolution: {integrity: sha512-9nfp2hYpCwOjAN+8TZFGhtWEwgvWHXqESH8qT89AT/lWklpLON22Lc8pEtnpsZz7VmawabSU0gCjnj8aC0euHQ==}
     engines: {node: '>=0.10.0'}
 
   read-yaml-file@1.1.0:
@@ -5080,6 +5093,9 @@ packages:
 
   scheduler@0.23.2:
     resolution: {integrity: sha512-UOShsPwz7NrMUqhR6t0hWjFduvOzbtv7toDH1/hIrfRNIDBnnBWd0CwJTGvTpngVlmwGCdP9/Zl/tVrDqcuYzQ==}
+
+  scheduler@0.27.0:
+    resolution: {integrity: sha512-eNv+WrVbKu1f3vbYJT/xtiF5syA5HPIMtf9IgY/nKg0sWqzAUEvqY/xm7OcZc/qafLx/iO9FgOmeSAp4v5ti/Q==}
 
   seek-bzip@1.0.6:
     resolution: {integrity: sha512-e1QtP3YL5tWww8uKaOCQ18UxIT2laNBXHjV/S2WYCiK4udiv8lkG89KRIoCjUagnAmCBurjF4zEVX2ByBbnCjQ==}
@@ -5377,8 +5393,8 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
-  typescript@5.5.4:
-    resolution: {integrity: sha512-Mtq29sKDAEYP7aljRgtPOpTvOfbwRWlS6dPRzwjdE+C0R4brX/GUyhHSecbHMFLNBLcJIPt9nl9yG5TZ1weH+Q==}
+  typescript@5.6.3:
+    resolution: {integrity: sha512-hjcS1mhfuyi4WW8IWtjP7brDrG2cuDZukyrYrSauoXGNgx0S7zceP07adYkJycEr56BOUTNPzbInooiN3fn1qw==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -6898,16 +6914,16 @@ snapshots:
       utility-types: 3.11.0
       zod: 3.23.8
 
-  '@milaboratories/eslint-config@1.0.5(@eslint/js@9.39.2)(@stylistic/eslint-plugin@2.13.0(eslint@9.39.2)(typescript@5.5.4))(eslint-plugin-n@17.15.1(eslint@9.39.2))(eslint-plugin-vue@9.32.0(eslint@9.39.2))(eslint@9.39.2)(globals@15.14.0)(typescript-eslint@8.24.0(eslint@9.39.2)(typescript@5.5.4))(typescript@5.5.4)':
+  '@milaboratories/eslint-config@1.0.5(@eslint/js@9.39.2)(@stylistic/eslint-plugin@2.13.0(eslint@9.39.2)(typescript@5.6.3))(eslint-plugin-n@17.15.1(eslint@9.39.2))(eslint-plugin-vue@9.32.0(eslint@9.39.2))(eslint@9.39.2)(globals@15.14.0)(typescript-eslint@8.24.0(eslint@9.39.2)(typescript@5.6.3))(typescript@5.6.3)':
     dependencies:
       '@eslint/js': 9.39.2
-      '@stylistic/eslint-plugin': 2.13.0(eslint@9.39.2)(typescript@5.5.4)
+      '@stylistic/eslint-plugin': 2.13.0(eslint@9.39.2)(typescript@5.6.3)
       eslint: 9.39.2
       eslint-plugin-n: 17.15.1(eslint@9.39.2)
       eslint-plugin-vue: 9.32.0(eslint@9.39.2)
       globals: 15.14.0
-      typescript: 5.5.4
-      typescript-eslint: 8.24.0(eslint@9.39.2)(typescript@5.5.4)
+      typescript: 5.6.3
+      typescript-eslint: 8.24.0(eslint@9.39.2)(typescript@5.6.3)
 
   '@milaboratories/eslint-config@1.0.5(@eslint/js@9.39.2)(@stylistic/eslint-plugin@2.13.0(eslint@9.39.2)(typescript@5.8.2))(eslint-plugin-n@17.15.1(eslint@9.39.2))(eslint-plugin-vue@9.32.0(eslint@9.39.2))(eslint@9.39.2)(globals@15.14.0)(typescript-eslint@8.24.0(eslint@9.39.2)(typescript@5.8.2))(typescript@5.8.2)':
     dependencies:
@@ -6920,22 +6936,22 @@ snapshots:
       typescript: 5.8.2
       typescript-eslint: 8.24.0(eslint@9.39.2)(typescript@5.8.2)
 
-  '@milaboratories/graph-maker@1.1.215(@milaboratories/pl-model-common@1.24.2)(@platforma-sdk/model@1.53.4)(@platforma-sdk/ui-vue@1.53.4(sortablejs@1.15.6)(typescript@5.5.4))(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)(typescript@5.5.4)':
+  '@milaboratories/graph-maker@1.2.5(@milaboratories/pl-model-common@1.24.2)(@platforma-sdk/model@1.53.4)(@platforma-sdk/ui-vue@1.53.4(sortablejs@1.15.6)(typescript@5.6.3))(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)(typescript@5.6.3)':
     dependencies:
       '@ag-grid-community/core': 32.3.9
-      '@milaboratories/helpers': 1.13.0
-      '@milaboratories/miplots4': 1.0.168(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)
-      '@milaboratories/pf-plots': 1.1.61(@milaboratories/pl-model-common@1.24.2)(@platforma-sdk/model@1.53.4)
+      '@milaboratories/helpers': 1.14.0
+      '@milaboratories/miplots4': 1.0.176(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)
+      '@milaboratories/pf-plots': 1.1.67(@milaboratories/pl-model-common@1.24.2)(@platforma-sdk/model@1.53.4)
       '@platforma-sdk/model': 1.53.4
-      '@platforma-sdk/ui-vue': 1.53.4(sortablejs@1.15.6)(typescript@5.5.4)
+      '@platforma-sdk/ui-vue': 1.53.4(sortablejs@1.15.6)(typescript@5.6.3)
       '@types/d3-hierarchy': 3.1.7
       '@types/d3-scale': 4.0.9
-      '@vueuse/core': 13.8.0(vue@3.5.24(typescript@5.5.4))
-      ag-grid-vue3: 34.1.2(vue@3.5.24(typescript@5.5.4))
+      '@vueuse/core': 13.8.0(vue@3.5.24(typescript@5.6.3))
+      ag-grid-vue3: 34.1.2(vue@3.5.24(typescript@5.6.3))
       canonicalize: 2.1.0
       d3-hierarchy: 3.1.2
       d3-scale: 4.0.2
-      vue: 3.5.24(typescript@5.5.4)
+      vue: 3.5.24(typescript@5.6.3)
     transitivePeerDependencies:
       - '@milaboratories/pl-model-common'
       - d3-dispatch
@@ -6948,41 +6964,7 @@ snapshots:
 
   '@milaboratories/helpers@1.13.0': {}
 
-  '@milaboratories/miplots4@1.0.168(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)':
-    dependencies:
-      '@d3fc/d3fc-chart': 5.1.9(d3-array@3.2.4)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)(d3-scale@4.0.2)(d3-selection@3.0.0)(d3-shape@3.2.0)
-      '@d3fc/d3fc-pointer': 3.0.3(d3-dispatch@3.0.1)(d3-selection@3.0.0)
-      '@d3fc/d3fc-webgl': 3.2.1(d3-scale@4.0.2)(d3-shape@3.2.0)
-      '@stdlib/stats-anova1': 0.2.2
-      '@stdlib/stats-kruskal-test': 0.2.2
-      '@stdlib/stats-ttest': 0.2.2
-      '@stdlib/stats-ttest2': 0.2.2
-      '@stdlib/stats-wilcoxon': 0.2.2
-      comlink: 4.4.2
-      d3-array: 3.2.4
-      d3-axis: 3.0.0
-      d3-color: 3.1.0
-      d3-drag: 3.0.0
-      d3-format: 3.1.0
-      d3-hierarchy: 3.1.2
-      d3-polygon: 3.0.1
-      d3-quadtree: 3.0.1
-      d3-random: 3.0.1
-      d3-scale: 4.0.2
-      d3-selection: 3.0.0
-      d3-shape: 3.2.0
-      d3-zoom: 3.0.0
-      kdbush: 4.0.2
-      lodash: 4.17.21
-      rbush: 4.0.1
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-      zod: 3.23.8
-    transitivePeerDependencies:
-      - d3-dispatch
-      - d3-path
-      - d3-scale-chromatic
-      - supports-color
+  '@milaboratories/helpers@1.14.0': {}
 
   '@milaboratories/miplots4@1.0.170(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)':
     dependencies:
@@ -7020,13 +7002,51 @@ snapshots:
       - d3-scale-chromatic
       - supports-color
 
-  '@milaboratories/multi-sequence-alignment@1.46.3(@platforma-sdk/model@1.53.4)(@platforma-sdk/ui-vue@1.53.4(sortablejs@1.15.6)(typescript@5.5.4))(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)(typescript@5.5.4)':
+  '@milaboratories/miplots4@1.0.176(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)':
+    dependencies:
+      '@d3fc/d3fc-chart': 5.1.9(d3-array@3.2.4)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)(d3-scale@4.0.2)(d3-selection@3.0.0)(d3-shape@3.2.0)
+      '@d3fc/d3fc-pointer': 3.0.3(d3-dispatch@3.0.1)(d3-selection@3.0.0)
+      '@d3fc/d3fc-series': 6.1.3(d3-array@3.2.4)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)(d3-scale@4.0.2)(d3-selection@3.0.0)(d3-shape@3.2.0)
+      '@d3fc/d3fc-webgl': 3.2.1(d3-scale@4.0.2)(d3-shape@3.2.0)
+      '@stdlib/stats-anova1': 0.2.2
+      '@stdlib/stats-base-dists-f-cdf': 0.2.2
+      '@stdlib/stats-kruskal-test': 0.2.2
+      '@stdlib/stats-ttest': 0.2.2
+      '@stdlib/stats-ttest2': 0.2.2
+      '@stdlib/stats-wilcoxon': 0.2.2
+      comlink: 4.4.2
+      d3-array: 3.2.4
+      d3-axis: 3.0.0
+      d3-color: 3.1.0
+      d3-drag: 3.0.0
+      d3-format: 3.1.0
+      d3-hierarchy: 3.1.2
+      d3-polygon: 3.0.1
+      d3-quadtree: 3.0.1
+      d3-random: 3.0.1
+      d3-scale: 4.0.2
+      d3-selection: 3.0.0
+      d3-shape: 3.2.0
+      d3-zoom: 3.0.0
+      kdbush: 4.0.2
+      lodash: 4.17.21
+      rbush: 4.0.1
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
+      zod: 3.23.8
+    transitivePeerDependencies:
+      - d3-dispatch
+      - d3-path
+      - d3-scale-chromatic
+      - supports-color
+
+  '@milaboratories/multi-sequence-alignment@1.46.3(@platforma-sdk/model@1.53.4)(@platforma-sdk/ui-vue@1.53.4(sortablejs@1.15.6)(typescript@5.6.3))(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)(typescript@5.6.3)':
     dependencies:
       '@milaboratories/biowasm-tools': 2.0.0
       '@milaboratories/miplots4': 1.0.170(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)
       '@platforma-sdk/model': 1.53.4
-      '@platforma-sdk/ui-vue': 1.53.4(sortablejs@1.15.6)(typescript@5.5.4)
-      vue: 3.5.24(typescript@5.5.4)
+      '@platforma-sdk/ui-vue': 1.53.4(sortablejs@1.15.6)(typescript@5.6.3)
+      vue: 3.5.24(typescript@5.6.3)
     transitivePeerDependencies:
       - d3-dispatch
       - d3-path
@@ -7046,7 +7066,7 @@ snapshots:
       - encoding
       - supports-color
 
-  '@milaboratories/pf-plots@1.1.61(@milaboratories/pl-model-common@1.24.2)(@platforma-sdk/model@1.53.4)':
+  '@milaboratories/pf-plots@1.1.67(@milaboratories/pl-model-common@1.24.2)(@platforma-sdk/model@1.53.4)':
     dependencies:
       '@milaboratories/pl-model-common': 1.24.2
       '@platforma-sdk/model': 1.53.4
@@ -7264,7 +7284,7 @@ snapshots:
       canonicalize: 2.1.0
       denque: 2.1.0
 
-  '@milaboratories/uikit@2.10.12(typescript@5.5.4)':
+  '@milaboratories/uikit@2.10.12(typescript@5.6.3)':
     dependencies:
       '@milaboratories/helpers': 1.13.0
       '@platforma-sdk/model': 1.53.4
@@ -7274,8 +7294,8 @@ snapshots:
       '@types/d3-selection': 3.0.11
       '@types/sortablejs': 1.15.8
       '@vue/test-utils': 2.4.6
-      '@vueuse/core': 13.8.0(vue@3.5.24(typescript@5.5.4))
-      '@vueuse/integrations': 13.8.0(sortablejs@1.15.6)(vue@3.5.24(typescript@5.5.4))
+      '@vueuse/core': 13.8.0(vue@3.5.24(typescript@5.6.3))
+      '@vueuse/integrations': 13.8.0(sortablejs@1.15.6)(vue@3.5.24(typescript@5.6.3))
       canonicalize: 2.1.0
       d3-array: 3.2.4
       d3-axis: 3.0.0
@@ -7283,7 +7303,7 @@ snapshots:
       d3-selection: 3.0.0
       resize-observer-polyfill: 1.5.1
       sortablejs: 1.15.6
-      vue: 3.5.24(typescript@5.5.4)
+      vue: 3.5.24(typescript@5.6.3)
     transitivePeerDependencies:
       - async-validator
       - axios
@@ -7388,16 +7408,16 @@ snapshots:
     dependencies:
       yaml: 2.8.1
 
-  '@platforma-sdk/eslint-config@1.2.0(@eslint/js@9.39.2)(@stylistic/eslint-plugin@2.13.0(eslint@9.39.2)(typescript@5.5.4))(eslint-plugin-n@17.15.1(eslint@9.39.2))(eslint-plugin-vue@9.32.0(eslint@9.39.2))(eslint@9.39.2)(globals@15.14.0)(typescript-eslint@8.24.0(eslint@9.39.2)(typescript@5.5.4))(typescript@5.5.4)':
+  '@platforma-sdk/eslint-config@1.2.0(@eslint/js@9.39.2)(@stylistic/eslint-plugin@2.13.0(eslint@9.39.2)(typescript@5.6.3))(eslint-plugin-n@17.15.1(eslint@9.39.2))(eslint-plugin-vue@9.32.0(eslint@9.39.2))(eslint@9.39.2)(globals@15.14.0)(typescript-eslint@8.24.0(eslint@9.39.2)(typescript@5.6.3))(typescript@5.6.3)':
     dependencies:
       '@eslint/js': 9.39.2
-      '@stylistic/eslint-plugin': 2.13.0(eslint@9.39.2)(typescript@5.5.4)
+      '@stylistic/eslint-plugin': 2.13.0(eslint@9.39.2)(typescript@5.6.3)
       eslint: 9.39.2
       eslint-plugin-n: 17.15.1(eslint@9.39.2)
       eslint-plugin-vue: 9.32.0(eslint@9.39.2)
       globals: 15.14.0
-      typescript: 5.5.4
-      typescript-eslint: 8.24.0(eslint@9.39.2)(typescript@5.5.4)
+      typescript: 5.6.3
+      typescript-eslint: 8.24.0(eslint@9.39.2)(typescript@5.6.3)
 
   '@platforma-sdk/model@1.53.4':
     dependencies:
@@ -7439,10 +7459,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@platforma-sdk/test@1.53.4(@eslint/js@9.39.2)(@stylistic/eslint-plugin@2.13.0(eslint@9.39.2)(typescript@5.5.4))(@types/node@24.5.2)(eslint-plugin-n@17.15.1(eslint@9.39.2))(eslint-plugin-vue@9.32.0(eslint@9.39.2))(globals@15.14.0)(typescript-eslint@8.24.0(eslint@9.39.2)(typescript@5.5.4))(typescript@5.5.4)(yaml@2.8.1)':
+  '@platforma-sdk/test@1.53.4(@eslint/js@9.39.2)(@stylistic/eslint-plugin@2.13.0(eslint@9.39.2)(typescript@5.6.3))(@types/node@24.5.2)(eslint-plugin-n@17.15.1(eslint@9.39.2))(eslint-plugin-vue@9.32.0(eslint@9.39.2))(globals@15.14.0)(typescript-eslint@8.24.0(eslint@9.39.2)(typescript@5.6.3))(typescript@5.6.3)(yaml@2.8.1)':
     dependencies:
       '@milaboratories/computable': 2.8.2
-      '@milaboratories/eslint-config': 1.0.5(@eslint/js@9.39.2)(@stylistic/eslint-plugin@2.13.0(eslint@9.39.2)(typescript@5.5.4))(eslint-plugin-n@17.15.1(eslint@9.39.2))(eslint-plugin-vue@9.32.0(eslint@9.39.2))(eslint@9.39.2)(globals@15.14.0)(typescript-eslint@8.24.0(eslint@9.39.2)(typescript@5.5.4))(typescript@5.5.4)
+      '@milaboratories/eslint-config': 1.0.5(@eslint/js@9.39.2)(@stylistic/eslint-plugin@2.13.0(eslint@9.39.2)(typescript@5.6.3))(eslint-plugin-n@17.15.1(eslint@9.39.2))(eslint-plugin-vue@9.32.0(eslint@9.39.2))(eslint@9.39.2)(globals@15.14.0)(typescript-eslint@8.24.0(eslint@9.39.2)(typescript@5.6.3))(typescript@5.6.3)
       '@milaboratories/pl-client': 2.16.25
       '@milaboratories/pl-middle-layer': 1.46.12
       '@milaboratories/pl-tree': 1.8.33
@@ -7527,25 +7547,25 @@ snapshots:
       - typescript-eslint
       - yaml
 
-  '@platforma-sdk/ui-vue@1.53.4(sortablejs@1.15.6)(typescript@5.5.4)':
+  '@platforma-sdk/ui-vue@1.53.4(sortablejs@1.15.6)(typescript@5.6.3)':
     dependencies:
       '@milaboratories/biowasm-tools': 2.0.0
       '@milaboratories/ptabler-expression-js': 1.1.12
-      '@milaboratories/uikit': 2.10.12(typescript@5.5.4)
+      '@milaboratories/uikit': 2.10.12(typescript@5.6.3)
       '@platforma-sdk/model': 1.53.4
       '@types/d3-format': 3.0.4
       '@types/node': 24.5.2
       '@types/semver': 7.7.0
-      '@vueuse/core': 13.8.0(vue@3.5.24(typescript@5.5.4))
-      '@vueuse/integrations': 13.8.0(sortablejs@1.15.6)(vue@3.5.24(typescript@5.5.4))
+      '@vueuse/core': 13.8.0(vue@3.5.24(typescript@5.6.3))
+      '@vueuse/integrations': 13.8.0(sortablejs@1.15.6)(vue@3.5.24(typescript@5.6.3))
       '@zip.js/zip.js': 2.8.9
       ag-grid-enterprise: 34.1.2
-      ag-grid-vue3: 34.1.2(vue@3.5.24(typescript@5.5.4))
+      ag-grid-vue3: 34.1.2(vue@3.5.24(typescript@5.6.3))
       canonicalize: 2.1.0
       d3-format: 3.1.0
       es-toolkit: 1.41.0
       lru-cache: 11.2.2
-      vue: 3.5.24(typescript@5.5.4)
+      vue: 3.5.24(typescript@5.6.3)
       zod: 3.23.8
     transitivePeerDependencies:
       - async-validator
@@ -10188,9 +10208,9 @@ snapshots:
       '@stdlib/utils-constructor-name': 0.2.2
       '@stdlib/utils-global': 0.2.2
 
-  '@stylistic/eslint-plugin@2.13.0(eslint@9.39.2)(typescript@5.5.4)':
+  '@stylistic/eslint-plugin@2.13.0(eslint@9.39.2)(typescript@5.6.3)':
     dependencies:
-      '@typescript-eslint/utils': 8.24.0(eslint@9.39.2)(typescript@5.5.4)
+      '@typescript-eslint/utils': 8.24.0(eslint@9.39.2)(typescript@5.6.3)
       eslint: 9.39.2
       eslint-visitor-keys: 4.2.1
       espree: 10.4.0
@@ -10269,20 +10289,20 @@ snapshots:
 
   '@types/web-bluetooth@0.0.21': {}
 
-  '@typescript-eslint/eslint-plugin@8.24.0(@typescript-eslint/parser@8.24.0(eslint@9.39.2)(typescript@5.5.4))(eslint@9.39.2)(typescript@5.5.4)':
+  '@typescript-eslint/eslint-plugin@8.24.0(@typescript-eslint/parser@8.24.0(eslint@9.39.2)(typescript@5.6.3))(eslint@9.39.2)(typescript@5.6.3)':
     dependencies:
       '@eslint-community/regexpp': 4.12.1
-      '@typescript-eslint/parser': 8.24.0(eslint@9.39.2)(typescript@5.5.4)
+      '@typescript-eslint/parser': 8.24.0(eslint@9.39.2)(typescript@5.6.3)
       '@typescript-eslint/scope-manager': 8.24.0
-      '@typescript-eslint/type-utils': 8.24.0(eslint@9.39.2)(typescript@5.5.4)
-      '@typescript-eslint/utils': 8.24.0(eslint@9.39.2)(typescript@5.5.4)
+      '@typescript-eslint/type-utils': 8.24.0(eslint@9.39.2)(typescript@5.6.3)
+      '@typescript-eslint/utils': 8.24.0(eslint@9.39.2)(typescript@5.6.3)
       '@typescript-eslint/visitor-keys': 8.24.0
       eslint: 9.39.2
       graphemer: 1.4.0
       ignore: 5.3.2
       natural-compare: 1.4.0
-      ts-api-utils: 2.0.1(typescript@5.5.4)
-      typescript: 5.5.4
+      ts-api-utils: 2.0.1(typescript@5.6.3)
+      typescript: 5.6.3
     transitivePeerDependencies:
       - supports-color
 
@@ -10303,15 +10323,15 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript-eslint/parser@8.24.0(eslint@9.39.2)(typescript@5.5.4)':
+  '@typescript-eslint/parser@8.24.0(eslint@9.39.2)(typescript@5.6.3)':
     dependencies:
       '@typescript-eslint/scope-manager': 8.24.0
       '@typescript-eslint/types': 8.24.0
-      '@typescript-eslint/typescript-estree': 8.24.0(typescript@5.5.4)
+      '@typescript-eslint/typescript-estree': 8.24.0(typescript@5.6.3)
       '@typescript-eslint/visitor-keys': 8.24.0
       debug: 4.4.3
       eslint: 9.39.2
-      typescript: 5.5.4
+      typescript: 5.6.3
     transitivePeerDependencies:
       - supports-color
 
@@ -10332,14 +10352,14 @@ snapshots:
       '@typescript-eslint/types': 8.24.0
       '@typescript-eslint/visitor-keys': 8.24.0
 
-  '@typescript-eslint/type-utils@8.24.0(eslint@9.39.2)(typescript@5.5.4)':
+  '@typescript-eslint/type-utils@8.24.0(eslint@9.39.2)(typescript@5.6.3)':
     dependencies:
-      '@typescript-eslint/typescript-estree': 8.24.0(typescript@5.5.4)
-      '@typescript-eslint/utils': 8.24.0(eslint@9.39.2)(typescript@5.5.4)
+      '@typescript-eslint/typescript-estree': 8.24.0(typescript@5.6.3)
+      '@typescript-eslint/utils': 8.24.0(eslint@9.39.2)(typescript@5.6.3)
       debug: 4.4.3
       eslint: 9.39.2
-      ts-api-utils: 2.0.1(typescript@5.5.4)
-      typescript: 5.5.4
+      ts-api-utils: 2.0.1(typescript@5.6.3)
+      typescript: 5.6.3
     transitivePeerDependencies:
       - supports-color
 
@@ -10356,7 +10376,7 @@ snapshots:
 
   '@typescript-eslint/types@8.24.0': {}
 
-  '@typescript-eslint/typescript-estree@8.24.0(typescript@5.5.4)':
+  '@typescript-eslint/typescript-estree@8.24.0(typescript@5.6.3)':
     dependencies:
       '@typescript-eslint/types': 8.24.0
       '@typescript-eslint/visitor-keys': 8.24.0
@@ -10365,8 +10385,8 @@ snapshots:
       is-glob: 4.0.3
       minimatch: 9.0.5
       semver: 7.6.3
-      ts-api-utils: 2.0.1(typescript@5.5.4)
-      typescript: 5.5.4
+      ts-api-utils: 2.0.1(typescript@5.6.3)
+      typescript: 5.6.3
     transitivePeerDependencies:
       - supports-color
 
@@ -10384,14 +10404,14 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript-eslint/utils@8.24.0(eslint@9.39.2)(typescript@5.5.4)':
+  '@typescript-eslint/utils@8.24.0(eslint@9.39.2)(typescript@5.6.3)':
     dependencies:
       '@eslint-community/eslint-utils': 4.9.1(eslint@9.39.2)
       '@typescript-eslint/scope-manager': 8.24.0
       '@typescript-eslint/types': 8.24.0
-      '@typescript-eslint/typescript-estree': 8.24.0(typescript@5.5.4)
+      '@typescript-eslint/typescript-estree': 8.24.0(typescript@5.6.3)
       eslint: 9.39.2
-      typescript: 5.5.4
+      typescript: 5.6.3
     transitivePeerDependencies:
       - supports-color
 
@@ -10418,10 +10438,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@vitejs/plugin-vue@5.2.4(vite@6.3.5(@types/node@24.5.2)(yaml@2.8.1))(vue@3.5.24(typescript@5.5.4))':
+  '@vitejs/plugin-vue@5.2.4(vite@6.3.5(@types/node@24.5.2)(yaml@2.8.1))(vue@3.5.24(typescript@5.6.3))':
     dependencies:
       vite: 6.3.5(@types/node@24.5.2)(yaml@2.8.1)
-      vue: 3.5.24(typescript@5.5.4)
+      vue: 3.5.24(typescript@5.6.3)
 
   '@vitest/coverage-istanbul@4.0.18(vitest@4.0.18(@types/node@24.5.2)(yaml@2.8.1))':
     dependencies:
@@ -10590,7 +10610,7 @@ snapshots:
       de-indent: 1.0.2
       he: 1.2.0
 
-  '@vue/language-core@2.2.0(typescript@5.5.4)':
+  '@vue/language-core@2.2.0(typescript@5.6.3)':
     dependencies:
       '@volar/language-core': 2.4.23
       '@vue/compiler-dom': 3.5.13
@@ -10601,9 +10621,9 @@ snapshots:
       muggle-string: 0.4.1
       path-browserify: 1.0.1
     optionalDependencies:
-      typescript: 5.5.4
+      typescript: 5.6.3
 
-  '@vue/language-core@2.2.12(typescript@5.5.4)':
+  '@vue/language-core@2.2.12(typescript@5.6.3)':
     dependencies:
       '@volar/language-core': 2.4.15
       '@vue/compiler-dom': 3.5.13
@@ -10614,7 +10634,7 @@ snapshots:
       muggle-string: 0.4.1
       path-browserify: 1.0.1
     optionalDependencies:
-      typescript: 5.5.4
+      typescript: 5.6.3
 
   '@vue/reactivity@3.5.24':
     dependencies:
@@ -10632,11 +10652,11 @@ snapshots:
       '@vue/shared': 3.5.24
       csstype: 3.1.3
 
-  '@vue/server-renderer@3.5.24(vue@3.5.24(typescript@5.5.4))':
+  '@vue/server-renderer@3.5.24(vue@3.5.24(typescript@5.6.3))':
     dependencies:
       '@vue/compiler-ssr': 3.5.24
       '@vue/shared': 3.5.24
-      vue: 3.5.24(typescript@5.5.4)
+      vue: 3.5.24(typescript@5.6.3)
 
   '@vue/shared@3.5.13': {}
 
@@ -10647,26 +10667,26 @@ snapshots:
       js-beautify: 1.15.4
       vue-component-type-helpers: 2.2.12
 
-  '@vueuse/core@13.8.0(vue@3.5.24(typescript@5.5.4))':
+  '@vueuse/core@13.8.0(vue@3.5.24(typescript@5.6.3))':
     dependencies:
       '@types/web-bluetooth': 0.0.21
       '@vueuse/metadata': 13.8.0
-      '@vueuse/shared': 13.8.0(vue@3.5.24(typescript@5.5.4))
-      vue: 3.5.24(typescript@5.5.4)
+      '@vueuse/shared': 13.8.0(vue@3.5.24(typescript@5.6.3))
+      vue: 3.5.24(typescript@5.6.3)
 
-  '@vueuse/integrations@13.8.0(sortablejs@1.15.6)(vue@3.5.24(typescript@5.5.4))':
+  '@vueuse/integrations@13.8.0(sortablejs@1.15.6)(vue@3.5.24(typescript@5.6.3))':
     dependencies:
-      '@vueuse/core': 13.8.0(vue@3.5.24(typescript@5.5.4))
-      '@vueuse/shared': 13.8.0(vue@3.5.24(typescript@5.5.4))
-      vue: 3.5.24(typescript@5.5.4)
+      '@vueuse/core': 13.8.0(vue@3.5.24(typescript@5.6.3))
+      '@vueuse/shared': 13.8.0(vue@3.5.24(typescript@5.6.3))
+      vue: 3.5.24(typescript@5.6.3)
     optionalDependencies:
       sortablejs: 1.15.6
 
   '@vueuse/metadata@13.8.0': {}
 
-  '@vueuse/shared@13.8.0(vue@3.5.24(typescript@5.5.4))':
+  '@vueuse/shared@13.8.0(vue@3.5.24(typescript@5.6.3))':
     dependencies:
-      vue: 3.5.24(typescript@5.5.4)
+      vue: 3.5.24(typescript@5.6.3)
 
   '@zip.js/zip.js@2.8.9': {}
 
@@ -10720,10 +10740,10 @@ snapshots:
       ag-charts-community: 12.1.2
       ag-charts-enterprise: 12.1.2
 
-  ag-grid-vue3@34.1.2(vue@3.5.24(typescript@5.5.4)):
+  ag-grid-vue3@34.1.2(vue@3.5.24(typescript@5.6.3)):
     dependencies:
       ag-grid-community: 34.1.2
-      vue: 3.5.24(typescript@5.5.4)
+      vue: 3.5.24(typescript@5.6.3)
 
   agent-base@7.1.3: {}
 
@@ -12130,9 +12150,16 @@ snapshots:
       react: 18.3.1
       scheduler: 0.23.2
 
+  react-dom@19.2.4(react@19.2.4):
+    dependencies:
+      react: 19.2.4
+      scheduler: 0.27.0
+
   react@18.3.1:
     dependencies:
       loose-envify: 1.4.0
+
+  react@19.2.4: {}
 
   read-yaml-file@1.1.0:
     dependencies:
@@ -12264,6 +12291,8 @@ snapshots:
   scheduler@0.23.2:
     dependencies:
       loose-envify: 1.4.0
+
+  scheduler@0.27.0: {}
 
   seek-bzip@1.0.6:
     dependencies:
@@ -12466,9 +12495,9 @@ snapshots:
 
   triple-beam@1.4.1: {}
 
-  ts-api-utils@2.0.1(typescript@5.5.4):
+  ts-api-utils@2.0.1(typescript@5.6.3):
     dependencies:
-      typescript: 5.5.4
+      typescript: 5.6.3
 
   ts-api-utils@2.0.1(typescript@5.8.2):
     dependencies:
@@ -12517,13 +12546,13 @@ snapshots:
 
   type-fest@4.41.0: {}
 
-  typescript-eslint@8.24.0(eslint@9.39.2)(typescript@5.5.4):
+  typescript-eslint@8.24.0(eslint@9.39.2)(typescript@5.6.3):
     dependencies:
-      '@typescript-eslint/eslint-plugin': 8.24.0(@typescript-eslint/parser@8.24.0(eslint@9.39.2)(typescript@5.5.4))(eslint@9.39.2)(typescript@5.5.4)
-      '@typescript-eslint/parser': 8.24.0(eslint@9.39.2)(typescript@5.5.4)
-      '@typescript-eslint/utils': 8.24.0(eslint@9.39.2)(typescript@5.5.4)
+      '@typescript-eslint/eslint-plugin': 8.24.0(@typescript-eslint/parser@8.24.0(eslint@9.39.2)(typescript@5.6.3))(eslint@9.39.2)(typescript@5.6.3)
+      '@typescript-eslint/parser': 8.24.0(eslint@9.39.2)(typescript@5.6.3)
+      '@typescript-eslint/utils': 8.24.0(eslint@9.39.2)(typescript@5.6.3)
       eslint: 9.39.2
-      typescript: 5.5.4
+      typescript: 5.6.3
     transitivePeerDependencies:
       - supports-color
 
@@ -12541,7 +12570,7 @@ snapshots:
 
   typescript@5.4.5: {}
 
-  typescript@5.5.4: {}
+  typescript@5.6.3: {}
 
   typescript@5.8.2: {}
 
@@ -12598,18 +12627,18 @@ snapshots:
       - supports-color
       - terser
 
-  vite-plugin-dts@4.5.4(@types/node@24.5.2)(rollup@4.49.0)(typescript@5.5.4)(vite@6.3.5(@types/node@24.5.2)(yaml@2.8.1)):
+  vite-plugin-dts@4.5.4(@types/node@24.5.2)(rollup@4.49.0)(typescript@5.6.3)(vite@6.3.5(@types/node@24.5.2)(yaml@2.8.1)):
     dependencies:
       '@microsoft/api-extractor': 7.52.11(@types/node@24.5.2)
       '@rollup/pluginutils': 5.2.0(rollup@4.49.0)
       '@volar/typescript': 2.4.23
-      '@vue/language-core': 2.2.0(typescript@5.5.4)
+      '@vue/language-core': 2.2.0(typescript@5.6.3)
       compare-versions: 6.1.1
       debug: 4.4.0(supports-color@8.1.1)
       kolorist: 1.8.0
       local-pkg: 1.1.2
       magic-string: 0.30.18
-      typescript: 5.5.4
+      typescript: 5.6.3
     optionalDependencies:
       vite: 6.3.5(@types/node@24.5.2)(yaml@2.8.1)
     transitivePeerDependencies:
@@ -12728,21 +12757,21 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  vue-tsc@2.2.12(typescript@5.5.4):
+  vue-tsc@2.2.12(typescript@5.6.3):
     dependencies:
       '@volar/typescript': 2.4.15
-      '@vue/language-core': 2.2.12(typescript@5.5.4)
-      typescript: 5.5.4
+      '@vue/language-core': 2.2.12(typescript@5.6.3)
+      typescript: 5.6.3
 
-  vue@3.5.24(typescript@5.5.4):
+  vue@3.5.24(typescript@5.6.3):
     dependencies:
       '@vue/compiler-dom': 3.5.24
       '@vue/compiler-sfc': 3.5.24
       '@vue/runtime-dom': 3.5.24
-      '@vue/server-renderer': 3.5.24(vue@3.5.24(typescript@5.5.4))
+      '@vue/server-renderer': 3.5.24(vue@3.5.24(typescript@5.6.3))
       '@vue/shared': 3.5.24
     optionalDependencies:
-      typescript: 5.5.4
+      typescript: 5.6.3
 
   webidl-conversions@3.0.1: {}
 
