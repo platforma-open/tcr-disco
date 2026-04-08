@@ -117,6 +117,8 @@ export const model = BlockModel.create()
           normalizationMethod: 'standardScaling',
           dendrogramX: false,
           dendrogramY: false,
+          NAValueAs: null,
+          showEmptyColumns: true,
         },
       },
       axesSettings: {
