@@ -33,7 +33,7 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
   const subsetIndex = getIndex('pl7.app/differentialTCRAbundance/subset', pcols);
   const cdr3Index = getIndex('pl7.app/vdj/sequence', pcols);
 
-  if (fractionIndex === -1 || cdr3Index === -1 || contrastIndex === -1 || !pcols[fractionIndex]?.spec.axesSpec) {
+  if (fractionIndex === -1 || cdr3Index === -1 || !contrastFactorLabel || contrastIndex === -1 || !pcols[fractionIndex]?.spec.axesSpec) {
     return undefined;
   }
 
