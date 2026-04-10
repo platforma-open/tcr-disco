@@ -1,7 +1,11 @@
 ll := import("@platforma-sdk/workflow-tengo:ll")
 json := import("json")
 
-getColumns := func(countsSpec, cdSubsetCol, numerator, comparison) {
+getColumns := func(countsSpec, cdSubsetCol, numerator, comparison, ...options) {
+	hideFromGraphs := true
+	if len(options) > 0 {
+		hideFromGraphs = options[0]
+	}
 
 	// Get runID label
 	runIdLabel := countsSpec.axesSpec[1].domain["pl7.app/vdj/clonotypingRunId"]
@@ -9,6 +13,24 @@ getColumns := func(countsSpec, cdSubsetCol, numerator, comparison) {
 		runIdLabel = "pl7.app/vdj/vdjImport"
 	} else {
 		runIdLabel = "pl7.app/vdj/clonotypingRunId"
+	}
+
+	annotations := {
+		"pl7.app/label": "Robust enrichment - " + numerator,
+		"pl7.app/table/visibility": "optional",
+		"pl7.app/table/orderPriority": "84000"
+	}
+	if hideFromGraphs {
+		annotations["pl7.app/hideDataFromGraphs"] = "true"
+		annotations["pl7.app/isDiscreteFilter"] = "true"
+		annotations["pl7.app/discreteValues"] = string(json.encode(["Robust", "Non-robust"]))
+	}
+
+	domain := {
+		runIdLabel: countsSpec.axesSpec[1].domain[runIdLabel]
+	}
+	if comparison != undefined {
+		domain["pl7.app/differentialTCRAbundance/comparison"] = comparison
 	}
 
 	columns := [
@@ -19,18 +41,8 @@ getColumns := func(countsSpec, cdSubsetCol, numerator, comparison) {
 				spec: {
 					name: "pl7.app/differentialTCRAbundance/robustEnrichment",
 					valueType: "String",
-					annotations: {
-						"pl7.app/label": "Robust enrichment - " + numerator,
-						"pl7.app/table/visibility": "optional",
-						"pl7.app/table/orderPriority": "84000",
-						"pl7.app/hideDataFromGraphs": "true",
-						"pl7.app/isDiscreteFilter": "true",
-						"pl7.app/discreteValues": string(json.encode(["Robust", "Non-robust"]))
-					},
-					domain: {
-						runIdLabel: countsSpec.axesSpec[1].domain[runIdLabel],
-						"pl7.app/differentialTCRAbundance/comparison": comparison
-					}
+					annotations: annotations,
+					domain: domain
 				}
 			}
 			]

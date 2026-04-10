@@ -117,6 +117,8 @@ export const model = BlockModel.create()
           normalizationMethod: 'standardScaling',
           dendrogramX: false,
           dendrogramY: false,
+          NAValueAs: null,
+          showEmptyColumns: true,
         },
       },
       axesSettings: {
@@ -380,8 +382,12 @@ export const model = BlockModel.create()
       allPcols = [...allPcols, ...clonotypeToSubsetPcols];
     }
 
-    // return ctx.createPFrame([...pCols, ...metadataCols]);
-    // return ctx.createPFrame(allPcols);
+    const robustAnyLabel = selectedChain === 'alpha' ? 'robustAnyAlpha' : 'robustAnyBeta';
+    const robustAnyPcols = ctx.outputs?.resolve({ field: robustAnyLabel, allowPermanentAbsence: true })?.getPColumns();
+    if (robustAnyPcols !== undefined) {
+      allPcols = [...allPcols, ...robustAnyPcols];
+    }
+
     return createPFrameForGraphs(ctx, allPcols);
   })
 
@@ -410,9 +416,15 @@ export const model = BlockModel.create()
         && spec.axesSpec[0].domain?.['pl7.app/vdj/chain'] === chain,
     );
 
+    const robustAnyLabel = selectedChain === 'alpha' ? 'robustAnyAlpha' : 'robustAnyBeta';
+    const robustAnyPcols = ctx.outputs?.resolve({ field: robustAnyLabel, allowPermanentAbsence: true })?.getPColumns();
+
     let allCols = [...pCols, ...metadataCols];
     if (clonotypeToSubsetPcols !== undefined) {
       allCols = [...allCols, ...clonotypeToSubsetPcols];
+    }
+    if (robustAnyPcols !== undefined) {
+      allCols = [...allCols, ...robustAnyPcols];
     }
     if (sequenceCol !== undefined) {
       allCols = [...allCols, ...sequenceCol];
