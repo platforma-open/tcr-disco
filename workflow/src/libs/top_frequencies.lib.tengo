@@ -5,10 +5,14 @@ getColumns := func(countsSpec) {
 	field := "differentialTCRAbundance"
 	degName := "log2foldchange"
 
+	// Add isDenseAxis annotation to samples
+	samplesSpec := countsSpec.axesSpec[0]
+	samplesSpec.annotations["pl7.app/graph/isDenseAxis"] = "true"
+
 	axes := [
 			{
 				column: "internalSampleId",
-				spec: countsSpec.axesSpec[0]
+				spec: samplesSpec
 			},
 			{
 				column: "clonotypeKey",

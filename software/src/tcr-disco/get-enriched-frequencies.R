@@ -59,8 +59,25 @@ deg_alpha_table <- read.csv(da_alpha, header = TRUE, sep = ",", stringsAsFactors
 deg_beta_table <- read.csv(da_beta, header = TRUE, sep = ",", stringsAsFactors = FALSE)
 
 # Keep only DA clonotypes from main tables
-main_alpha_table <- main_alpha_table[main_alpha_table$clonotypeKey %in% unique(deg_alpha_table$clonotypeKey), ]
-main_beta_table <- main_beta_table[main_beta_table$clonotypeKey %in% unique(deg_beta_table$clonotypeKey), ]
+# Commented out for now, we need the whole data to then include pl7.app/graph/isDenseAxis annotation
+# main_alpha_table <- main_alpha_table[main_alpha_table$clonotypeKey %in% unique(deg_alpha_table$clonotypeKey), ]
+# main_beta_table <- main_beta_table[main_beta_table$clonotypeKey %in% unique(deg_beta_table$clonotypeKey), ]
+
+# Build "Robust Enrichment - Any" column: Robust if clonotype is Robust in any comparison
+robust_alpha_keys <- unique(deg_alpha_table$clonotypeKey)
+robust_beta_keys <- unique(deg_beta_table$clonotypeKey)
+
+all_alpha_keys <- unique(main_alpha_table$clonotypeKey)
+all_beta_keys <- unique(main_beta_table$clonotypeKey)
+
+robust_any_alpha <- data.frame(
+  clonotypeKey = all_alpha_keys,
+  Robust_Enrichment = ifelse(all_alpha_keys %in% robust_alpha_keys, "Robust", "Non-robust")
+)
+robust_any_beta <- data.frame(
+  clonotypeKey = all_beta_keys,
+  Robust_Enrichment = ifelse(all_beta_keys %in% robust_beta_keys, "Robust", "Non-robust")
+)
 
 # Store the tables
 if (!dir.exists(output_folder)) {
@@ -86,17 +103,23 @@ if ("subset" %in% colnames(main_alpha_table)) {
   clonotype_to_subset_alpha <- unique(main_alpha_table[, c("clonotypeKey", "subset")])
   clonotype_to_subset_beta <- unique(main_beta_table[, c("clonotypeKey", "subset")])
 
-  write.table(clonotype_to_subset_alpha, paste0(output_folder, "/clonotype_to_subset_alpha.tsv"), 
+  write.table(clonotype_to_subset_alpha, paste0(output_folder, "/clonotype_to_subset_alpha.tsv"),
     sep = "\t", quote = F, row.names = F)
-  write.table(clonotype_to_subset_beta, paste0(output_folder, "/clonotype_to_subset_beta.tsv"), 
+  write.table(clonotype_to_subset_beta, paste0(output_folder, "/clonotype_to_subset_beta.tsv"),
     sep = "\t", quote = F, row.names = F)
 } else {
   # Create empty tables
   clonotype_to_subset_alpha <- data.frame(clonotypeKey = character(), subset = character())
   clonotype_to_subset_beta <- data.frame(clonotypeKey = character(), subset = character())
 
-  write.table(clonotype_to_subset_alpha, paste0(output_folder, "/clonotype_to_subset_alpha.tsv"), 
+  write.table(clonotype_to_subset_alpha, paste0(output_folder, "/clonotype_to_subset_alpha.tsv"),
     sep = "\t", quote = F, row.names = F)
-  write.table(clonotype_to_subset_beta, paste0(output_folder, "/clonotype_to_subset_beta.tsv"), 
+  write.table(clonotype_to_subset_beta, paste0(output_folder, "/clonotype_to_subset_beta.tsv"),
     sep = "\t", quote = F, row.names = F)
 }
+
+# Write robust enrichment (any comparison) mapping
+write.table(robust_any_alpha, paste0(output_folder, "/robust_any_alpha.tsv"),
+  sep = "\t", quote = F, row.names = F)
+write.table(robust_any_beta, paste0(output_folder, "/robust_any_beta.tsv"),
+  sep = "\t", quote = F, row.names = F)

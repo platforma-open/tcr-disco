@@ -41,8 +41,15 @@ find_pairs = function(deg_alpha_table, deg_beta_table, metadata_table,
   # samples related to the selected numerator
   alpha_clonotypes <- unique(deg_alpha_table[deg_alpha_table$Numerator == num, "clonotypeKey"])
   beta_clonotypes <- unique(deg_beta_table[deg_beta_table$Numerator == num, "clonotypeKey"])
+
+  # Skip if either chain has no DEG clonotypes — pairing requires both alpha and beta
+  if (length(alpha_clonotypes) == 0 || length(beta_clonotypes) == 0) {
+    return(data.frame(tra = character(0), trb = character(0), estimate = numeric(0),
+                      p.value = numeric(0), p.adj = numeric(0), Numerator = character(0)))
+  }
+
   numerator_samples <- metadata_table[metadata_table[,contrast_col] == num, "useSampleId"]
-  alpha_matrix <- alpha_matrix[alpha_clonotypes, 
+  alpha_matrix <- alpha_matrix[alpha_clonotypes,
       colnames(alpha_matrix)[colnames(alpha_matrix) %in% numerator_samples], drop = FALSE]
   beta_matrix <- beta_matrix[beta_clonotypes, 
       colnames(beta_matrix)[colnames(beta_matrix) %in% numerator_samples], drop = FALSE]
@@ -218,6 +225,9 @@ if (nrow(deg_alpha_table) == 0 || nrow(deg_beta_table) == 0) {
     stop("Error: The sets of samples in the alpha and beta tables are not the same")
   }
 
+  # Capture full sample list before DEG filtering (which may drop samples from one chain)
+  all_samples <- sort(unique(main_alpha_table$useSampleId))
+
   # Filter main tables to only include DEG clonotypes to reduce memory and processing time
   # We will loose samples, so it's important to have it after the check above
   deg_alpha_clonotypes <- unique(deg_alpha_table$clonotypeKey)
@@ -225,9 +235,19 @@ if (nrow(deg_alpha_table) == 0 || nrow(deg_beta_table) == 0) {
   main_alpha_table <- main_alpha_table[main_alpha_table$clonotypeKey %in% deg_alpha_clonotypes, ]
   main_beta_table <- main_beta_table[main_beta_table$clonotypeKey %in% deg_beta_clonotypes, ]
 
-  # Get alpha/beta fraction matrices
+  # Get alpha/beta fraction matrices and ensure all samples are represented as columns
   alpha_matrix <- get_fraction_matrix(main_alpha_table)
   beta_matrix <- get_fraction_matrix(main_beta_table)
+
+  # Add missing sample columns (lost during DEG filtering) back as zeros
+  for (s in setdiff(all_samples, colnames(alpha_matrix))) {
+    alpha_matrix <- cbind(alpha_matrix, matrix(0, nrow = nrow(alpha_matrix), ncol = 1, dimnames = list(NULL, s)))
+  }
+  for (s in setdiff(all_samples, colnames(beta_matrix))) {
+    beta_matrix <- cbind(beta_matrix, matrix(0, nrow = nrow(beta_matrix), ncol = 1, dimnames = list(NULL, s)))
+  }
+  alpha_matrix <- alpha_matrix[, all_samples, drop = FALSE]
+  beta_matrix <- beta_matrix[, all_samples, drop = FALSE]
 
   # Get all possible values from Numerator column in both tables
   numerators <- unique(c(deg_alpha_table$Numerator, deg_beta_table$Numerator))
