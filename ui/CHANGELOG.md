@@ -1,5 +1,18 @@
 # @platforma-open/milaboratories.tcrdisco-enrichment.ui
 
+## 1.2.0
+
+### Minor Changes
+
+- 7cb8720: Include feature to always show all samples in plots
+- abc392c: New changeset
+
+### Patch Changes
+
+- Updated dependencies [7cb8720]
+- Updated dependencies [abc392c]
+  - @platforma-open/milaboratories.tcrdisco-enrichment.model@1.2.0
+
 ## 1.1.1
 
 ### Patch Changes
