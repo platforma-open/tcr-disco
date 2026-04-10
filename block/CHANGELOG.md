@@ -1,5 +1,20 @@
 # @platforma-open/milaboratories.tcrdisco-enrichment
 
+## 1.2.0
+
+### Minor Changes
+
+- abc392c: New changeset
+
+### Patch Changes
+
+- Updated dependencies [7cb8720]
+- Updated dependencies [abc392c]
+  - @platforma-open/milaboratories.run-tcrdisco-enrichment.software@1.2.0
+  - @platforma-open/milaboratories.tcrdisco-enrichment.workflow@1.2.0
+  - @platforma-open/milaboratories.tcrdisco-enrichment.model@1.2.0
+  - @platforma-open/milaboratories.tcrdisco-enrichment.ui@1.2.0
+
 ## 1.1.1
 
 ### Patch Changes
