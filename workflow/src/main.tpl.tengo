@@ -572,6 +572,26 @@ wf.body(func(args) {
 			{mem: defaultConvMem, cpu: defaultConvCpu})
 	}
 
+	// Build exportable PFrames for the "Any" robust enrichment column so downstream blocks can consume it
+	robustAnyAlphaBuilder := pframes.pFrameBuilder()
+	robustAnyAlphaBuilder.add(
+		"Any",
+		trace.inject(robustAnyAlphaPf["robustEnrichment.spec"]),
+		robustAnyAlphaPf["robustEnrichment.data"]
+	)
+	robustAnyAlphaExport := robustAnyAlphaBuilder.build()
+
+	robustAnyBetaExport := undefined
+	if robustAnyBetaPf != undefined {
+		robustAnyBetaBuilder := pframes.pFrameBuilder()
+		robustAnyBetaBuilder.add(
+			"Any",
+			trace.inject(robustAnyBetaPf["robustEnrichment.spec"]),
+			robustAnyBetaPf["robustEnrichment.data"]
+		)
+		robustAnyBetaExport = robustAnyBetaBuilder.build()
+	}
+
 	// Store all generated PFrames in outputs only if they where defined
 	outputs.topDegPFAlpha = pframes.exportFrame(topDegPFAlpha)
 	outputs.mainAlphaFrequenciesPF = pframes.exportFrame(mainAlphaFrequenciesPF)
@@ -601,7 +621,9 @@ wf.body(func(args) {
 		exports: {
 			robustEnrichmentAlpha: robustEnrichmentPFAlpha_clonotype,
 			robustEnrichmentBeta: robustEnrichmentPFBeta_clonotype,
-			contrastExport: contrastExport
+			contrastExport: contrastExport,
+			robustAnyAlpha: robustAnyAlphaExport,
+			robustAnyBeta: robustAnyBetaExport
 		}
 	}
 })
