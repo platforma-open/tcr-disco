@@ -4,6 +4,7 @@ import type {
   PColumn,
   PColumnDataUniversal,
   PColumnIdAndSpec,
+  PColumnSpec,
   PFrameHandle,
   PlDataTableStateV2,
   PlMultiSequenceAlignmentModel,
@@ -299,16 +300,31 @@ export const model = BlockModel.create()
       && col.spec.name !== 'pl7.app/differentialTCRAbundance/tra_VGene'
       && col.spec.name !== 'pl7.app/differentialTCRAbundance/trb_VGene');
 
-    // Get from the pool CDR3 aa and VGene pcolumns
+    // pairsPF axes: [0] numerator, [1] alpha clonotypeKey, [2] beta clonotypeKey.
+    // Pin CDR3/VGene lookups to each chain's main clonotyping run so we don't
+    // pick up duplicates from other upstream clonotyping blocks (e.g. CD data).
+    const alphaRunId = pCols[0]?.spec.axesSpec[1]?.domain?.['pl7.app/vdj/clonotypingRunId'];
+    const betaRunId = pCols[0]?.spec.axesSpec[2]?.domain?.['pl7.app/vdj/clonotypingRunId'];
+    const matchesMainRun = (spec: PColumnSpec) => {
+      const chain = spec.axesSpec[0]?.domain?.['pl7.app/vdj/chain'];
+      const runId = spec.axesSpec[0]?.domain?.['pl7.app/vdj/clonotypingRunId'];
+      if (chain === 'TCRAlpha') return alphaRunId === undefined || runId === alphaRunId;
+      if (chain === 'TCRBeta') return betaRunId === undefined || runId === betaRunId;
+      return false;
+    };
+
+    // Get from the pool CDR3 aa and VGene pcolumns for the main clonotyping runs
     const cdr3Pcols = ctx.resultPool.selectColumns(
       (spec) => spec.name === 'pl7.app/vdj/sequence'
         && spec.domain?.['pl7.app/alphabet'] === 'aminoacid'
-        && spec.domain?.['pl7.app/vdj/feature'] === 'CDR3',
+        && spec.domain?.['pl7.app/vdj/feature'] === 'CDR3'
+        && matchesMainRun(spec),
     );
     const vGenePcols = ctx.resultPool.selectColumns(
       (spec) => spec.name === 'pl7.app/vdj/sequence'
         && spec.domain?.['pl7.app/alphabet'] === 'aminoacid'
-        && spec.domain?.['pl7.app/vdj/feature'] === 'VGene',
+        && spec.domain?.['pl7.app/vdj/feature'] === 'VGene'
+        && matchesMainRun(spec),
     );
 
     if (cdr3Pcols !== undefined && vGenePcols !== undefined) {
@@ -338,11 +354,23 @@ export const model = BlockModel.create()
       && col.spec.name !== 'pl7.app/differentialTCRAbundance/tra_VGene'
       && col.spec.name !== 'pl7.app/differentialTCRAbundance/trb_VGene');
 
-    // Get from the pool CDR3 aa and VGene pcolumns
+    // Match the filter used by pairsHeatmapPf so the defaults' selectedSource
+    // specs align exactly with what's in the PFrame.
+    const alphaRunId = pCols[0]?.spec.axesSpec[1]?.domain?.['pl7.app/vdj/clonotypingRunId'];
+    const betaRunId = pCols[0]?.spec.axesSpec[2]?.domain?.['pl7.app/vdj/clonotypingRunId'];
+    const matchesMainRun = (spec: PColumnSpec) => {
+      const chain = spec.axesSpec[0]?.domain?.['pl7.app/vdj/chain'];
+      const runId = spec.axesSpec[0]?.domain?.['pl7.app/vdj/clonotypingRunId'];
+      if (chain === 'TCRAlpha') return alphaRunId === undefined || runId === alphaRunId;
+      if (chain === 'TCRBeta') return betaRunId === undefined || runId === betaRunId;
+      return false;
+    };
+
     const cdr3Pcols = ctx.resultPool.selectColumns(
       (spec) => spec.name === 'pl7.app/vdj/sequence'
         && spec.domain?.['pl7.app/alphabet'] === 'aminoacid'
-        && spec.domain?.['pl7.app/vdj/feature'] === 'CDR3',
+        && spec.domain?.['pl7.app/vdj/feature'] === 'CDR3'
+        && matchesMainRun(spec),
     );
     if (cdr3Pcols !== undefined) {
       filteredPcols = [...filteredPcols, ...cdr3Pcols] as PColumn<TreeNodeAccessor>[];
@@ -382,12 +410,10 @@ export const model = BlockModel.create()
       allPcols = [...allPcols, ...clonotypeToSubsetPcols];
     }
 
-    const robustAnyLabel = selectedChain === 'alpha' ? 'robustAnyAlpha' : 'robustAnyBeta';
-    const robustAnyPcols = ctx.outputs?.resolve({ field: robustAnyLabel, allowPermanentAbsence: true })?.getPColumns();
-    if (robustAnyPcols !== undefined) {
-      allPcols = [...allPcols, ...robustAnyPcols];
-    }
-
+    // The "Any" robust enrichment column is exported, so createPFrameForGraphs
+    // picks it up from the result pool. Including it here as a block column too
+    // would create duplicates with matching spec.name and different ids, which
+    // breaks default-option matching in graph-maker.
     return createPFrameForGraphs(ctx, allPcols);
   })
 
@@ -407,17 +433,28 @@ export const model = BlockModel.create()
       (spec) => spec.name === 'pl7.app/metadata',
     );
 
-    // Get the sequence column for the sleected chain
+    // Get the sequence column for the selected chain, restricted to the main
+    // dataset's clonotyping run to avoid pulling CDR3 columns from other
+    // upstream clonotyping blocks (e.g. the CD dataset).
     const chain = selectedChain === 'alpha' ? 'TCRAlpha' : 'TCRBeta';
+    const mainClonotypingRunId = pCols[0]?.spec.axesSpec[1]?.domain?.['pl7.app/vdj/clonotypingRunId'];
     const sequenceCol = ctx.resultPool.selectColumns(
       (spec) => spec.name === 'pl7.app/vdj/sequence'
         && spec.domain?.['pl7.app/alphabet'] === 'aminoacid'
         && spec.domain?.['pl7.app/vdj/feature'] === 'CDR3'
-        && spec.axesSpec[0].domain?.['pl7.app/vdj/chain'] === chain,
+        && spec.axesSpec[0].domain?.['pl7.app/vdj/chain'] === chain
+        && (mainClonotypingRunId === undefined
+          || spec.axesSpec[0].domain?.['pl7.app/vdj/clonotypingRunId'] === mainClonotypingRunId),
     );
 
-    const robustAnyLabel = selectedChain === 'alpha' ? 'robustAnyAlpha' : 'robustAnyBeta';
-    const robustAnyPcols = ctx.outputs?.resolve({ field: robustAnyLabel, allowPermanentAbsence: true })?.getPColumns();
+    // Pick the "Any" robust enrichment column from the result pool (it's exported
+    // by this block). The per-numerator variants carry a `comparison` domain, so
+    // filtering it out leaves only the Any variant — matches what graph-maker
+    // sees in the PFrame.
+    const robustAnyPcols = ctx.resultPool.selectColumns(
+      (spec) => spec.name === 'pl7.app/differentialTCRAbundance/robustEnrichment'
+        && !spec.domain?.['pl7.app/differentialTCRAbundance/comparison'],
+    );
 
     let allCols = [...pCols, ...metadataCols];
     if (clonotypeToSubsetPcols !== undefined) {

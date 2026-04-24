@@ -607,12 +607,6 @@ wf.body(func(args) {
 		}
 	}
 
-	// Robust enrichment per clonotype - any comparison
-	outputs.robustAnyAlpha = pframes.exportFrame(robustAnyAlphaPf)
-	if robustAnyBetaPf != undefined {
-		outputs.robustAnyBeta = pframes.exportFrame(robustAnyBetaPf)
-	}
-
 	// Report file indicating empty inputs or too much filtering
 	outputs.reportContent = reportContent
 
