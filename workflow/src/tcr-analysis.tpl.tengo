@@ -38,7 +38,7 @@ self.validateInputs({
 })
 
 self.defineOutputs("topTableFileAlpha","topTableFileBeta","daFileAlpha",
-"daFileBeta","contrastMap","mainAlphaFrequenciesTsv","mainBetaFrequenciesTsv",
+"daFileBeta","mainAlphaFrequenciesTsv","mainBetaFrequenciesTsv",
 "clonotypeToSubsetAlpha","clonotypeToSubsetBeta",
 "robustEnrichmentPFAlpha_clonotype","robustEnrichmentPFBeta_clonotype",
 "robustAnyAlphaTsv","robustAnyBetaTsv","reportContent")
@@ -89,8 +89,7 @@ self.body(func(inputs) {
 	dfsDegBeta := []
 	dfsTopTableAlpha := []
 	dfsTopTableBeta := []
-	contrastMap := {}
-	
+
 	// Format 2 specs (with contrast in domain) - process outside workflow
 	degPframeBuilderAlpha_clonotype := pframes.pFrameBuilder()
 	degPframeBuilderBeta_clonotype := pframes.pFrameBuilder()
@@ -132,7 +131,6 @@ self.body(func(inputs) {
 	
 	for numerator in inputs.numerators {
 		numerator = string(numerator)
-		contrastMap[numerator + " vs " + denominatorString] = numerator + " vs " + denominatorString
 
 		diffExec.saveFile("robust_enrichment_alpha_" + numerator + ".csv").
 				saveFile("robust_enrichment_beta_" + numerator + ".csv")
@@ -220,7 +218,6 @@ self.body(func(inputs) {
 		topTableFileBeta: diffExec.getFile("topTable_beta.csv"),
 		daFileAlpha: diffExec.getFile("DA_alpha.csv"),
 		daFileBeta: diffExec.getFile("DA_beta.csv"),
-		contrastMap: contrastMap,
 		mainAlphaFrequenciesTsv: mainAlphaFrequenciesTsv,
 		mainBetaFrequenciesTsv: mainBetaFrequenciesTsv,
 		clonotypeToSubsetAlpha: clonotypeToSubsetAlpha,

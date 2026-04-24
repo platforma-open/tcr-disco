@@ -171,6 +171,10 @@ wf.body(func(args) {
 	columns := args.columns
 	denominators := args.denominators
 	denominatorString := text.join(denominators, "-")
+	contrastMap := {}
+	for numerator in args.numerators {
+		contrastMap[string(numerator) + " vs " + denominatorString] = string(numerator) + " vs " + denominatorString
+	}
 	cdSubsetCol := undefined
 	// This is needed for cases in which user selects a value and then removes the CD4/8 dataset
 	if args.cdRef != undefined {
@@ -492,7 +496,7 @@ wf.body(func(args) {
 					}
 			}]
 		},
-		data: createJsonPColumnData(json.encode(mapToPValueData(tcrAnalysis.output("contrastMap"))))
+		data: createJsonPColumnData(json.encode(mapToPValueData(contrastMap)))
 	}
 
 	// Build separate PFrames for alpha and beta
