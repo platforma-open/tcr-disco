@@ -410,10 +410,12 @@ export const model = BlockModel.create()
       allPcols = [...allPcols, ...clonotypeToSubsetPcols];
     }
 
-    // The "Any" robust enrichment column is exported, so createPFrameForGraphs
-    // picks it up from the result pool. Including it here as a block column too
-    // would create duplicates with matching spec.name and different ids, which
-    // breaks default-option matching in graph-maker.
+    const robustAnyLabel = selectedChain === 'alpha' ? 'robustAnyAlpha' : 'robustAnyBeta';
+    const robustAnyPcols = ctx.outputs?.resolve({ field: robustAnyLabel, allowPermanentAbsence: true })?.getPColumns();
+    if (robustAnyPcols !== undefined) {
+      allPcols = [...allPcols, ...robustAnyPcols];
+    }
+
     return createPFrameForGraphs(ctx, allPcols);
   })
 
@@ -447,14 +449,8 @@ export const model = BlockModel.create()
           || spec.axesSpec[0].domain?.['pl7.app/vdj/clonotypingRunId'] === mainClonotypingRunId),
     );
 
-    // Pick the "Any" robust enrichment column from the result pool (it's exported
-    // by this block). The per-numerator variants carry a `comparison` domain, so
-    // filtering it out leaves only the Any variant — matches what graph-maker
-    // sees in the PFrame.
-    const robustAnyPcols = ctx.resultPool.selectColumns(
-      (spec) => spec.name === 'pl7.app/differentialTCRAbundance/robustEnrichment'
-        && !spec.domain?.['pl7.app/differentialTCRAbundance/comparison'],
-    );
+    const robustAnyLabel = selectedChain === 'alpha' ? 'robustAnyAlpha' : 'robustAnyBeta';
+    const robustAnyPcols = ctx.outputs?.resolve({ field: robustAnyLabel, allowPermanentAbsence: true })?.getPColumns();
 
     let allCols = [...pCols, ...metadataCols];
     if (clonotypeToSubsetPcols !== undefined) {
