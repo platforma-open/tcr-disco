@@ -5,11 +5,14 @@ import type {
   PColumnDataUniversal,
   PColumnIdAndSpec,
   PFrameHandle,
+  PlDataTableFilterSpecLeaf,
+  PlDataTableFilters,
   PlDataTableStateV2,
   PlMultiSequenceAlignmentModel,
   PlRef,
   TreeNodeAccessor,
 } from '@platforma-sdk/model';
+import { canonicalizeJson } from '@platforma-sdk/model';
 import {
   ArrayColumnProvider,
   BlockModelV3,
@@ -79,6 +82,71 @@ export type BlockData = {
   frequenciesHeatmapState: GraphMakerState;
   alignmentModel: PlMultiSequenceAlignmentModel;
 };
+
+// Build the column reference used by createPlDataTableV3 filter specs.
+// remapFilterColumnIds matches by `originalId` first (set to the source pCol's PObjectId
+// during discovery), so the raw PObjectId is the correct `id` value here.
+function columnFilterRef(pColId: string): string {
+  return canonicalizeJson({ type: 'column', id: pColId });
+}
+
+// Workaround for an SDK quirk: when a single filter (e.g. a sheet selection) is stored
+// in `tableState.pTableParams.filters`, the SDK keeps it as a bare leaf instead of wrapping
+// it in `{type:'and', filters:[leaf]}`. The downstream `concatFilters` then crashes on
+// `[...a.filters]` because a leaf has no `.filters` array. Normalize the state so any bare
+// leaf becomes an and-node.
+function normalizeTableState(state: PlDataTableStateV2): PlDataTableStateV2 {
+  const wrap = (f: unknown): unknown => {
+    if (f === null || f === undefined) return f;
+    if (typeof f !== 'object') return f;
+    const node = f as { type?: string };
+    if (node.type === 'and' || node.type === 'or' || node.type === 'not') return f;
+    return { type: 'and', filters: [f] };
+  };
+  const params = (state as { pTableParams?: { filters?: unknown; defaultFilters?: unknown } }).pTableParams;
+  if (!params) return state;
+  if (params.filters === undefined && params.defaultFilters === undefined) return state;
+  return {
+    ...state,
+    pTableParams: {
+      ...params,
+      filters: wrap(params.filters),
+      defaultFilters: wrap(params.defaultFilters),
+    },
+  } as PlDataTableStateV2;
+}
+
+function buildPtDefaultFilters(
+  pCols: PColumn<TreeNodeAccessor>[],
+  data: { log2FcThreshold: number; pAdjThreshold: number },
+): PlDataTableFilters | undefined {
+  const log2fcCol = pCols.find((c) => c.spec.name === 'pl7.app/differentialTCRAbundance/log2foldchange');
+  const padjCol = pCols.find((c) => c.spec.name === 'pl7.app/differentialTCRAbundance/padj');
+  const robustCol = pCols.find((c) => c.spec.name === 'pl7.app/differentialTCRAbundance/robustEnrichment');
+  const leaves: PlDataTableFilterSpecLeaf[] = [];
+  if (log2fcCol) {
+    leaves.push({ type: 'greaterThanOrEqual', column: columnFilterRef(log2fcCol.id), x: data.log2FcThreshold });
+  }
+  if (padjCol) {
+    leaves.push({ type: 'lessThanOrEqual', column: columnFilterRef(padjCol.id), x: data.pAdjThreshold });
+  }
+  if (robustCol) {
+    leaves.push({ type: 'patternEquals', column: columnFilterRef(robustCol.id), value: 'Robust' });
+  }
+  return leaves.length > 0 ? { type: 'and', filters: leaves } : undefined;
+}
+
+function buildPairsPtDefaultFilters(
+  pCols: PColumn<TreeNodeAccessor>[],
+  data: { pAdjThreshold: number },
+): PlDataTableFilters | undefined {
+  const padjCol = pCols.find((c) => c.spec.name === 'pl7.app/differentialTCRAbundance/padj');
+  if (!padjCol) return undefined;
+  return {
+    type: 'and',
+    filters: [{ type: 'lessThanOrEqual', column: columnFilterRef(padjCol.id), x: data.pAdjThreshold }],
+  };
+}
 
 // Filter columns for volcano plot
 function filterPCols(
@@ -302,7 +370,8 @@ export const platforma = BlockModelV3.create(dataModel)
         anchors: { main: pCols[0].spec },
         selector: { mode: 'enrichment' },
       },
-      tableState: ctx.data.tableState,
+      tableState: normalizeTableState(ctx.data.tableState),
+      filters: buildPtDefaultFilters(pCols, ctx.data),
     });
   }, { withStatus: true })
 
@@ -333,7 +402,8 @@ export const platforma = BlockModelV3.create(dataModel)
         anchors: { main: pCols[0].spec },
         selector: { mode: 'enrichment' },
       },
-      tableState: ctx.data.pairsTableState,
+      tableState: normalizeTableState(ctx.data.pairsTableState),
+      filters: buildPairsPtDefaultFilters(pCols, ctx.data),
     });
   }, { withStatus: true })
 
