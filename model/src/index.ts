@@ -1,13 +1,10 @@
 import type { GraphMakerState } from '@milaboratories/graph-maker';
-import { canonicalizeJson } from '@milaboratories/pl-model-common';
 import type {
   InferOutputsType,
   PColumn,
   PColumnDataUniversal,
   PColumnIdAndSpec,
   PFrameHandle,
-  PlDataTableFilterSpecLeaf,
-  PlDataTableFilters,
   PlDataTableStateV2,
   PlMultiSequenceAlignmentModel,
   PlRef,
@@ -299,37 +296,6 @@ export const platforma = BlockModelV3.create(dataModel)
       return undefined;
     }
 
-    const log2fcCol = pCols.find((c) => c.spec.name === 'pl7.app/differentialTCRAbundance/log2foldchange');
-    const padjCol = pCols.find((c) => c.spec.name === 'pl7.app/differentialTCRAbundance/padj');
-    const robustCol = pCols.find((c) => c.spec.name === 'pl7.app/differentialTCRAbundance/robustEnrichment');
-
-    const defaultFilterLeaves: PlDataTableFilterSpecLeaf[] = [];
-    if (log2fcCol) {
-      defaultFilterLeaves.push({
-        type: 'greaterThanOrEqual',
-        column: canonicalizeJson({ type: 'column', id: log2fcCol.id }),
-        x: ctx.data.log2FcThreshold,
-      });
-    }
-    if (padjCol) {
-      defaultFilterLeaves.push({
-        type: 'lessThanOrEqual',
-        column: canonicalizeJson({ type: 'column', id: padjCol.id }),
-        x: ctx.data.pAdjThreshold,
-      });
-    }
-    if (robustCol) {
-      defaultFilterLeaves.push({
-        type: 'patternEquals',
-        column: canonicalizeJson({ type: 'column', id: robustCol.id }),
-        value: 'Robust',
-      });
-    }
-
-    const filters: PlDataTableFilters | undefined = defaultFilterLeaves.length > 0
-      ? { type: 'and', filters: defaultFilterLeaves }
-      : undefined;
-
     return createPlDataTableV3(ctx, {
       columns: {
         sources: [new ArrayColumnProvider(pCols)],
@@ -337,7 +303,6 @@ export const platforma = BlockModelV3.create(dataModel)
         selector: { mode: 'enrichment' },
       },
       tableState: ctx.data.tableState,
-      filters,
     });
   }, { withStatus: true })
 
@@ -362,21 +327,6 @@ export const platforma = BlockModelV3.create(dataModel)
       return undefined;
     }
 
-    const padjCol = pCols.find((c) => c.spec.name === 'pl7.app/differentialTCRAbundance/padj');
-
-    const defaultFilterLeaves: PlDataTableFilterSpecLeaf[] = [];
-    if (padjCol) {
-      defaultFilterLeaves.push({
-        type: 'lessThanOrEqual',
-        column: canonicalizeJson({ type: 'column', id: padjCol.id }),
-        x: ctx.data.pAdjThreshold,
-      });
-    }
-
-    const filters: PlDataTableFilters | undefined = defaultFilterLeaves.length > 0
-      ? { type: 'and', filters: defaultFilterLeaves }
-      : undefined;
-
     return createPlDataTableV3(ctx, {
       columns: {
         sources: [new ArrayColumnProvider(pCols)],
@@ -384,7 +334,6 @@ export const platforma = BlockModelV3.create(dataModel)
         selector: { mode: 'enrichment' },
       },
       tableState: ctx.data.pairsTableState,
-      filters,
     });
   }, { withStatus: true })
 

@@ -13,8 +13,7 @@
   "dependencies": {
     "@platforma-sdk/model": "catalog:",
     "@milaboratories/graph-maker": "catalog:",
-    "@milaboratories/helpers": "catalog:",
-    "@milaboratories/pl-model-common": "catalog:"
+    "@milaboratories/helpers": "catalog:"
   },
   "devDependencies": {
     "@platforma-sdk/block-tools": "catalog:",
