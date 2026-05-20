@@ -253,7 +253,7 @@ export const platforma = BlockModelV3.create(dataModel)
   )
 
   .output('denominatorOptions', (ctx) => {
-    const contrastFactor = ctx.args?.contrastFactor;
+    const contrastFactor = ctx.data.contrastFactor;
     if (!contrastFactor) return undefined;
 
     const pColumn = ctx.resultPool.getPColumnByRef(contrastFactor);
@@ -263,7 +263,7 @@ export const platforma = BlockModelV3.create(dataModel)
   })
 
   .output('cdSubsetOptions', (ctx) => {
-    const cdSubsetCol = ctx.args?.cdSubsetCol;
+    const cdSubsetCol = ctx.data.cdSubsetCol;
     if (!cdSubsetCol) return undefined;
 
     const pColumn = ctx.resultPool.getPColumnByRef(cdSubsetCol);
@@ -308,14 +308,14 @@ export const platforma = BlockModelV3.create(dataModel)
       defaultFilterLeaves.push({
         type: 'greaterThanOrEqual',
         column: canonicalizeJson({ type: 'column', id: log2fcCol.id }),
-        x: ctx.args?.log2FcThreshold ?? 0,
+        x: ctx.data.log2FcThreshold,
       });
     }
     if (padjCol) {
       defaultFilterLeaves.push({
         type: 'lessThanOrEqual',
         column: canonicalizeJson({ type: 'column', id: padjCol.id }),
-        x: ctx.args?.pAdjThreshold ?? 0.05,
+        x: ctx.data.pAdjThreshold,
       });
     }
     if (robustCol) {
@@ -369,7 +369,7 @@ export const platforma = BlockModelV3.create(dataModel)
       defaultFilterLeaves.push({
         type: 'lessThanOrEqual',
         column: canonicalizeJson({ type: 'column', id: padjCol.id }),
-        x: ctx.args?.pAdjThreshold ?? 0.05,
+        x: ctx.data.pAdjThreshold,
       });
     }
 
@@ -577,7 +577,7 @@ export const platforma = BlockModelV3.create(dataModel)
     const msaCols = ctx.outputs?.resolve(outputName)?.getPColumns();
     if (!msaCols) return undefined;
 
-    const datasetRef = ctx.args?.mainRef;
+    const datasetRef = ctx.data.mainRef;
     if (datasetRef === undefined)
       return undefined;
 
@@ -593,7 +593,7 @@ export const platforma = BlockModelV3.create(dataModel)
       { type: 'link' as const, href: '/freq-heatmap' as const, label: 'Enriched clonotypes heatmap' },
     ];
 
-    if (ctx.args?.findTcrAbPairs) {
+    if (ctx.data.findTcrAbPairs) {
       sections.push({ type: 'link' as const, href: '/pairs' as const, label: 'TCR AB Pairs' });
       sections.push({ type: 'link' as const, href: '/pairs-heatmap' as const, label: 'Pairs correlation heatmap' });
     }
