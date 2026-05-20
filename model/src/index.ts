@@ -253,18 +253,20 @@ export const platforma = BlockModelV3.create(dataModel)
   )
 
   .output('denominatorOptions', (ctx) => {
-    if (!ctx.args.contrastFactor) return undefined;
+    const contrastFactor = ctx.args?.contrastFactor;
+    if (!contrastFactor) return undefined;
 
-    const pColumn = ctx.resultPool.getPColumnByRef(ctx.args.contrastFactor);
+    const pColumn = ctx.resultPool.getPColumnByRef(contrastFactor);
     if (!pColumn) return undefined;
 
     return ctx.createPFrame([pColumn]);
   })
 
   .output('cdSubsetOptions', (ctx) => {
-    if (!ctx.args.cdSubsetCol) return undefined;
+    const cdSubsetCol = ctx.args?.cdSubsetCol;
+    if (!cdSubsetCol) return undefined;
 
-    const pColumn = ctx.resultPool.getPColumnByRef(ctx.args.cdSubsetCol);
+    const pColumn = ctx.resultPool.getPColumnByRef(cdSubsetCol);
     if (!pColumn) return undefined;
 
     return ctx.createPFrame([pColumn]);
@@ -306,14 +308,14 @@ export const platforma = BlockModelV3.create(dataModel)
       defaultFilterLeaves.push({
         type: 'greaterThanOrEqual',
         column: canonicalizeJson({ type: 'column', id: log2fcCol.id }),
-        x: ctx.args.log2FcThreshold,
+        x: ctx.args?.log2FcThreshold ?? 0,
       });
     }
     if (padjCol) {
       defaultFilterLeaves.push({
         type: 'lessThanOrEqual',
         column: canonicalizeJson({ type: 'column', id: padjCol.id }),
-        x: ctx.args.pAdjThreshold,
+        x: ctx.args?.pAdjThreshold ?? 0.05,
       });
     }
     if (robustCol) {
@@ -367,7 +369,7 @@ export const platforma = BlockModelV3.create(dataModel)
       defaultFilterLeaves.push({
         type: 'lessThanOrEqual',
         column: canonicalizeJson({ type: 'column', id: padjCol.id }),
-        x: ctx.args.pAdjThreshold,
+        x: ctx.args?.pAdjThreshold ?? 0.05,
       });
     }
 
@@ -575,7 +577,7 @@ export const platforma = BlockModelV3.create(dataModel)
     const msaCols = ctx.outputs?.resolve(outputName)?.getPColumns();
     if (!msaCols) return undefined;
 
-    const datasetRef = ctx.args.mainRef;
+    const datasetRef = ctx.args?.mainRef;
     if (datasetRef === undefined)
       return undefined;
 
@@ -591,7 +593,7 @@ export const platforma = BlockModelV3.create(dataModel)
       { type: 'link' as const, href: '/freq-heatmap' as const, label: 'Enriched clonotypes heatmap' },
     ];
 
-    if (ctx.args.findTcrAbPairs) {
+    if (ctx.args?.findTcrAbPairs) {
       sections.push({ type: 'link' as const, href: '/pairs' as const, label: 'TCR AB Pairs' });
       sections.push({ type: 'link' as const, href: '/pairs-heatmap' as const, label: 'Pairs correlation heatmap' });
     }
