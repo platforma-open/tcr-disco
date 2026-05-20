@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { PlAgDataTableV2, PlBlockPage, usePlDataTableSettingsV2 } from '@platforma-sdk/ui-vue';
-import { computed } from 'vue';
 import { useApp } from '../app';
 
 const app = useApp();
 
-const tableSettings = computed(() => usePlDataTableSettingsV2({
+const tableSettings = usePlDataTableSettingsV2({
   model: () => app.model.outputs.pairsPt,
   sheets: () => app.model.outputs.pairsSheets,
-}).value);
+});
 
 </script>
 
