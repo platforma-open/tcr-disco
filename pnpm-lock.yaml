@@ -18,6 +18,9 @@ catalogs:
     '@milaboratories/multi-sequence-alignment':
       specifier: 1.47.12
       version: 1.47.12
+    '@milaboratories/pl-model-common':
+      specifier: 1.42.0
+      version: 1.42.0
     '@platforma-open/milaboratories.runenv-r-differential-expression':
       specifier: 1.0.7
       version: 1.0.7
@@ -117,6 +120,9 @@ importers:
       '@milaboratories/helpers':
         specifier: 'catalog:'
         version: 1.14.2
+      '@milaboratories/pl-model-common':
+        specifier: 'catalog:'
+        version: 1.42.0
       '@platforma-sdk/model':
         specifier: 'catalog:'
         version: 1.77.4
