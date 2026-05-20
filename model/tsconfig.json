@@ -8,8 +8,7 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "sourceMap": true,
-    "declaration": true,
-    "skipLibCheck": true
+    "declaration": true
   },
   "types": [],
   "include": ["src/**/*"],
