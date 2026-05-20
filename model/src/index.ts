@@ -1,15 +1,18 @@
 import type { GraphMakerState } from '@milaboratories/graph-maker';
 import type {
+  CanonicalizedJson,
   InferOutputsType,
   PColumn,
   PColumnDataUniversal,
   PColumnIdAndSpec,
   PFrameHandle,
+  PObjectId,
   PlDataTableFilterSpecLeaf,
   PlDataTableFilters,
   PlDataTableStateV2,
   PlMultiSequenceAlignmentModel,
   PlRef,
+  PTableColumnId,
   TreeNodeAccessor,
 } from '@platforma-sdk/model';
 import { canonicalizeJson } from '@platforma-sdk/model';
@@ -86,8 +89,9 @@ export type BlockData = {
 // Build the column reference used by createPlDataTableV3 filter specs.
 // remapFilterColumnIds matches by `originalId` first (set to the source pCol's PObjectId
 // during discovery), so the raw PObjectId is the correct `id` value here.
-function columnFilterRef(pColId: string): string {
-  return canonicalizeJson({ type: 'column', id: pColId });
+function columnFilterRef(pColId: PObjectId): CanonicalizedJson<PTableColumnId> {
+  const ref: PTableColumnId = { type: 'column', id: pColId };
+  return canonicalizeJson(ref);
 }
 
 // Workaround for an SDK quirk: when a single filter (e.g. a sheet selection) is stored
