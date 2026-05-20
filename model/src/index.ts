@@ -364,7 +364,7 @@ export const platforma = BlockModelV3.create(dataModel)
     const selectedChain = ctx.data.selectedChain ?? 'alpha';
     const outputName = selectedChain === 'alpha' ? 'topDegPFAlpha' : 'topDegPFBeta';
     const pCols = ctx.outputs?.resolve(outputName)?.getPColumns();
-    if (pCols === undefined) {
+    if (pCols === undefined || pCols.length === 0) {
       return undefined;
     }
 
@@ -396,7 +396,7 @@ export const platforma = BlockModelV3.create(dataModel)
 
   .output('pairsPt', (ctx) => {
     const pCols = ctx.outputs?.resolve({ field: 'pairsPF', allowPermanentAbsence: true })?.getPColumns();
-    if (pCols === undefined) {
+    if (pCols === undefined || pCols.length === 0) {
       return undefined;
     }
 
