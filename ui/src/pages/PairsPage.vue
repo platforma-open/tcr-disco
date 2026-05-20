@@ -8,27 +8,6 @@ const app = useApp();
 const tableSettings = computed(() => usePlDataTableSettingsV2({
   model: () => app.model.outputs.pairsPt,
   sheets: () => app.model.outputs.pairsSheets,
-  filtersConfig: ({ column }) => {
-    const columnName = column.spec.name;
-    // if (columnName === 'pl7.app/differentialTCRAbundance/max_cc_info') {
-    //   return {
-    //     default: {
-    //       type: 'string_equals',
-    //       reference: 'max',
-    //     },
-    //   };
-    // }
-
-    if (columnName === 'pl7.app/differentialTCRAbundance/padj') {
-      return {
-        default: {
-          type: 'number_lessThanOrEqualTo',
-          reference: app.model.args.pAdjThreshold,
-        },
-      };
-    }
-    return {};
-  },
 }).value);
 
 </script>

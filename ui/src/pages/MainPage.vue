@@ -35,40 +35,6 @@ const showSettings = () => {
 const tableSettings = computed(() => usePlDataTableSettingsV2({
   model: () => app.model.outputs.pt,
   sheets: () => app.model.outputs.sheets,
-  filtersConfig: ({ column }) => {
-    const columnName = column.spec.name;
-
-    // Filter for log2foldchange columns (>= log2FcThreshold or)
-    if (columnName === 'pl7.app/differentialTCRAbundance/log2foldchange') {
-      return {
-        default: {
-          type: 'number_greaterThanOrEqualTo',
-          reference: app.model.args.log2FcThreshold,
-        },
-      };
-    }
-
-    // Filter for adjusted p-value columns (<= pAdjThreshold)
-    if (columnName === 'pl7.app/differentialTCRAbundance/padj') {
-      return {
-        default: {
-          type: 'number_lessThanOrEqualTo',
-          reference: app.model.args.pAdjThreshold,
-        },
-      };
-    }
-
-    if (columnName === 'pl7.app/differentialTCRAbundance/robustEnrichment') {
-      return {
-        default: {
-          type: 'string_equals',
-          reference: 'Robust',
-        },
-      };
-    }
-
-    return {};
-  },
 }).value);
 
 // Update page title by dataset

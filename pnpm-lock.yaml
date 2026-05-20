@@ -111,6 +111,9 @@ importers:
       '@milaboratories/graph-maker':
         specifier: 'catalog:'
         version: 1.4.2(@milaboratories/pl-model-common@1.42.0)(@platforma-sdk/model@1.77.4)(@platforma-sdk/ui-vue@1.77.4(@bytecodealliance/preview2-shim@0.17.9)(typescript@5.6.3))(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)(typescript@5.6.3)
+      '@milaboratories/helpers':
+        specifier: 1.14.2
+        version: 1.14.2
       '@platforma-sdk/model':
         specifier: 'catalog:'
         version: 1.77.4
@@ -148,7 +151,7 @@ importers:
     devDependencies:
       '@platforma-sdk/test':
         specifier: 'catalog:'
-        version: 1.77.5(@bytecodealliance/preview2-shim@0.17.9)(@types/node@24.5.2)(vite@5.4.11(@types/node@24.5.2))
+        version: 1.77.5(@bytecodealliance/preview2-shim@0.17.9)(@types/node@24.5.2)(vite@6.3.5(@types/node@24.5.2)(yaml@2.8.1))
       typescript:
         specifier: 'catalog:'
         version: 5.6.3
@@ -207,7 +210,7 @@ importers:
         version: 3.0.1
       '@platforma-sdk/test':
         specifier: 'catalog:'
-        version: 1.77.5(@bytecodealliance/preview2-shim@0.17.9)(@types/node@24.5.2)(vite@6.3.5(@types/node@24.5.2)(yaml@2.8.1))
+        version: 1.77.5(@bytecodealliance/preview2-shim@0.17.9)(@types/node@24.5.2)(vite@5.4.11(@types/node@24.5.2))
       vitest:
         specifier: 'catalog:'
         version: 2.1.9(@types/node@24.5.2)
@@ -6785,7 +6788,7 @@ snapshots:
   '@milaboratories/graph-maker@1.4.2(@milaboratories/pl-model-common@1.42.0)(@platforma-sdk/model@1.77.4)(@platforma-sdk/ui-vue@1.77.4(@bytecodealliance/preview2-shim@0.17.9)(typescript@5.6.3))(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)(typescript@5.6.3)':
     dependencies:
       '@ag-grid-community/core': 32.3.9
-      '@milaboratories/helpers': 1.14.1
+      '@milaboratories/helpers': 1.14.2
       '@milaboratories/miplots4': 1.2.0(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)
       '@milaboratories/pf-plots': 1.4.1(@milaboratories/pl-model-common@1.42.0)(@platforma-sdk/model@1.77.4)
       '@platforma-sdk/model': 1.77.4
@@ -6881,7 +6884,7 @@ snapshots:
 
   '@milaboratories/pf-plots@1.4.1(@milaboratories/pl-model-common@1.42.0)(@platforma-sdk/model@1.77.4)':
     dependencies:
-      '@milaboratories/helpers': 1.14.1
+      '@milaboratories/helpers': 1.14.2
       '@milaboratories/pl-model-common': 1.42.0
       '@platforma-sdk/model': 1.77.4
       canonicalize: 2.1.0

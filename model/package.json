@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "@platforma-sdk/model": "catalog:",
-    "@milaboratories/graph-maker": "catalog:"
+    "@milaboratories/graph-maker": "catalog:",
+    "@milaboratories/helpers": "1.14.2"
   },
   "devDependencies": {
     "@platforma-sdk/block-tools": "catalog:",
