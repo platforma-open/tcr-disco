@@ -16,7 +16,7 @@ const tableSettings = computed(() => usePlDataTableSettingsV2({
   <PlBlockPage>
     <template #title>TCR AB Pairs</template>
     <PlAgDataTableV2
-      v-model="app.model.ui.pairsTableState"
+      v-model="app.model.data.pairsTableState"
       :settings="tableSettings"
       not-ready-text="Data is not computed"
       show-columns-panel

@@ -39,11 +39,11 @@ const tableSettings = computed(() => usePlDataTableSettingsV2({
 
 // Update page title by dataset
 function setInput(inputRef?: PlRef) {
-  app.model.args.mainRef = inputRef;
+  app.model.data.mainRef = inputRef;
   if (inputRef) {
     const mainLabel = app.model.outputs.inputOptions?.find((o) => plRefsEqual(o.ref, inputRef))?.label;
     if (mainLabel)
-      app.model.ui.title = 'TCR Disco - ' + mainLabel;
+      app.model.data.title = 'TCR Disco - ' + mainLabel;
   }
 }
 
@@ -64,13 +64,13 @@ const metadataLabels = computed(() => {
 // CD4/8 dropdown: same options as main, but exclude the main dataset
 const cdRefInputOptions = computed(() => {
   const opts = app.model.outputs.inputOptions ?? [];
-  const main = app.model.args.mainRef;
+  const main = app.model.data.mainRef;
   if (!main) return opts;
   return opts.filter((o) => !plRefsEqual(o.ref, main));
 });
 
 const contrastFactorOptions = computed(() => {
-  return app.model.args.covariateRefs.map((ref) => ({
+  return app.model.data.covariateRefs.map((ref) => ({
     value: ref,
     label: metadataOptions.value.find((m) => m.value.name === ref.name)?.label ?? '',
   }));
@@ -119,23 +119,23 @@ const cdValues = useWatchFetch(() => app.model.outputs.cdSubsetOptions, async (p
 
   // Check if any of the values are 'CD4' or 'CD8'
   const lowerLabels = vals.map((v) => v.label.toLowerCase());
-  app.model.ui.cdSubsetColValid = lowerLabels.some((label) => label == 'cd4' || label == 'cd8');
+  app.model.data.cdSubsetColValid = lowerLabels.some((label) => label == 'cd4' || label == 'cd8');
 
   // Return all distinct values
   return vals;
 });
 
 // Make sure numerator and denominator are reset when contrast factor is changed
-watch(() => [app.model.args.contrastFactor], (_) => {
-  app.model.args.numerators = [];
-  app.model.args.denominators = [];
+watch(() => [app.model.data.contrastFactor], (_) => {
+  app.model.data.numerators = [];
+  app.model.data.denominators = [];
 });
 
 // Clear CD4/8 selection if user sets main dataset to the same as CD4/8
-watch(() => app.model.args.mainRef, (mainRef) => {
-  const cdRef = app.model.args.cdRef;
+watch(() => app.model.data.mainRef, (mainRef) => {
+  const cdRef = app.model.data.cdRef;
   if (cdRef && mainRef && plRefsEqual(cdRef, mainRef)) {
-    app.model.args.cdRef = undefined;
+    app.model.data.cdRef = undefined;
   }
 });
 
@@ -143,7 +143,7 @@ watch(() => app.model.args.mainRef, (mainRef) => {
 
 <template>
   <PlBlockPage>
-    <template #title>{{ app.model.ui.title }}</template>
+    <template #title>{{ app.model.data.title }}</template>
     <template #append>
       <PlBtnGhost @click.stop="showSettings">
         Settings
@@ -161,7 +161,7 @@ watch(() => app.model.args.mainRef, (mainRef) => {
       <span style="white-space: pre-line">{{ reportContent }}</span>
     </PlAlert>
     <PlAgDataTableV2
-      v-model="app.model.ui.tableState"
+      v-model="app.model.data.tableState"
       :settings="tableSettings"
       not-ready-text="Data is not computed"
       show-columns-panel
@@ -169,7 +169,7 @@ watch(() => app.model.args.mainRef, (mainRef) => {
     >
       <template #before-sheets>
         <PlTabs
-          v-model="app.model.ui.selectedChain"
+          v-model="app.model.data.selectedChain"
           :options="[
             { value: 'alpha', label: 'TCR Alpha Chain' },
             { value: 'beta', label: 'TCR Beta Chain' },
@@ -183,7 +183,7 @@ watch(() => app.model.args.mainRef, (mainRef) => {
   <PlSlideModal v-model="settingsAreShown">
     <template #title>Settings</template>
     <PlDropdownRef
-      v-model="app.model.args.mainRef"
+      v-model="app.model.data.mainRef"
       :options="app.model.outputs.inputOptions"
       label="Select main dataset" clearable required
       @update:model-value="setInput"
@@ -193,7 +193,7 @@ watch(() => app.model.args.mainRef, (mainRef) => {
       </template>
     </PlDropdownRef>
     <PlDropdownMulti
-      v-model="app.model.args.covariateRefs"
+      v-model="app.model.data.covariateRefs"
       :options="metadataOptions"
       label="Design"
       required
@@ -203,7 +203,7 @@ watch(() => app.model.args.mainRef, (mainRef) => {
       </template>
     </PlDropdownMulti>
     <PlDropdown
-      v-model="app.model.args.contrastFactor"
+      v-model="app.model.data.contrastFactor"
       :options="contrastFactorOptions"
       label="Contrast factor"
       required
@@ -213,7 +213,7 @@ watch(() => app.model.args.mainRef, (mainRef) => {
       </template>
     </PlDropdown>
     <PlDropdownMulti
-      v-model="app.model.args.numerators" :options="numeratorOptions.value"
+      v-model="app.model.data.numerators" :options="numeratorOptions.value"
       label="Numerator" required
     >
       <template #tooltip>
@@ -221,7 +221,7 @@ watch(() => app.model.args.mainRef, (mainRef) => {
       </template>
     </PlDropdownMulti>
     <PlDropdownMulti
-      v-model="app.model.args.denominators"
+      v-model="app.model.data.denominators"
       :options="numeratorOptions.value"
       label="Denominator/s"
       required
@@ -235,7 +235,7 @@ watch(() => app.model.args.mainRef, (mainRef) => {
     <PlAccordionSection label="THRESHOLD PARAMETERS">
       <PlRow>
         <PlNumberField
-          v-model="app.model.args.log2FcThreshold"
+          v-model="app.model.data.log2FcThreshold"
           label="Log2(FC)"
           :minValue="0"
           :step="0.1"
@@ -245,7 +245,7 @@ watch(() => app.model.args.mainRef, (mainRef) => {
           </template>
         </PlNumberField>
         <PlNumberField
-          v-model="app.model.args.pAdjThreshold"
+          v-model="app.model.data.pAdjThreshold"
           label="Adjusted p-value"
           :minValue="0"
           :maxValue="1"
@@ -254,7 +254,7 @@ watch(() => app.model.args.mainRef, (mainRef) => {
       </PlRow>
       <PlRow>
         <PlNumberField
-          v-model="app.model.args.thresholdCounts"
+          v-model="app.model.data.thresholdCounts"
           label="Min UMI counts"
           :minValue="0"
           :step="1"
@@ -265,7 +265,7 @@ watch(() => app.model.args.mainRef, (mainRef) => {
           </template>
         </PlNumberField>
         <PlNumberField
-          v-model="app.model.args.thresholdSamples"
+          v-model="app.model.data.thresholdSamples"
           label="Min replicates"
           :minValue="0"
           :step="1"
@@ -273,7 +273,7 @@ watch(() => app.model.args.mainRef, (mainRef) => {
         />
       </PlRow>
     </PlAccordionSection>
-    <PlCheckbox v-model="app.model.args.findTcrAbPairs">
+    <PlCheckbox v-model="app.model.data.findTcrAbPairs">
       Find TCR A/B pairs
       <PlTooltip class="info">
         <template #tooltip>
@@ -282,8 +282,8 @@ watch(() => app.model.args.mainRef, (mainRef) => {
       </PlTooltip>
     </PlCheckbox>
     <PlDropdown
-      v-if="!app.model.outputs.barcodeColPresent && app.model.args.findTcrAbPairs"
-      v-model="app.model.args.pairingMetadataCol"
+      v-if="!app.model.outputs.barcodeColPresent && app.model.data.findTcrAbPairs"
+      v-model="app.model.data.pairingMetadataCol"
       :options="metadataLabels"
       label="Pairing metadata column"
       clearable
@@ -295,7 +295,7 @@ watch(() => app.model.args.mainRef, (mainRef) => {
     <!-- Content hidden until you click -->
     <PlAccordionSection label="CD4/8 subset assignment">
       <PlDropdownRef
-        v-model="app.model.args.cdRef"
+        v-model="app.model.data.cdRef"
         :options="cdRefInputOptions"
         label="Select CD4/8 dataset (optional)"
         clearable
@@ -305,8 +305,8 @@ watch(() => app.model.args.mainRef, (mainRef) => {
         </template>
       </PlDropdownRef>
       <PlDropdown
-        v-if="app.model.args.cdRef"
-        v-model="app.model.args.cdSubsetCol"
+        v-if="app.model.data.cdRef"
+        v-model="app.model.data.cdSubsetCol"
         :options="metadataOptions"
         label="CD4/8 metadata column"
         clearable
@@ -315,7 +315,7 @@ watch(() => app.model.args.mainRef, (mainRef) => {
           Select the metadata column from the CD4/8 dataset that contains the cell subset labels. This column must contain values that include "CD4" or "CD8" (case-insensitive) to identify CD4+ and CD8+ T cell subsets. The analysis will use this information to assign clonotypes from the main dataset to the appropriate T cell subset based on matching clonotypes.
         </template>
       </PlDropdown>
-      <PlAlert v-if="!app.model.ui.cdSubsetColValid && app.model.args.cdRef && app.model.args.cdSubsetCol && cdValues.value" type="warn">
+      <PlAlert v-if="!app.model.data.cdSubsetColValid && app.model.data.cdRef && app.model.data.cdSubsetCol && cdValues.value" type="warn">
         {{ "Warning: The selected column doen't have any CD4 or CD8 values. please choose a column that has.\
         First 5 values are: " + cdValues.value?.slice(0, 5).map((v) => v.label).join(', ') }}
       </PlAlert>

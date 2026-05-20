@@ -11,7 +11,8 @@ import type {
   TreeNodeAccessor,
 } from '@platforma-sdk/model';
 import {
-  BlockModel,
+  BlockModelV3,
+  DataModelBuilder,
   createPFrameForGraphs,
   createPlDataTableSheet,
   createPlDataTableStateV2,
@@ -20,19 +21,8 @@ import {
   isPColumnSpec,
 } from '@platforma-sdk/model';
 
-export type UiState = {
-  tableState: PlDataTableStateV2;
-  pairsTableState: PlDataTableStateV2;
-  title?: string;
-  selectedChain?: 'alpha' | 'beta';
-  cdSubsetColValid: boolean;
-  graphState: GraphMakerState;
-  pairsHeatmapState: GraphMakerState;
-  frequenciesHeatmapState: GraphMakerState;
-  alignmentModel: PlMultiSequenceAlignmentModel;
-};
-
-export type BlockArgs = {
+// Legacy types for upgradeLegacy migration path
+type OldArgs = {
   name?: string;
   mainRef?: PlRef;
   cdRef?: PlRef;
@@ -47,6 +37,46 @@ export type BlockArgs = {
   thresholdSamples: number;
   log2FcThreshold: number;
   pAdjThreshold: number;
+};
+
+type OldUiState = {
+  tableState: PlDataTableStateV2;
+  pairsTableState: PlDataTableStateV2;
+  title?: string;
+  selectedChain?: 'alpha' | 'beta';
+  cdSubsetColValid: boolean;
+  graphState: GraphMakerState;
+  pairsHeatmapState: GraphMakerState;
+  frequenciesHeatmapState: GraphMakerState;
+  alignmentModel: PlMultiSequenceAlignmentModel;
+};
+
+export type BlockData = {
+  // Fields from BlockArgs
+  name?: string;
+  mainRef?: PlRef;
+  cdRef?: PlRef;
+  cdSubsetCol?: PlRef;
+  pairingMetadataCol?: string;
+  covariateRefs: PlRef[];
+  contrastFactor?: PlRef;
+  numerators: string[];
+  denominators: string[];
+  findTcrAbPairs: boolean;
+  thresholdCounts: number;
+  thresholdSamples: number;
+  log2FcThreshold: number;
+  pAdjThreshold: number;
+  // Fields from UiState
+  tableState: PlDataTableStateV2;
+  pairsTableState: PlDataTableStateV2;
+  title?: string;
+  selectedChain?: 'alpha' | 'beta';
+  cdSubsetColValid: boolean;
+  graphState: GraphMakerState;
+  pairsHeatmapState: GraphMakerState;
+  frequenciesHeatmapState: GraphMakerState;
+  alignmentModel: PlMultiSequenceAlignmentModel;
 };
 
 // Filter columns for volcano plot
@@ -66,9 +96,36 @@ function filterPCols(
   return pCols;
 }
 
-export const model = BlockModel.create()
-
-  .withArgs<BlockArgs>({
+const dataModel = new DataModelBuilder()
+  .from<BlockData>('v1')
+  .upgradeLegacy<OldArgs, OldUiState>(({ args, uiState }) => ({
+    // Args fields
+    name: args.name,
+    mainRef: args.mainRef,
+    cdRef: args.cdRef,
+    cdSubsetCol: args.cdSubsetCol,
+    pairingMetadataCol: args.pairingMetadataCol,
+    covariateRefs: args.covariateRefs,
+    contrastFactor: args.contrastFactor,
+    numerators: args.numerators,
+    denominators: args.denominators,
+    findTcrAbPairs: args.findTcrAbPairs,
+    thresholdCounts: args.thresholdCounts,
+    thresholdSamples: args.thresholdSamples,
+    log2FcThreshold: args.log2FcThreshold,
+    pAdjThreshold: args.pAdjThreshold,
+    // UiState fields
+    tableState: uiState.tableState,
+    pairsTableState: uiState.pairsTableState,
+    title: uiState.title,
+    selectedChain: uiState.selectedChain,
+    cdSubsetColValid: uiState.cdSubsetColValid,
+    graphState: uiState.graphState,
+    pairsHeatmapState: uiState.pairsHeatmapState,
+    frequenciesHeatmapState: uiState.frequenciesHeatmapState,
+    alignmentModel: uiState.alignmentModel,
+  }))
+  .init(() => ({
     covariateRefs: [],
     numerators: [],
     denominators: [],
@@ -77,9 +134,6 @@ export const model = BlockModel.create()
     thresholdSamples: 3,
     log2FcThreshold: 0,
     pAdjThreshold: 0.05,
-  })
-
-  .withUiState<UiState>({
     title: 'TCR Disco',
     tableState: createPlDataTableStateV2(),
     pairsTableState: createPlDataTableStateV2(),
@@ -131,20 +185,42 @@ export const model = BlockModel.create()
       },
     },
     alignmentModel: {},
-  })
+  }));
 
-  .argsValid((ctx) => (
-    ((ctx.args.mainRef !== undefined)
-      && (ctx.args.covariateRefs !== undefined)
-      && (ctx.args.contrastFactor !== undefined)
-      && (ctx.args.numerators.length > 0)
-      && (ctx.args.denominators.length > 0)
-      && (ctx.args.log2FcThreshold !== undefined)
-      && (ctx.args.pAdjThreshold !== undefined)
-      && (ctx.args.thresholdCounts !== undefined)
-      && (ctx.args.thresholdSamples !== undefined)
-      && (!ctx.args.cdRef || (ctx.args.cdSubsetCol !== undefined && ctx.uiState?.cdSubsetColValid)))
-  ))
+export const platforma = BlockModelV3.create(dataModel)
+
+  .args((data) => {
+    if (
+      data.mainRef === undefined
+      || data.covariateRefs === undefined
+      || data.contrastFactor === undefined
+      || data.numerators.length === 0
+      || data.denominators.length === 0
+      || data.log2FcThreshold === undefined
+      || data.pAdjThreshold === undefined
+      || data.thresholdCounts === undefined
+      || data.thresholdSamples === undefined
+      || (data.cdRef && (data.cdSubsetCol === undefined || !data.cdSubsetColValid))
+    ) {
+      return undefined;
+    }
+    return {
+      name: data.name,
+      mainRef: data.mainRef,
+      cdRef: data.cdRef,
+      cdSubsetCol: data.cdSubsetCol,
+      pairingMetadataCol: data.pairingMetadataCol,
+      covariateRefs: data.covariateRefs,
+      contrastFactor: data.contrastFactor,
+      numerators: data.numerators,
+      denominators: data.denominators,
+      findTcrAbPairs: data.findTcrAbPairs,
+      thresholdCounts: data.thresholdCounts,
+      thresholdSamples: data.thresholdSamples,
+      log2FcThreshold: data.log2FcThreshold,
+      pAdjThreshold: data.pAdjThreshold,
+    };
+  })
 
   // Allow user to choose Alpha chain, will pick beta if available
   // @TODO: Should we allow single analysis of beta chain?
@@ -209,19 +285,19 @@ export const model = BlockModel.create()
     return typeof content === 'string' && content.trim().length > 0 ? content.trim() : undefined;
   })
 
-  .outputWithStatus('pt', (ctx) => {
-    const selectedChain = ctx.uiState?.selectedChain ?? 'alpha';
+  .output('pt', (ctx) => {
+    const selectedChain = ctx.data.selectedChain ?? 'alpha';
     const outputName = selectedChain === 'alpha' ? 'topDegPFAlpha' : 'topDegPFBeta';
     const pCols = ctx.outputs?.resolve(outputName)?.getPColumns();
     if (pCols === undefined) {
       return undefined;
     }
 
-    return createPlDataTableV2(ctx, pCols, ctx.uiState?.tableState);
-  })
+    return createPlDataTableV2(ctx, pCols, ctx.data.tableState);
+  }, { withStatus: true })
 
   .output('sheets', (ctx) => {
-    const selectedChain = ctx.uiState?.selectedChain ?? 'alpha';
+    const selectedChain = ctx.data.selectedChain ?? 'alpha';
     const outputName = selectedChain === 'alpha' ? 'topDegPFAlpha' : 'topDegPFBeta';
     const pCols = ctx.outputs?.resolve(outputName)?.getPColumns();
     if (pCols === undefined || pCols.length === 0) {
@@ -235,14 +311,14 @@ export const model = BlockModel.create()
     return [createPlDataTableSheet(ctx, pCols[0].spec.axesSpec[0], partitionKeys)];
   })
 
-  .outputWithStatus('pairsPt', (ctx) => {
+  .output('pairsPt', (ctx) => {
     const pCols = ctx.outputs?.resolve({ field: 'pairsPF', allowPermanentAbsence: true })?.getPColumns();
     if (pCols === undefined) {
       return undefined;
     }
 
-    return createPlDataTableV2(ctx, pCols, ctx.uiState?.pairsTableState);
-  })
+    return createPlDataTableV2(ctx, pCols, ctx.data.pairsTableState);
+  }, { withStatus: true })
 
   .output('pairsSheets', (ctx) => {
     const pCols = ctx.outputs?.resolve({ field: 'pairsPF', allowPermanentAbsence: true })?.getPColumns();
@@ -257,8 +333,8 @@ export const model = BlockModel.create()
     return [createPlDataTableSheet(ctx, pCols[0].spec.axesSpec[0], partitionKeys)];
   })
 
-  .outputWithStatus('topTablePf', (ctx): PFrameHandle | undefined => {
-    const selectedChain = ctx.uiState?.selectedChain ?? 'alpha';
+  .output('topTablePf', (ctx): PFrameHandle | undefined => {
+    const selectedChain = ctx.data.selectedChain ?? 'alpha';
     const outputName = selectedChain === 'alpha' ? 'topDegPFAlpha' : 'topDegPFBeta';
     let pCols = ctx.outputs?.resolve(outputName)?.getPColumns();
     if (pCols === undefined) {
@@ -268,10 +344,10 @@ export const model = BlockModel.create()
     pCols = filterPCols(pCols);
 
     return createPFrameForGraphs(ctx, pCols);
-  })
+  }, { withStatus: true })
 
   .output('topTablePcols', (ctx) => {
-    const selectedChain = ctx.uiState?.selectedChain ?? 'alpha';
+    const selectedChain = ctx.data.selectedChain ?? 'alpha';
     const outputName = selectedChain === 'alpha' ? 'topDegPFAlpha' : 'topDegPFBeta';
     const pCols = ctx.outputs?.resolve(outputName)?.getPColumns();
     if (pCols === undefined) {
@@ -287,7 +363,7 @@ export const model = BlockModel.create()
     );
   })
 
-  .outputWithStatus('pairsHeatmapPf', (ctx): PFrameHandle | undefined => {
+  .output('pairsHeatmapPf', (ctx): PFrameHandle | undefined => {
     const pCols = ctx.outputs?.resolve({ field: 'pairsPF', allowPermanentAbsence: true })?.getPColumns();
     if (pCols === undefined) {
       return undefined;
@@ -324,7 +400,7 @@ export const model = BlockModel.create()
     const allPcols = [...filteredPcols, ...clonotypeIds];
 
     return ctx.createPFrame(allPcols);
-  })
+  }, { withStatus: true })
 
   .output('pairsHeatmapPcols', (ctx) => {
     const pCols = ctx.outputs?.resolve({ field: 'pairsPF', allowPermanentAbsence: true })?.getPColumns();
@@ -356,25 +432,13 @@ export const model = BlockModel.create()
     );
   })
 
-  .outputWithStatus('frequenciesHeatmapPf', (ctx): PFrameHandle | undefined => {
-    const selectedChain = ctx.uiState?.selectedChain ?? 'alpha';
+  .output('frequenciesHeatmapPf', (ctx): PFrameHandle | undefined => {
+    const selectedChain = ctx.data.selectedChain ?? 'alpha';
     const outputName = selectedChain === 'alpha' ? 'mainAlphaFrequenciesPF' : 'mainBetaFrequenciesPF';
     let allPcols = ctx.outputs?.resolve(outputName)?.getPColumns();
     if (allPcols === undefined) {
       return undefined;
     }
-
-    // Get all metadata columns that are compatible with the Sample axis
-    // const sampleIds = ctx.resultPool.selectColumns(
-    //   (spec) => spec.name === 'pl7.app/label'
-    //     && spec.axesSpec?.some((axis) => axis.name === 'pl7.app/sampleId'
-    //       || axis.name === 'pl7.app/vdj/clonotypeKey'
-    //       || axis.name === 'pl7.app/vdj/scClonotypeKey'
-    //       || axis.name === 'pl7.app/metadata'),
-    // ) as PColumn<PColumnDataUniversal>[];
-
-    // let allPcols = [...pCols, ...sampleIds];
-    // let allPcols = pCols;
 
     const subtypeLabel = selectedChain === 'alpha' ? 'clonotypeToSubsetAlpha' : 'clonotypeToSubsetBeta';
     const clonotypeToSubsetPcols = ctx.outputs?.resolve({ field: subtypeLabel, allowPermanentAbsence: true })?.getPColumns();
@@ -389,10 +453,10 @@ export const model = BlockModel.create()
     }
 
     return createPFrameForGraphs(ctx, allPcols);
-  })
+  }, { withStatus: true })
 
   .output('frequenciesHeatmapPcols', (ctx) => {
-    const selectedChain = ctx.uiState?.selectedChain ?? 'alpha';
+    const selectedChain = ctx.data.selectedChain ?? 'alpha';
     const outputName = selectedChain === 'alpha' ? 'mainAlphaFrequenciesPF' : 'mainBetaFrequenciesPF';
     const pCols = ctx.outputs?.resolve(outputName)?.getPColumns();
     if (pCols === undefined) {
@@ -440,7 +504,7 @@ export const model = BlockModel.create()
   })
 
   .output('msaPf', (ctx) => {
-    const selectedChain = ctx.uiState?.selectedChain ?? 'alpha';
+    const selectedChain = ctx.data.selectedChain ?? 'alpha';
     const outputName = selectedChain === 'alpha' ? 'topDegPFAlpha' : 'topDegPFBeta';
     const msaCols = ctx.outputs?.resolve(outputName)?.getPColumns();
     if (!msaCols) return undefined;
@@ -452,7 +516,7 @@ export const model = BlockModel.create()
     return createPFrameForGraphs(ctx, msaCols);
   })
 
-  .title((ctx) => ctx.uiState?.title ?? 'TCR Disco')
+  .title((ctx) => ctx.data.title ?? 'TCR Disco')
 
   .sections((ctx) => {
     const sections: Array<{ type: 'link'; href: `/${string}`; label: string }> = [
@@ -469,6 +533,6 @@ export const model = BlockModel.create()
     return sections;
   })
 
-  .done(2);
+  .done();
 
-export type BlockOutputs = InferOutputsType<typeof model>;
+export type BlockOutputs = InferOutputsType<typeof platforma>;

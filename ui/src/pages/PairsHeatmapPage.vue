@@ -74,7 +74,7 @@ const key = computed(() => (defaultOptions.value ? JSON.stringify(defaultOptions
 <template>
   <GraphMaker
     :key="key"
-    v-model="app.model.ui.pairsHeatmapState"
+    v-model="app.model.data.pairsHeatmapState"
     chartType="heatmap"
     :p-frame="app.model.outputs.pairsHeatmapPf"
     :default-options="defaultOptions"

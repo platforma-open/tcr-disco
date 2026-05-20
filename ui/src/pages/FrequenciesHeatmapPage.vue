@@ -22,9 +22,9 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
   const fractionIndex = getIndex('pl7.app/differentialTCRAbundance/countFraction', pcols);
 
   // Get the label from the contrastFactor PlRef
-  const contrastFactorLabel = app.model.args.contrastFactor
+  const contrastFactorLabel = app.model.data.contrastFactor
     ? app.model.outputs.metadataOptions?.find((opt) =>
-      plRefsEqual(opt.ref, app.model.args.contrastFactor!),
+      plRefsEqual(opt.ref, app.model.data.contrastFactor!),
     )?.label
     : undefined;
 
@@ -75,7 +75,7 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
   }
 
   // Add filters for the contrast values that have been selected
-  const contrastValues = [...app.model.args.numerators, ...app.model.args.denominators];
+  const contrastValues = [...app.model.data.numerators, ...app.model.data.denominators];
   if (contrastValues.length > 0) {
     defaults.push({
       inputName: 'filters',
@@ -104,7 +104,7 @@ const key = computed(() => (defaultOptions.value ? JSON.stringify(defaultOptions
 
 <template>
   <GraphMaker
-    v-model="app.model.ui.frequenciesHeatmapState"
+    v-model="app.model.data.frequenciesHeatmapState"
     chartType="heatmap"
     :data-state-key="key"
     :p-frame="app.model.outputs.frequenciesHeatmapPf"
@@ -112,7 +112,7 @@ const key = computed(() => (defaultOptions.value ? JSON.stringify(defaultOptions
   >
     <template #titleLineSlot>
       <PlTabs
-        v-model="app.model.ui.selectedChain"
+        v-model="app.model.data.selectedChain"
         :options="[
           { value: 'alpha', label: 'TCR Alpha Chain' },
           { value: 'beta', label: 'TCR Beta Chain' },

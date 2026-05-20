@@ -78,7 +78,7 @@ const selection = ref<PlSelectionModel>({
 
 <template>
   <GraphMaker
-    v-model="app.model.ui.graphState"
+    v-model="app.model.data.graphState"
     v-model:selection="selection"
     :data-state-key="key"
     chartType="scatterplot-umap"
@@ -87,7 +87,7 @@ const selection = ref<PlSelectionModel>({
   >
     <template #titleLineSlot>
       <PlTabs
-        v-model="app.model.ui.selectedChain"
+        v-model="app.model.data.selectedChain"
         :options="[
           { value: 'alpha', label: 'TCR Alpha Chain' },
           { value: 'beta', label: 'TCR Beta Chain' },
@@ -109,7 +109,7 @@ const selection = ref<PlSelectionModel>({
   >
     <template #title>Multiple Sequence Alignment</template>
     <PlMultiSequenceAlignment
-      v-model="app.model.ui.alignmentModel"
+      v-model="app.model.data.alignmentModel"
       :sequence-column-predicate="isSequenceColumn"
       :p-frame="app.model.outputs.msaPf"
       :selection="selection"
