@@ -11,12 +11,13 @@ import type {
   TreeNodeAccessor,
 } from '@platforma-sdk/model';
 import {
+  ArrayColumnProvider,
   BlockModelV3,
   DataModelBuilder,
   createPFrameForGraphs,
   createPlDataTableSheet,
   createPlDataTableStateV2,
-  createPlDataTableV2,
+  createPlDataTableV3,
   getUniquePartitionKeys,
   isPColumnSpec,
 } from '@platforma-sdk/model';
@@ -293,7 +294,14 @@ export const platforma = BlockModelV3.create(dataModel)
       return undefined;
     }
 
-    return createPlDataTableV2(ctx, pCols, ctx.data.tableState);
+    return createPlDataTableV3(ctx, {
+      columns: {
+        sources: [new ArrayColumnProvider(pCols)],
+        anchors: { main: pCols[0].spec },
+        selector: { mode: 'enrichment' },
+      },
+      tableState: ctx.data.tableState,
+    });
   }, { withStatus: true })
 
   .output('sheets', (ctx) => {
@@ -317,7 +325,14 @@ export const platforma = BlockModelV3.create(dataModel)
       return undefined;
     }
 
-    return createPlDataTableV2(ctx, pCols, ctx.data.pairsTableState);
+    return createPlDataTableV3(ctx, {
+      columns: {
+        sources: [new ArrayColumnProvider(pCols)],
+        anchors: { main: pCols[0].spec },
+        selector: { mode: 'enrichment' },
+      },
+      tableState: ctx.data.pairsTableState,
+    });
   }, { withStatus: true })
 
   .output('pairsSheets', (ctx) => {
