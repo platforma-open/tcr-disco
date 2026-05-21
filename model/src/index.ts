@@ -171,33 +171,59 @@ function filterPCols(
 
 const dataModel = new DataModelBuilder()
   .from<BlockData>('v1')
-  .upgradeLegacy<OldArgs, OldUiState>(({ args, uiState }) => ({
-    // Args fields
-    name: args.name,
-    mainRef: args.mainRef,
-    cdRef: args.cdRef,
-    cdSubsetCol: args.cdSubsetCol,
-    pairingMetadataCol: args.pairingMetadataCol,
-    covariateRefs: args.covariateRefs,
-    contrastFactor: args.contrastFactor,
-    numerators: args.numerators,
-    denominators: args.denominators,
-    findTcrAbPairs: args.findTcrAbPairs,
-    thresholdCounts: args.thresholdCounts,
-    thresholdSamples: args.thresholdSamples,
-    log2FcThreshold: args.log2FcThreshold,
-    pAdjThreshold: args.pAdjThreshold,
-    // UiState fields
-    tableState: uiState.tableState,
-    pairsTableState: uiState.pairsTableState,
-    title: uiState.title,
-    selectedChain: uiState.selectedChain,
-    cdSubsetColValid: uiState.cdSubsetColValid,
-    graphState: uiState.graphState,
-    pairsHeatmapState: uiState.pairsHeatmapState,
-    frequenciesHeatmapState: uiState.frequenciesHeatmapState,
-    alignmentModel: uiState.alignmentModel,
-  }))
+  .upgradeLegacy<OldArgs, OldUiState>(({ args, uiState }) => {
+    // V2's ctx.uiState was typed UiState | undefined and accessed everywhere
+    // with `?.` — a legacy block whose state was saved before the UI was
+    // opened can reach this path with `uiState` absent. Treat it as empty.
+    const ui = (uiState ?? {}) as Partial<OldUiState>;
+    return {
+      // Args fields
+      name: args.name,
+      mainRef: args.mainRef,
+      cdRef: args.cdRef,
+      cdSubsetCol: args.cdSubsetCol,
+      pairingMetadataCol: args.pairingMetadataCol,
+      covariateRefs: args.covariateRefs,
+      contrastFactor: args.contrastFactor,
+      numerators: args.numerators,
+      denominators: args.denominators,
+      findTcrAbPairs: args.findTcrAbPairs,
+      thresholdCounts: args.thresholdCounts,
+      thresholdSamples: args.thresholdSamples,
+      log2FcThreshold: args.log2FcThreshold,
+      pAdjThreshold: args.pAdjThreshold,
+      // UiState fields — each falls back to the same defaults init() would
+      // produce, so a missing uiState yields a fully-formed BlockData.
+      tableState: ui.tableState ?? createPlDataTableStateV2(),
+      pairsTableState: ui.pairsTableState ?? createPlDataTableStateV2(),
+      title: ui.title,
+      selectedChain: ui.selectedChain ?? 'alpha',
+      cdSubsetColValid: ui.cdSubsetColValid ?? false,
+      graphState: ui.graphState ?? { title: 'Volcano plot', template: 'dots', currentTab: null },
+      pairsHeatmapState: ui.pairsHeatmapState ?? {
+        title: 'TCR A/B pairs correlation heatmap',
+        template: 'heatmapClustered',
+        layersSettings: { heatmapClustered: { dendrogramX: false, dendrogramY: false } },
+        axesSettings: { axisX: { cellSize: 20 }, axisY: { cellSize: 20 } },
+      },
+      frequenciesHeatmapState: ui.frequenciesHeatmapState ?? {
+        title: 'Enriched clonotypes heatmap',
+        template: 'heatmapClustered',
+        layersSettings: {
+          heatmapClustered: {
+            normalizationDirection: 'row',
+            normalizationMethod: 'standardScaling',
+            dendrogramX: false,
+            dendrogramY: false,
+            NAValueAs: null,
+            showEmptyColumns: true,
+          },
+        },
+        axesSettings: { axisX: { cellSize: 20 }, axisY: { cellSize: 20 } },
+      },
+      alignmentModel: ui.alignmentModel ?? {},
+    };
+  })
   .init(() => ({
     covariateRefs: [],
     numerators: [],
