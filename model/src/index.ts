@@ -263,19 +263,14 @@ const dataModel = new DataModelBuilder()
 export const platforma = BlockModelV3.create(dataModel)
 
   .args((data) => {
-    if (
-      data.mainRef === undefined
-      || data.covariateRefs === undefined
-      || data.contrastFactor === undefined
-      || data.numerators.length === 0
-      || data.denominators.length === 0
-      || data.log2FcThreshold === undefined
-      || data.pAdjThreshold === undefined
-      || data.thresholdCounts === undefined
-      || data.thresholdSamples === undefined
-      || (data.cdRef && (data.cdSubsetCol === undefined || !data.cdSubsetColValid))
-    ) {
-      return undefined;
+    // Throw (don't return undefined) for unfilled config — returning undefined
+    // crashes the middle layer's migrateBlockPack path via Buffer.from(undefined).
+    if (data.mainRef === undefined) throw new Error('Main dataset is required');
+    if (data.contrastFactor === undefined) throw new Error('Contrast factor is required');
+    if (data.numerators.length === 0) throw new Error('At least one numerator is required');
+    if (data.denominators.length === 0) throw new Error('At least one denominator is required');
+    if (data.cdRef && (data.cdSubsetCol === undefined || !data.cdSubsetColValid)) {
+      throw new Error('CD4/8 subset column must be selected when a CD4/8 dataset is set');
     }
     return {
       name: data.name,
