@@ -3,7 +3,6 @@ import type {
   CanonicalizedJson,
   InferOutputsType,
   PColumn,
-  PColumnDataUniversal,
   PColumnIdAndSpec,
   PFrameHandle,
   PObjectId,
@@ -499,7 +498,7 @@ export const platforma = BlockModelV3.create(dataModel)
     const clonotypeIds = ctx.resultPool.selectColumns(
       (spec) => spec.name === 'pl7.app/label'
         && spec.axesSpec?.some((axis) => axis.name === 'pl7.app/vdj/clonotypeKey' || axis.name === 'pl7.app/vdj/scClonotypeKey'),
-    ) as PColumn<PColumnDataUniversal>[];
+    );
 
     const allPcols = [...filteredPcols, ...(clonotypeIds ?? [])];
 
