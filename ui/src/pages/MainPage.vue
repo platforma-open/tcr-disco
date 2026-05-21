@@ -20,7 +20,7 @@ import {
   usePlDataTableSettingsV2,
   useWatchFetch,
 } from '@platforma-sdk/ui-vue';
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import { useApp } from '../app';
 
 const app = useApp();
@@ -37,14 +37,25 @@ const tableSettings = usePlDataTableSettingsV2({
   sheets: () => app.model.outputs.sheets,
 });
 
-// Update page title by dataset
-function setInput(inputRef?: PlRef) {
-  app.model.data.mainRef = inputRef;
+// Called when the user picks a main dataset. v-model handles the assignment;
+// this hook updates the title and clears CD4/8 if it now conflicts.
+function onMainRefChange(inputRef?: PlRef) {
   if (inputRef) {
     const mainLabel = app.model.outputs.inputOptions?.find((o) => plRefsEqual(o.ref, inputRef))?.label;
-    if (mainLabel)
-      app.model.data.title = 'TCR Disco - ' + mainLabel;
+    if (mainLabel) app.model.data.title = 'TCR Disco - ' + mainLabel;
   }
+  const cdRef = app.model.data.cdRef;
+  if (cdRef && inputRef && plRefsEqual(cdRef, inputRef)) {
+    app.model.data.cdRef = undefined;
+  }
+}
+
+// Called when the user picks a different contrast factor. v-model handles the
+// assignment; numerator/denominator selections are no longer valid against the
+// new factor's value set, so reset them.
+function onContrastFactorChange() {
+  app.model.data.numerators = [];
+  app.model.data.denominators = [];
 }
 
 const metadataOptions = computed(() => {
@@ -125,20 +136,6 @@ const cdValues = useWatchFetch(() => app.model.outputs.cdSubsetOptions, async (p
   return vals;
 });
 
-// Make sure numerator and denominator are reset when contrast factor is changed
-watch(() => [app.model.data.contrastFactor], (_) => {
-  app.model.data.numerators = [];
-  app.model.data.denominators = [];
-});
-
-// Clear CD4/8 selection if user sets main dataset to the same as CD4/8
-watch(() => app.model.data.mainRef, (mainRef) => {
-  const cdRef = app.model.data.cdRef;
-  if (cdRef && mainRef && plRefsEqual(cdRef, mainRef)) {
-    app.model.data.cdRef = undefined;
-  }
-});
-
 </script>
 
 <template>
@@ -186,7 +183,7 @@ watch(() => app.model.data.mainRef, (mainRef) => {
       v-model="app.model.data.mainRef"
       :options="app.model.outputs.inputOptions"
       label="Select main dataset" clearable required
-      @update:model-value="setInput"
+      @update:model-value="onMainRefChange"
     >
       <template #tooltip>
         Select the main dataset containing TCR alpha and beta chain clonotype counts for differential abundance analysis.
@@ -207,6 +204,7 @@ watch(() => app.model.data.mainRef, (mainRef) => {
       :options="contrastFactorOptions"
       label="Contrast factor"
       required
+      @update:model-value="onContrastFactorChange"
     >
       <template #tooltip>
         Select the metadata column that defines the experimental groups you want to compare. The analysis will identify clonotypes that are differentially abundant between groups defined by this column.
