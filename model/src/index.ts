@@ -501,7 +501,7 @@ export const platforma = BlockModelV3.create(dataModel)
         && spec.axesSpec?.some((axis) => axis.name === 'pl7.app/vdj/clonotypeKey' || axis.name === 'pl7.app/vdj/scClonotypeKey'),
     ) as PColumn<PColumnDataUniversal>[];
 
-    const allPcols = [...filteredPcols, ...clonotypeIds];
+    const allPcols = [...filteredPcols, ...(clonotypeIds ?? [])];
 
     return ctx.createPFrame(allPcols);
   }, { withStatus: true })
@@ -587,7 +587,7 @@ export const platforma = BlockModelV3.create(dataModel)
     const robustAnyLabel = selectedChain === 'alpha' ? 'robustAnyAlpha' : 'robustAnyBeta';
     const robustAnyPcols = ctx.outputs?.resolve({ field: robustAnyLabel, allowPermanentAbsence: true })?.getPColumns();
 
-    let allCols = [...pCols, ...metadataCols];
+    let allCols = [...pCols, ...(metadataCols ?? [])];
     if (clonotypeToSubsetPcols !== undefined) {
       allCols = [...allCols, ...clonotypeToSubsetPcols];
     }
