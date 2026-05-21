@@ -364,11 +364,7 @@ export const platforma = BlockModelV3.create(dataModel)
     }
 
     return createPlDataTableV3(ctx, {
-      columns: {
-        sources: [new ArrayColumnProvider(pCols)],
-        anchors: { main: pCols[0].spec },
-        selector: { mode: 'enrichment' },
-      },
+      columns: new ArrayColumnProvider(pCols).getAllColumns().map((column, i) => ({ column, isPrimary: i === 0 })),
       tableState: normalizeTableState(ctx.data.tableState),
       filters: buildPtDefaultFilters(pCols, ctx.data),
     });
@@ -396,11 +392,7 @@ export const platforma = BlockModelV3.create(dataModel)
     }
 
     return createPlDataTableV3(ctx, {
-      columns: {
-        sources: [new ArrayColumnProvider(pCols)],
-        anchors: { main: pCols[0].spec },
-        selector: { mode: 'enrichment' },
-      },
+      columns: new ArrayColumnProvider(pCols).getAllColumns().map((column, i) => ({ column, isPrimary: i === 0 })),
       tableState: normalizeTableState(ctx.data.pairsTableState),
       filters: buildPairsPtDefaultFilters(pCols, ctx.data),
     });
