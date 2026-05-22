@@ -98,7 +98,8 @@ function columnFilterRef(pColId: PObjectId): CanonicalizedJson<PTableColumnId> {
 // it in `{type:'and', filters:[leaf]}`. The downstream `concatFilters` then crashes on
 // `[...a.filters]` because a leaf has no `.filters` array. Normalize the state so any bare
 // leaf becomes an and-node.
-function normalizeTableState(state: PlDataTableStateV2): PlDataTableStateV2 {
+function normalizeTableState(state: PlDataTableStateV2 | undefined): PlDataTableStateV2 | undefined {
+  if (!state) return state;
   const wrap = (f: unknown): unknown => {
     if (f === null || f === undefined) return f;
     if (typeof f !== 'object') return f;
