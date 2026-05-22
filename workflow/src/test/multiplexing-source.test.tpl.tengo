@@ -1,0 +1,132 @@
+// multiplexing-source.test
+//
+// Renders multiplexing-source.resolve(...) against synthetic bundles and
+// emits a JSON result the .test.ts driver asserts on.
+
+self := import("@platforma-sdk/workflow-tengo:tpl")
+smart := import("@platforma-sdk/workflow-tengo:smart")
+json := import("json")
+
+multiplexingSource := import(":multiplexing-source")
+
+self.defineOutputs("result")
+
+// Helper: build a fake bundle that responds to getColumns/getColumn the way
+// the workflow-tengo bundle does. The .test.ts driver passes the case name;
+// each branch synthesises the bundle shape that case expects.
+// encStr converts json.encode output (Bytes) to String so it can be stored
+// as a JSON string value rather than base64 when the outer map is encoded.
+encStr := func(v) { return string(json.encode(v)) }
+
+makeBundle := func(caseName) {
+    if caseName == "rules-single-tag" {
+        // Cell values are pre-encoded JSON strings matching real PColumnData/Json.
+        // Use encStr() so values stay as strings (not Bytes) in the outer map.
+        cells := {}
+        cells[encStr(["G1","S1"])] = encStr([{"BarcodeID": "ID_168"}])
+        cells[encStr(["G1","S2"])] = encStr([{"BarcodeID": "ID_147"}])
+        data := json.encode(cells)
+        return {
+            getColumns: func(key) {
+                if key == "multiplexingRules" {
+                    return [{
+                        spec: {
+                            annotations: {
+                                "pl7.app/sequencing/barcodeTags": encStr(["BarcodeID"])
+                            }
+                        },
+                        data: {
+                            getData: func() { return data }
+                        }
+                    }]
+                }
+                return []
+            },
+            getColumn: func(_) { return undefined }
+        }
+    }
+    if caseName == "rules-multi-tag" {
+        cells := {}
+        cells[encStr(["G1","S1"])] = encStr([{"P5": "AAAA", "P7": "TTTT"}])
+        data := json.encode(cells)
+        return {
+            getColumns: func(key) {
+                if key == "multiplexingRules" {
+                    return [{
+                        spec: {
+                            annotations: {
+                                "pl7.app/sequencing/barcodeTags": encStr(["P5","P7"])
+                            }
+                        },
+                        data: {
+                            getData: func() { return data }
+                        }
+                    }]
+                }
+                return []
+            },
+            getColumn: func(_) { return undefined }
+        }
+    }
+    if caseName == "rules-multi-alt" {
+        cells := {}
+        cells[encStr(["G1","S1"])] = encStr([{"BarcodeID": "ID_168"}, {"BarcodeID": "ID_169"}])
+        data := json.encode(cells)
+        return {
+            getColumns: func(key) {
+                if key == "multiplexingRules" {
+                    return [{
+                        spec: {
+                            annotations: {
+                                "pl7.app/sequencing/barcodeTags": encStr(["BarcodeID"])
+                            }
+                        },
+                        data: {
+                            getData: func() { return data }
+                        }
+                    }]
+                }
+                return []
+            },
+            getColumn: func(_) { return undefined }
+        }
+    }
+    if caseName == "legacy-only" {
+        cells := {}
+        cells[encStr(["S1"])] = "ID_111"
+        cells[encStr(["S2"])] = "ID_125"
+        data := json.encode(cells)
+        return {
+            getColumns: func(_) { return [] },
+            getColumn: func(key) {
+                if key == "legacyBarcodeId" {
+                    return {
+                        spec: {},
+                        data: {
+                            getData: func() { return data }
+                        }
+                    }
+                }
+                return undefined
+            }
+        }
+    }
+    // "neither"
+    return {
+        getColumns: func(_) { return [] },
+        getColumn: func(_) { return undefined }
+    }
+}
+
+self.body(func(inputs) {
+    bundle := makeBundle(inputs.caseName)
+    result := multiplexingSource.resolve(bundle)
+    // Strip traceSource (contains function refs) before serialising to JSON.
+    serialisable := {}
+    for k, v in result {
+        if k != "traceSource" {
+            serialisable[k] = v
+        }
+    }
+    return { result: smart.createJsonResource(serialisable) }
+})
