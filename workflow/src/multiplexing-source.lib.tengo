@@ -15,18 +15,23 @@ json := import("json")
 
 // Adds the bundle selectors the workflow needs to resolve either shape.
 // Encapsulates the column specs so callers don't duplicate them.
+//
+// Note on axis specs: Miltenyi's resolver anchors the rules-column's first
+// axis to `main.idx 0` (a sampleGroupId axis on a dataset-reference column).
+// TCR Disco's `mainAlpha` is a clonotype-counts column whose first axis is
+// `pl7.app/sampleId` — wrong shape for that anchor. We match by axis names
+// and types instead. Block/dataset domain anchoring is similarly inapplicable
+// here (mainAlpha's column-level domain has no pl7.app/block / pl7.app/dataset
+// keys), so we omit the domain constraint and rely on natural scoping: the
+// projects we target wire one upstream S&D dataset per main TCR pipeline.
 addSelectors := func(bundleBuilder) {
     // New shape — multiplexing rules column. Axes [sampleGroupId, sampleId].
     bundleBuilder.addMulti({
         axes: [
-            { anchor: "mainAlpha", idx: 0 },
-            { name: "pl7.app/sampleId", type: "String" }
+            { name: "pl7.app/sampleGroupId", type: "String" },
+            { name: "pl7.app/sampleId",      type: "String" }
         ],
-        name: "pl7.app/sequencing/multiplexingRules",
-        domain: {
-            "pl7.app/block":   { anchor: "mainAlpha" },
-            "pl7.app/dataset": { anchor: "mainAlpha" }
-        }
+        name: "pl7.app/sequencing/multiplexingRules"
     }, "multiplexingRules")
 
     // Legacy: per-sample `Barcode ID` metadata column.
