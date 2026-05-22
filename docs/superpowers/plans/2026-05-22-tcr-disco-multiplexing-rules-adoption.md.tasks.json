@@ -4,51 +4,51 @@
     {
       "id": 20,
       "subject": "Task 0: Confirm worktree state",
-      "status": "pending",
+      "status": "completed",
       "description": "**Goal:** Establish a clean starting point in the existing fix/sdk-update worktree; no code changes.\n\n**Files:** none (read-only)\n\n**Acceptance Criteria:**\n- On branch `fix/sdk-update`\n- `git status` shows no uncommitted changes (or only the plan file)\n- `pnpm install` completes cleanly\n- `pnpm -r build` succeeds (baseline before changes)\n\n**Verify:** `git -C /Users/paulnewling/Desktop/Code/mictx/worktrees/tcr-disco/fix-sdk-update status -s` → empty or only the plan file untracked\n\n**Steps:**\n1. Check branch + recent commits\n2. Verify install + baseline build\n3. Commit the plan file with MILAB-XXXX ticket prefix (ask operator for ticket ID first)\n\n```json:metadata\n{\"files\": [], \"verifyCommand\": \"git -C /Users/paulnewling/Desktop/Code/mictx/worktrees/tcr-disco/fix-sdk-update status -s\", \"acceptanceCriteria\": [\"On branch fix/sdk-update\", \"Clean working tree\", \"pnpm install succeeds\", \"pnpm -r build succeeds\"]}\n```"
     },
     {
       "id": 21,
       "subject": "Task 1: Create multiplexing-source.lib.tengo",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [20],
       "description": "**Goal:** Lean resolver mirroring Miltenyi's `multiplexing-source.lib.tengo` but returning only `{sampleId → barcodeValue}`. Both upstream shapes (new multiplexingRules column + legacy Barcode ID metadata) supported. Failure modes surface explicit messages.\n\n**Files:**\n- Create: `workflow/src/multiplexing-source.lib.tengo`\n- Create: `workflow/src/test/multiplexing-source.test.tpl.tengo`\n- Create: `workflow/src/test/multiplexing-source.test.ts`\n\n**Acceptance Criteria:**\n- `addSelectors(bundleBuilder)` adds three selectors keyed `multiplexingRules`, `legacyLinker`, `legacyBarcodeId`\n- `resolve(bundle)` returns `{ok: true, sampleBarcodes, traceSource}` when rules column resolves with single tag + single alt\n- `resolve(bundle)` returns `{ok: true, sampleBarcodes, traceSource}` when only the legacy `Barcode ID` metadata col resolves\n- `resolve(bundle)` returns `{ok: false, message}` for: missing both shapes; multi-alt cells; multi-tag column (v1 limitation)\n- Tengo unit test passes for all five cases\n\n**Verify:** `cd workflow && rtk pnpm run test` → all multiplexing-source tests pass\n\n**Steps:**\n1. Write failing test template + .ts driver (5 test cases)\n2. Run tests — confirm fail with \"not found\"\n3. Implement the lib with addSelectors + resolve + parseRulesColumn + parseLegacyColumn helpers\n4. Run tests — confirm pass\n5. Commit\n\n```json:metadata\n{\"files\": [\"workflow/src/multiplexing-source.lib.tengo\", \"workflow/src/test/multiplexing-source.test.tpl.tengo\", \"workflow/src/test/multiplexing-source.test.ts\"], \"verifyCommand\": \"cd /Users/paulnewling/Desktop/Code/mictx/worktrees/tcr-disco/fix-sdk-update/workflow && pnpm run test\", \"acceptanceCriteria\": [\"addSelectors adds 3 selectors\", \"resolve returns ok:true for rules+legacy cases\", \"resolve rejects multi-tag/multi-alt with message\", \"All 5 test cases pass\"]}\n```"
     },
     {
       "id": 22,
       "subject": "Task 2: Wire selectors into wf.prepare",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [21],
       "description": "**Goal:** The bundle returned by `wf.prepare` includes the three selectors `multiplexing-source.lib.tengo` needs. No behaviour change yet.\n\n**Files:**\n- Modify: `workflow/src/main.tpl.tengo` (around lines 10 + 121–122)\n\n**Acceptance Criteria:**\n- `import(\":multiplexing-source\")` added at top imports\n- `multiplexingSource.addSelectors(bundleBuilder)` called inside `wf.prepare` after the existing `allMetadata` selector and before `.build()`\n- `pnpm run build:dev` succeeds\n- Existing functionality unchanged\n\n**Verify:** `cd workflow && rtk pnpm run build:dev` exit 0\n\n**Steps:**\n1. Add import after existing imports\n2. Add `multiplexingSource.addSelectors(bundleBuilder)` call after the allMetadata addMulti\n3. Build\n4. Commit\n\n```json:metadata\n{\"files\": [\"workflow/src/main.tpl.tengo\"], \"verifyCommand\": \"cd /Users/paulnewling/Desktop/Code/mictx/worktrees/tcr-disco/fix-sdk-update/workflow && pnpm run build:dev\", \"acceptanceCriteria\": [\"multiplexing-source import added\", \"addSelectors called in wf.prepare\", \"build:dev succeeds\"]}\n```"
     },
     {
       "id": 23,
       "subject": "Task 3: Synthesize Barcode ID column in wf.body",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [22],
       "description": "**Goal:** When the resolver succeeds and no legacy Barcode ID metadata column already exists, inject a synthetic Barcode ID column into the metadata TSV so find-pairs.R finds sample_id_col regardless of upstream shape.\n\n**Files:**\n- Modify: `workflow/src/main.tpl.tengo` (around lines 289–296)\n\n**Acceptance Criteria:**\n- If `multiplexingSource.resolve(columns)` returns `ok:true` AND no `allMetadata` column carries label \"Barcode ID\", a synthetic PColumn is added to `metadataTable` with header \"Barcode ID\"\n- If a \"Barcode ID\" labelled column is already present, synthetic is NOT added (avoids duplicate)\n- If resolver returns `ok:false`, metadataTable is built unchanged (preserves current fallback UX)\n- Workflow builds; NewMiltenyi run produces metadata.tsv with Barcode ID col (verified Task 5); OldMiltenyi run produces identical metadata.tsv to baseline\n\n**Verify:** `cd workflow && rtk pnpm run build:dev` exit 0\n\n**Steps:**\n1. Read current state of metadata-table region (lines 289–296)\n2. Replace with dual-path version (tracks `legacyBarcodeColPresent` while iterating allMetadata; synthesizes after)\n3. Build — if tsvFileBuilder.add rejects the inline stub, fall back to publishing via pframes.pFrameBuilder first\n4. Commit\n\n```json:metadata\n{\"files\": [\"workflow/src/main.tpl.tengo\"], \"verifyCommand\": \"cd /Users/paulnewling/Desktop/Code/mictx/worktrees/tcr-disco/fix-sdk-update/workflow && pnpm run build:dev\", \"acceptanceCriteria\": [\"Synthetic column injected when resolver ok and no legacy col present\", \"Skip when legacy Barcode ID col already present\", \"build:dev succeeds\"]}\n```"
     },
     {
       "id": 24,
       "subject": "Task 4: Update barcodeColPresent model output",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [23],
       "description": "**Goal:** Hide pairing-column fallback dropdown when either source is present, so block looks identical to stable+OldMiltenyi in both new and legacy projects.\n\n**Files:**\n- Modify: `model/src/index.ts` (barcodeColPresent output)\n\n**Acceptance Criteria:**\n- Returns `true` if metadata column labelled `Barcode ID` exists (current behaviour preserved)\n- Returns `true` if `pl7.app/sequencing/multiplexingRules` column exists in result pool (new behaviour)\n- Returns `false` otherwise (current fallback path)\n- Type-check passes\n\n**Verify:** `cd model && rtk pnpm run build && rtk pnpm run type-check` exit 0\n\n**Steps:**\n1. Locate existing barcodeColPresent output definition\n2. Replace with OR-clause (legacy metadata col OR multiplexingRules col)\n3. Build + type-check\n4. Commit\n\n```json:metadata\n{\"files\": [\"model/src/index.ts\"], \"verifyCommand\": \"cd /Users/paulnewling/Desktop/Code/mictx/worktrees/tcr-disco/fix-sdk-update/model && pnpm run build && pnpm run type-check\", \"acceptanceCriteria\": [\"barcodeColPresent returns true for legacy col\", \"barcodeColPresent returns true for multiplexingRules\", \"Type-check passes\"]}\n```"
     },
     {
       "id": 25,
       "subject": "Task 5: Manual verification in NewMiltenyi + OldMiltenyi",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [24],
       "description": "**Goal:** Ground-truth verification that the change works on NewMiltenyi (motivating project) and does not regress OldMiltenyi (legacy project).\n\n**Files:** none (read-only verification via pl-mcp)\n\n**Acceptance Criteria:**\n- NewMiltenyi (`NG:0xa9db41`): `barcodeColPresent === true` after Update Dev Block + Run; pairs analysis runs to completion (or surfaces appropriate R warning, NOT \"sets of samples not the same\")\n- OldMiltenyi (`NG:0xaa39b4`): runs end-to-end with outputs structurally identical to baseline; no double-Barcode-ID issue\n- NewMiltenyi Settings modal does NOT show \"Pairing metadata column\" dropdown\n- No new console errors / Tengo panics in pl logs for either project\n\n**Verify:** manual inspection via mcp__pl__get_block_state + mcp__pl__get_block_logs + Desktop UI\n\n**Steps:**\n1. Build dev block (`pnpm run build:dev`)\n2. Update Dev Block + Run TCR Disco in NewMiltenyi\n3. Inspect outputs via pl-mcp\n4. Repeat for OldMiltenyi — confirm regression-free\n5. UI smoke check on both projects\n6. No commit — verification only; on failure return to Task 1/2/3/4\n\n```json:metadata\n{\"files\": [], \"verifyCommand\": \"manual via pl-mcp\", \"acceptanceCriteria\": [\"NewMiltenyi barcodeColPresent true\", \"NewMiltenyi pairs analysis completes\", \"OldMiltenyi runs regression-free\", \"Pairing dropdown hidden in both\"]}\n```"
     },
     {
       "id": 26,
       "subject": "Task 6: Changeset, build, push",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [25],
       "description": "**Goal:** Ship-ready PR state.\n\n**Files:**\n- Create: `.changeset/<random>-<slug>.md`\n\n**Acceptance Criteria:**\n- Changeset describes change in user-facing terms (patch bump)\n- Final `pnpm install && pnpm -r build` from worktree root passes\n- All commits pushed to `fix/sdk-update`\n- PR description updated to mention multiplexingRules adoption alongside V3 SDK migration\n\n**Verify:** `rtk gh pr view` shows updated description; `rtk gh pr checks` green\n\n**Steps:**\n1. Add changeset (patch bump, paragraph description)\n2. Final clean build from root\n3. Commit + push\n4. Update PR description with new section\n5. Confirm CI green\n\n```json:metadata\n{\"files\": [\".changeset/\"], \"verifyCommand\": \"cd /Users/paulnewling/Desktop/Code/mictx/worktrees/tcr-disco/fix-sdk-update && pnpm -r build && gh pr checks\", \"acceptanceCriteria\": [\"Changeset added\", \"Final build passes\", \"Pushed to remote\", \"PR description updated\", \"CI green\"]}\n```"
     }
   ],
-  "lastUpdated": "2026-05-22T16:30:00Z"
+  "lastUpdated": "2026-05-22T17:30:00Z"
 }
