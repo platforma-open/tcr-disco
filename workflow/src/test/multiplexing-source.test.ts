@@ -61,6 +61,21 @@ tplTest(
 );
 
 tplTest(
+  'multiplexing-source resolve — rules empty value rejected',
+  { timeout: 30000 },
+  async ({ helper, expect }) => {
+    const resultC = (
+      await helper.renderTemplate(true, 'test.multiplexing-source.test', ['result'], (tx) => ({
+        caseName: tx.createJsonValue('rules-empty-value')
+      }))
+    ).computeOutput('result', (c) => c?.getDataAsJson());
+    const result = await awaitStableState(resultC, 25000);
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/no value for tag/i);
+  }
+);
+
+tplTest(
   'multiplexing-source resolve — neither shape present',
   { timeout: 30000 },
   async ({ helper, expect }) => {

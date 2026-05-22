@@ -29,21 +29,6 @@ addSelectors := func(bundleBuilder) {
         }
     }, "multiplexingRules")
 
-    // Legacy linker (kept for shape parity with Miltenyi; TCR Disco does not
-    // actually need it but adding the selector means future plans can lift
-    // labels from it the same way Miltenyi does).
-    bundleBuilder.addMulti({
-        axes: [
-            { anchor: "mainAlpha", idx: 0 },
-            { name: "pl7.app/sampleId", type: "String" }
-        ],
-        name: "pl7.app/sequencing/data/sampleGroups",
-        domain: {
-            "pl7.app/block":   { anchor: "mainAlpha" },
-            "pl7.app/dataset": { anchor: "mainAlpha" }
-        }
-    }, "legacyLinker")
-
     // Legacy: per-sample `Barcode ID` metadata column.
     bundleBuilder.addSingle({
         axes: [{ name: "pl7.app/sampleId", type: "String" }],
@@ -96,19 +81,20 @@ parseRulesColumn := func(rulesCol) {
     for cellKey, cellVal in cellMap {
         keyArr := json.decode(cellKey)
         if !is_array(keyArr) || len(keyArr) != 2 {
-            continue
+            return { ok: false, message: "Multiplexing rules cell has malformed key " + cellKey + "; expected JSON [groupId, sampleId]." }
         }
+        groupId := keyArr[0]
         sampleId := keyArr[1]
         alts := json.decode(cellVal)
         if !is_array(alts) || len(alts) == 0 {
-            return { ok: false, message: "Multiplexing rules cell for sample " + sampleId + " is empty." }
+            return { ok: false, message: "Multiplexing rules cell for group " + groupId + ", sample " + sampleId + " is empty." }
         }
         if len(alts) > 1 {
-            return { ok: false, message: "Multiplexing rules cell for sample " + sampleId + " has multiple alternatives — TCR Disco v1 supports one alternative per sample." }
+            return { ok: false, message: "Multiplexing rules cell for group " + groupId + ", sample " + sampleId + " has multiple alternatives — TCR Disco v1 supports one alternative per sample." }
         }
         firstAlt := alts[0]
-        if is_undefined(firstAlt[tag]) {
-            return { ok: false, message: "Multiplexing rules cell for sample " + sampleId + " is missing tag '" + tag + "'." }
+        if is_undefined(firstAlt[tag]) || string(firstAlt[tag]) == "" {
+            return { ok: false, message: "Multiplexing rules cell for group " + groupId + ", sample " + sampleId + " has no value for tag '" + tag + "'." }
         }
         sampleBarcodes[sampleId] = string(firstAlt[tag])
     }
@@ -121,15 +107,15 @@ parseLegacyColumn := func(legacyCol) {
     sampleBarcodes := {}
     for cellKey, cellVal in cellMap {
         sampleId := unwrapSingleAxisKey(cellKey)
-        sampleBarcodes[sampleId] = string(cellVal)
+        // Skip samples with empty/whitespace barcode values — they indicate
+        // incomplete metadata rows and must not reach the R workflow as empty strings.
+        barcodeVal := text.trim_space(string(cellVal))
+        if barcodeVal == "" {
+            continue
+        }
+        sampleBarcodes[sampleId] = barcodeVal
     }
     return { ok: true, sampleBarcodes: sampleBarcodes, traceSource: legacyCol }
-}
-
-// Detect "real" presence vs unmatched-bundle stub. `bundle.getColumn` returns
-// a wrapper with undefined spec/data for an unmatched `addSingle` query.
-hasRealColumn := func(col) {
-    return !is_undefined(col) && !is_undefined(col.spec) && !is_undefined(col.data)
 }
 
 // resolve returns one of:
@@ -142,9 +128,17 @@ resolve := func(bundle) {
     if !is_undefined(rulesCols) && len(rulesCols) > 0 {
         return parseRulesColumn(rulesCols[0])
     }
-    legacyCol := bundle.getColumn("legacyBarcodeId")
-    if hasRealColumn(legacyCol) {
-        return parseLegacyColumn(legacyCol)
+    // Use getColumnKeys() to check presence before calling getColumn.
+    // bundle.getColumn panics if the key is absent; getColumnKeys() is safe.
+    hasLegacy := false
+    for _, k in bundle.getColumnKeys() {
+        if k == "legacyBarcodeId" {
+            hasLegacy = true
+            break
+        }
+    }
+    if hasLegacy {
+        return parseLegacyColumn(bundle.getColumn("legacyBarcodeId"))
     }
     return {
         ok: false,
