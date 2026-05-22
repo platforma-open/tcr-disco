@@ -368,10 +368,19 @@ export const platforma = BlockModelV3.create(dataModel)
     const metadataCols = ctx.resultPool.selectColumns(
       (spec) => spec.name === 'pl7.app/metadata',
     );
-    if (metadataCols === undefined) {
-      return false;
-    }
-    return metadataCols.some((col) => col.spec.annotations?.['pl7.app/label'] === 'Barcode ID');
+    const hasLegacyBarcodeCol = metadataCols?.some(
+      (col) => col.spec.annotations?.['pl7.app/label'] === 'Barcode ID',
+    ) ?? false;
+    if (hasLegacyBarcodeCol) return true;
+
+    // New shape — S&D 2.7.0+ emits per-sample barcodes as a multiplexingRules
+    // column instead of a Barcode ID metadata column. The workflow synthesizes
+    // a Barcode ID column from it, so for UI purposes the pairing dropdown
+    // should also be hidden when only this shape is present.
+    const rulesCols = ctx.resultPool.selectColumns(
+      (spec) => spec.name === 'pl7.app/sequencing/multiplexingRules',
+    );
+    return (rulesCols?.length ?? 0) > 0;
   })
 
   // Run report from workflow (report.txt): empty input or threshold filter warnings.
