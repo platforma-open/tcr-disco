@@ -17,6 +17,7 @@ tcrPairsParamsLib := import(":libs.tcr_pairs_params")
 topFrequenciesLib := import(":libs.top_frequencies")
 cdSubsetParamsLib := import(":libs.cd_subset_params")
 tcrdiscoDaPfconvParamsLib := import(":libs.tcrdisco_da_pfconv_params")
+multiplexingSource := import(":multiplexing-source")
 
 mapToPValueData := func(map) {
 	data := {}
@@ -119,7 +120,11 @@ wf.prepare(func(args) {
 		name: "pl7.app/metadata",
 		axes: [{anchor: "mainAlpha", idx: 0}]
 	}, "allMetadata");
-	
+
+	// Adopt the new multiplexingRules column emitted by S&D 2.7.0+; the lib
+	// also keeps a selector for the legacy `Barcode ID` metadata column so
+	// pre-migration projects continue to work.
+	multiplexingSource.addSelectors(bundleBuilder)
 
 	// If cdRef is provided, load it and its metadata
 	if args.cdRef != undefined {
