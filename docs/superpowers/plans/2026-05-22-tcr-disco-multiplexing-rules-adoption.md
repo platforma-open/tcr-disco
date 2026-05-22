@@ -587,16 +587,23 @@ Replace lines 289–296 with:
                     kind:       "PColumn",
                     name:       "pl7.app/metadata",
                     valueType:  "String",
-                    axesSpec:   [mainAlphaSpec.axesSpec[0]],
+                    // Bare sampleId axis (no domain) — joins symmetrically with
+                    // other allMetadata columns and mirrors what an S&D-emitted
+                    // `Barcode ID` metadata column would look like.
+                    axesSpec:   [{name: "pl7.app/sampleId", type: "String"}],
                     annotations: {
                         "pl7.app/label":    "Barcode ID",
                         "pl7.app/columnId": "Barcode ID"
                     }
                 },
-                data: createJsonPColumnData({
+                // createJsonPColumnData wraps a JSON-encoded string as a
+                // PColumnData/Json value resource. The Go backend's createValue
+                // requires []byte — passing a raw Tengo map crashes at workflow
+                // runtime (the Tengo build does not catch this).
+                data: createJsonPColumnData(json.encode({
                     keyLength: 1,
                     data:      syntheticData
-                })
+                }))
             }
             metadataTable.add(syntheticPCol, {header: "Barcode ID"})
         }
@@ -610,8 +617,8 @@ Replace lines 289–296 with:
 ```
 
 Notes:
-- `createJsonPColumnData` and `json` are already imported/defined at the top of the file (lines 10, 32 — verified during plan research).
-- `mainAlphaSpec.axesSpec[0]` is already in scope at this point in the function body (defined earlier when the main TSV was being built around line 215).
+- `createJsonPColumnData` and `json` are already imported/defined at the top of the file (lines 10, 32 — verified during plan research). **The data argument must be a `json.encode(...)` string**, not a raw map — Tengo's static check doesn't catch the map case but the Go backend's `createValue` requires `[]byte`.
+- The synthetic axis uses the bare `{name:"pl7.app/sampleId", type:"String"}` form rather than borrowing `mainAlphaSpec.axesSpec[0]` so the synthetic column always joins symmetrically with metadata columns regardless of upstream domain decorations.
 
 - [ ] **Step 3: Build**
 
@@ -639,12 +646,12 @@ If `tsvFileBuilder.add` rejects the inline stub, replace the synthetic-injection
                 kind:       "PColumn",
                 name:       "pl7.app/metadata",
                 valueType:  "String",
-                axesSpec:   [mainAlphaSpec.axesSpec[0]],
+                axesSpec:   [{name: "pl7.app/sampleId", type: "String"}],
                 annotations: {
                     "pl7.app/label":    "Barcode ID",
                     "pl7.app/columnId": "Barcode ID"
                 }
-            }, createJsonPColumnData({ keyLength: 1, data: syntheticData }))
+            }, createJsonPColumnData(json.encode({ keyLength: 1, data: syntheticData })))
             syntheticPf := syntheticBuilder.build()
             for _, syntheticCol in syntheticPf {
                 metadataTable.add(syntheticCol, {header: "Barcode ID"})

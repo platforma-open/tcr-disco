@@ -319,16 +319,22 @@ wf.body(func(args) {
 					kind:       "PColumn",
 					name:       "pl7.app/metadata",
 					valueType:  "String",
-					axesSpec:   [mainAlphaSpec.axesSpec[0]],
+					// Use the bare sampleId axis (no domain) so the synthetic column
+					// joins symmetrically with the other allMetadata columns and matches
+					// what S&D's `Barcode ID` metadata column would have looked like.
+					axesSpec:   [{name: "pl7.app/sampleId", type: "String"}],
 					annotations: {
 						"pl7.app/label":    "Barcode ID",
 						"pl7.app/columnId": "Barcode ID"
 					}
 				},
-				data: createJsonPColumnData({
+				// `createJsonPColumnData` wraps a `[]byte` as a JSON-shaped value
+				// resource; the data argument must be a JSON-encoded string, not a
+				// raw Tengo map (the Go backend's createValue requires []byte).
+				data: createJsonPColumnData(json.encode({
 					keyLength: 1,
 					data:      syntheticData
-				})
+				}))
 			}
 			metadataTable.add(syntheticPCol, {header: "Barcode ID"})
 		}
