@@ -293,9 +293,49 @@ wf.body(func(args) {
 	// Load main metadata
 	metadataTable := pframes.tsvFileBuilder()
 	metadataTable.setAxisHeader("pl7.app/sampleId", "internalSampleId")
+	legacyBarcodeColPresent := false
 	for metadataCol in columns.getColumns("allMetadata") {
-		metadataTable.add(metadataCol, {header: metadataCol.spec.annotations["pl7.app/label"]})
+		label := metadataCol.spec.annotations["pl7.app/label"]
+		metadataTable.add(metadataCol, {header: label})
+		if label == "Barcode ID" {
+			legacyBarcodeColPresent = true
+		}
 	}
+
+	// Synthesize "Barcode ID" column from multiplexingRules (or legacy
+	// selector) when allMetadata didn't already include one. This keeps the
+	// R script's pairing join working on projects where S&D 2.7.0+ no longer
+	// emits the Barcode ID metadata column. When a real Barcode ID metadata
+	// column is present, skip synthesis to avoid a duplicate column header.
+	if !legacyBarcodeColPresent {
+		mx := multiplexingSource.resolve(columns)
+		if mx.ok {
+			syntheticData := {}
+			for sampleId, barcodeValue in mx.sampleBarcodes {
+				syntheticData[json.encode([sampleId])] = barcodeValue
+			}
+			syntheticPCol := {
+				spec: {
+					kind:       "PColumn",
+					name:       "pl7.app/metadata",
+					valueType:  "String",
+					axesSpec:   [mainAlphaSpec.axesSpec[0]],
+					annotations: {
+						"pl7.app/label":    "Barcode ID",
+						"pl7.app/columnId": "Barcode ID"
+					}
+				},
+				data: createJsonPColumnData({
+					keyLength: 1,
+					data:      syntheticData
+				})
+			}
+			metadataTable.add(syntheticPCol, {header: "Barcode ID"})
+		}
+		// If !mx.ok, leave the table as-is — the existing fallback dropdown
+		// in MainPage.vue is the recovery path.
+	}
+
 	metadataTable.mem(defaultConvMem)
 	metadataTable.cpu(defaultConvCpu)
 	metadataTsv := metadataTable.build()
