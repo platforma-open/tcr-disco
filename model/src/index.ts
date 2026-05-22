@@ -378,10 +378,27 @@ export const platforma = BlockModelV3.create(dataModel)
     // column instead of a Barcode ID metadata column. The workflow synthesizes
     // a Barcode ID column from it, so for UI purposes the pairing dropdown
     // should also be hidden when only this shape is present.
+    //
+    // Only count single-tag rules columns as usable: multi-tag rules are
+    // rejected by `multiplexingSource.resolve()` in the workflow (v1 limit),
+    // and if we returned true on a multi-tag column the UI would hide the
+    // pairing dropdown AND the workflow would synthesize nothing — pairs
+    // would silently fail. Falling through to false keeps the dropdown
+    // reachable so the operator can pick a metadata column manually.
     const rulesCols = ctx.resultPool.selectColumns(
       (spec) => spec.name === 'pl7.app/sequencing/multiplexingRules',
     );
-    return (rulesCols?.length ?? 0) > 0;
+    const hasUsableRulesCol = rulesCols?.some((col) => {
+      const tagsJson = col.spec.annotations?.['pl7.app/sequencing/barcodeTags'];
+      if (typeof tagsJson !== 'string') return false;
+      try {
+        const tags = JSON.parse(tagsJson) as unknown;
+        return Array.isArray(tags) && tags.length === 1;
+      } catch {
+        return false;
+      }
+    }) ?? false;
+    return hasUsableRulesCol;
   })
 
   // Run report from workflow (report.txt): empty input or threshold filter warnings.
