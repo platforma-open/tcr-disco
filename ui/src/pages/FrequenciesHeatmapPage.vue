@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { PredefinedGraphOption } from '@milaboratories/graph-maker';
 import { GraphMaker } from '@milaboratories/graph-maker';
-import type { PColumnIdAndSpec } from '@platforma-sdk/model';
+import type { PColumnIdAndSpec, PlRef } from '@platforma-sdk/model';
 import { plRefsEqual } from '@platforma-sdk/model';
 import { PlTabs } from '@platforma-sdk/ui-vue';
 import { computed } from 'vue';
@@ -103,10 +103,13 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
 // between renders (PColumn spec key ordering isn't guaranteed in JSON), so
 // GraphMaker treated every nav as a data-identity change and reset the
 // saved filters in uiState back to defaults.
+const refKey = (r: PlRef | undefined) => (r ? `${r.blockId}:${r.name}` : '');
 const key = computed(() => [
   app.model.ui.selectedChain ?? 'alpha',
   (app.model.args.numerators ?? []).join(','),
   (app.model.args.denominators ?? []).join(','),
+  refKey(app.model.args.mainRef),
+  refKey(app.model.args.contrastFactor),
 ].join('|'));
 
 </script>

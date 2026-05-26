@@ -303,10 +303,12 @@ wf.body(func(args) {
 	}
 
 	// Synthesize a Barcode ID column from multiplexingRules when allMetadata
-	// didn't already carry one. find-pairs.R joins alpha and beta samples on
-	// this column, so S&D 2.7.0+ projects that no longer emit it directly
-	// need a synthesized stand-in. Skip when a real Barcode ID metadata
-	// column is already present, to avoid a duplicate header.
+	// didn't already carry one. find-pairs.R uses this column to collapse
+	// paired alpha/beta samples (same well, different sequencing run) into
+	// a single useSampleId for the correlation step — without it, paired
+	// projects on S&D 2.7.0+ fall back to per-sample joins and lose the
+	// cross-chain link. Skip when a real Barcode ID metadata column is
+	// already present, to avoid a duplicate header.
 	if !legacyBarcodeColPresent {
 		mx := multiplexingSource.resolve(columns)
 		if mx.ok {
