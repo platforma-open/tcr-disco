@@ -212,6 +212,12 @@ export const model = BlockModel.create()
     // would hide the dropdown AND skip synthesis — pairs would silently
     // fail. Falling through to false keeps the dropdown reachable for
     // manual recovery.
+    //
+    // Note: we don't verify axis names here. The
+    // `pl7.app/sequencing/multiplexingRules` column-name contract requires
+    // `[sampleGroupId, sampleId]` axes by S&D spec, and the workflow's
+    // selector enforces that match — a non-conforming upstream would fail
+    // the selector and skip synthesis there too.
     const rulesCols = ctx.resultPool.selectColumns(
       (spec) => spec.name === 'pl7.app/sequencing/multiplexingRules',
     );
