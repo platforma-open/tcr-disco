@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { PredefinedGraphOption } from '@milaboratories/graph-maker';
 import { GraphMaker } from '@milaboratories/graph-maker';
-import type { PColumnIdAndSpec, PlRef } from '@platforma-sdk/model';
+import type { PColumnIdAndSpec } from '@platforma-sdk/model';
 import { computed } from 'vue';
 import { useApp } from '../app';
 
@@ -69,27 +69,24 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
 });
 
 // Stable across remounts: changes only when block args change the default
-// filters. The previous `JSON.stringify(defaultOptions)` key flickered
-// between renders (PColumn spec key ordering isn't guaranteed in JSON), so
-// the `:key` binding recreated the GraphMaker component on every nav and
-// dropped the saved filters in uiState. Switched to GraphMaker's
-// `data-state-key` prop for a less destructive reset (internal state
-// reset, not full component recreate) and to stay consistent with
-// FrequenciesHeatmapPage.
-const refKey = (r: PlRef | undefined) => (r ? `${r.blockId}:${r.name}` : '');
+// filters. A `JSON.stringify(defaultOptions)` key flickers between renders
+// because PColumn spec key ordering isn't guaranteed in JSON, which makes
+// every nav look like a data-identity change to GraphMaker and drops the
+// saved filters in uiState. Composing primitives only — adding ref
+// identities (mainRef/contrastFactor) caused the key to flicker during
+// initial mount when args briefly resolve from undefined to their real
+// values, which re-triggered the same reset.
 const key = computed(() => [
   (app.model.args.numerators ?? []).join(','),
   (app.model.args.denominators ?? []).join(','),
-  refKey(app.model.args.mainRef),
-  refKey(app.model.args.contrastFactor),
 ].join('|'));
 </script>
 
 <template>
   <GraphMaker
+    :key="key"
     v-model="app.model.ui.pairsHeatmapState"
     chartType="heatmap"
-    :data-state-key="key"
     :p-frame="app.model.outputs.pairsHeatmapPf"
     :default-options="defaultOptions"
   />

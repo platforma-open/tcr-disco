@@ -121,9 +121,8 @@ wf.prepare(func(args) {
 		axes: [{anchor: "mainAlpha", idx: 0}]
 	}, "allMetadata");
 
-	// Register the multiplexingRules selector. Legacy projects whose S&D
-	// still emits a Barcode ID metadata column flow through the allMetadata
-	// loop above instead.
+	// Register the multiplexingRules selector. Legacy Barcode ID metadata
+	// columns flow through the allMetadata loop above.
 	multiplexingSource.addSelectors(bundleBuilder)
 
 	// If cdRef is provided, load it and its metadata
@@ -295,9 +294,8 @@ wf.body(func(args) {
 	metadataTable.setAxisHeader("pl7.app/sampleId", "internalSampleId")
 	legacyBarcodeColPresent := false
 	for metadataCol in columns.getColumns("allMetadata") {
-		// Guard the annotations access — a column without annotations
-		// would otherwise panic on the key lookup. Treat missing-label
-		// as an empty header and skip the Barcode-ID comparison.
+		// Guard against undefined annotations — accessing a key on undefined
+		// panics in Tengo. Missing-label columns get an empty header.
 		annotations := metadataCol.spec.annotations
 		label := ""
 		if !is_undefined(annotations) && !is_undefined(annotations["pl7.app/label"]) {
@@ -311,11 +309,10 @@ wf.body(func(args) {
 
 	// Synthesize a Barcode ID column from multiplexingRules when allMetadata
 	// didn't already carry one. find-pairs.R uses this column to collapse
-	// paired alpha/beta samples (same well, different sequencing run) into
-	// a single useSampleId for the correlation step — without it, paired
-	// projects on S&D 2.7.0+ fall back to per-sample joins and lose the
-	// cross-chain link. Skip when a real Barcode ID metadata column is
-	// already present, to avoid a duplicate header.
+	// paired alpha/beta samples (same well, different sequencing runs) onto
+	// one useSampleId for the correlation step; without it, S&D 2.7.0+
+	// projects lose the cross-chain link. Skip when a real Barcode ID
+	// column is already present to avoid duplicate headers.
 	if !legacyBarcodeColPresent {
 		mx := multiplexingSource.resolve(columns)
 		if mx.ok {
@@ -341,8 +338,8 @@ wf.body(func(args) {
 			}
 			metadataTable.add(syntheticPCol, {header: "Barcode ID"})
 		} else {
-			// Surface the resolver's failure reason in block logs.
-			// Otherwise the only signal is an opaque join error in find-pairs.R.
+			// Surface the resolver's failure reason in block logs — otherwise
+			// the only downstream signal is an opaque join error in find-pairs.R.
 			ll.print("multiplexing-source: " + mx.message)
 		}
 	}
