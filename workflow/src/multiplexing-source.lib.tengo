@@ -82,11 +82,11 @@ parseRulesColumn := func(rulesCol) {
         }
         sampleBarcodes[sampleId] = string(firstAlt[tag])
     }
-    return { ok: true, sampleBarcodes: sampleBarcodes, traceSource: rulesCol }
+    return { ok: true, sampleBarcodes: sampleBarcodes }
 }
 
 // resolve returns one of:
-//   { ok: true,  sampleBarcodes: {sampleId: barcode}, traceSource }
+//   { ok: true,  sampleBarcodes: {sampleId: barcode} }
 //   { ok: false, message }
 //
 // Only the new `multiplexingRules` column is consulted. When it is absent,
