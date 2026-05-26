@@ -69,24 +69,24 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
 });
 
 // PairsHeatmap binds the stable key to Vue's `:key` attribute, not
-// GraphMaker's `:data-state-key` prop. We tested both: with
-// `:data-state-key` here, every nav resets the saved filters in uiState
-// back to defaults; `:key` preserves them. FrequenciesHeatmapPage uses
-// `:data-state-key` without the problem — the asymmetry is real and
-// reproducible. Don't "fix" by switching to `:data-state-key` for
-// consistency without re-testing manually first.
+// GraphMaker's `:data-state-key` prop. Tested both: `:data-state-key`
+// here resets the saved filters in uiState to defaults on every nav;
+// `:key` preserves them. FrequenciesHeatmapPage uses `:data-state-key`
+// and keeps its filters — the asymmetry is real and reproducible.
+// Don't switch back without re-testing the nav flow manually.
 //
-// `:data-state-key` is GraphMaker's invalidation signal — when the prop
-// differs from what GraphMaker stored, it overwrites v-model with
-// defaults. Vue's `:key` only controls component identity — when it
-// changes, Vue creates a new GraphMaker instance, which reads from
-// v-model and inherits saved filters. Recreate is safer than invalidate
-// when the key can't be made perfectly stable across mount cycles.
+// Mechanism. `:data-state-key` is GraphMaker's invalidation signal —
+// when the prop differs from what GraphMaker stored, it overwrites
+// v-model with defaults. Vue's `:key` only controls component
+// identity — when it changes, Vue creates a new GraphMaker which
+// reads from v-model and inherits the saved filters. When the key
+// can't be made perfectly stable across mount cycles, recreate is
+// safer than invalidate.
 //
 // Key composed from primitives only. Adding ref identities
-// (mainRef/contrastFactor) caused the key to flicker during initial
-// mount when args briefly resolve from undefined to their real values,
-// re-triggering the same reset.
+// (mainRef/contrastFactor) made the key flicker during initial mount
+// when args briefly resolve from undefined to their real values,
+// which re-triggers the reset.
 const key = computed(() => [
   (app.model.args.numerators ?? []).join(','),
   (app.model.args.denominators ?? []).join(','),
