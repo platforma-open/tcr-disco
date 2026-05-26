@@ -68,14 +68,25 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
   return defaults;
 });
 
-// Stable across remounts: changes only when block args change the default
-// filters. A `JSON.stringify(defaultOptions)` key flickers between renders
-// because PColumn spec key ordering isn't guaranteed in JSON, which makes
-// every nav look like a data-identity change to GraphMaker and drops the
-// saved filters in uiState. Composing primitives only — adding ref
-// identities (mainRef/contrastFactor) caused the key to flicker during
-// initial mount when args briefly resolve from undefined to their real
-// values, which re-triggered the same reset.
+// PairsHeatmap binds the stable key to Vue's `:key` attribute, not
+// GraphMaker's `:data-state-key` prop. We tested both: with
+// `:data-state-key` here, every nav resets the saved filters in uiState
+// back to defaults; `:key` preserves them. FrequenciesHeatmapPage uses
+// `:data-state-key` without the problem — the asymmetry is real and
+// reproducible. Don't "fix" by switching to `:data-state-key` for
+// consistency without re-testing manually first.
+//
+// `:data-state-key` is GraphMaker's invalidation signal — when the prop
+// differs from what GraphMaker stored, it overwrites v-model with
+// defaults. Vue's `:key` only controls component identity — when it
+// changes, Vue creates a new GraphMaker instance, which reads from
+// v-model and inherits saved filters. Recreate is safer than invalidate
+// when the key can't be made perfectly stable across mount cycles.
+//
+// Key composed from primitives only. Adding ref identities
+// (mainRef/contrastFactor) caused the key to flicker during initial
+// mount when args briefly resolve from undefined to their real values,
+// re-triggering the same reset.
 const key = computed(() => [
   (app.model.args.numerators ?? []).join(','),
   (app.model.args.denominators ?? []).join(','),
