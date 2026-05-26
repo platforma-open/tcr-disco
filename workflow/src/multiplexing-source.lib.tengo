@@ -1,26 +1,27 @@
 // multiplexing-source — TCR Disco's barcode resolver.
 //
-// Resolves per-sample barcode values from the
-// `pl7.app/sequencing/multiplexingRules` column emitted by S&D 2.7.0+.
+// Resolves per-sample barcode values from S&D 2.7.0+'s
+// `pl7.app/sequencing/multiplexingRules` column.
 // Cell value shape: `Array<Record<TagName, Barcode>>`.
 //
 // Legacy projects whose S&D still emits a `Barcode ID` metadata column
-// flow through main.tpl.tengo's allMetadata selector and short-circuit
-// this resolver. We don't register a fallback for them here — a
-// wrong-axis match would silently shadow the real column.
+// flow through main.tpl.tengo's allMetadata loop and skip this resolver.
+// We register no fallback selector here — a wrong-axis match would
+// silently shadow the real column.
 
 text := import("text")
 json := import("json")
 
 // Miltenyi's equivalent resolver anchors the rules column's first axis to
-// `main.idx 0` (a sampleGroupId on a dataset-reference column). TCR Disco's
-// `mainAlpha` is a clonotype-counts column whose first axis is sampleId —
-// wrong shape for that anchor. Match by axis names and types instead.
+// `main.idx 0` (a sampleGroupId on a dataset-reference column). TCR
+// Disco's `mainAlpha` is a clonotype-counts column whose first axis is
+// sampleId — wrong shape for that anchor. We match by axis names and
+// types instead.
 //
-// Block/dataset domain anchoring is also inapplicable here: mainAlpha's
+// Block/dataset domain anchoring is also inapplicable: mainAlpha's
 // column-level domain has no pl7.app/block / pl7.app/dataset keys. We
 // drop the domain constraint and rely on natural scoping — one upstream
-// S&D dataset per main TCR pipeline in practice.
+// S&D dataset per main TCR pipeline.
 addSelectors := func(bundleBuilder) {
     // Multiplexing rules column. Axes [sampleGroupId, sampleId].
     bundleBuilder.addMulti({
@@ -60,8 +61,8 @@ parseRulesColumn := func(rulesCol) {
     }
     tag := tags[0]
 
-    // Defensive: an upstream that emits the column without backing data,
-    // or with non-map JSON, would otherwise panic mid-iteration.
+    // Defensive: upstream columns with no backing data or non-map JSON
+    // would otherwise panic mid-iteration.
     if is_undefined(rulesCol.data) {
         return { ok: false, message: "Multiplexing rules column has no data." }
     }
@@ -101,15 +102,15 @@ parseRulesColumn := func(rulesCol) {
 //   { ok: true,  sampleBarcodes: {sampleId: barcode} }
 //   { ok: false, message }
 //
-// Only the new `multiplexingRules` column is consulted. When it is absent,
-// the workflow's `allMetadata` iteration is the path for legacy projects
-// that still emit a `Barcode ID` metadata column directly.
+// Consults only the `multiplexingRules` column. Legacy projects that
+// still emit `Barcode ID` directly flow through the workflow's
+// `allMetadata` loop instead.
 resolve := func(bundle) {
     rulesCols := bundle.getColumns("multiplexingRules")
     if !is_undefined(rulesCols) && len(rulesCols) > 0 {
-        // v1 only tries the first column. Multi-upstream projects with a
-        // mix of single-tag and multi-tag columns aren't a supported shape;
-        // the operator's recovery path is the manual pairing dropdown.
+        // v1 tries only the first column. Multi-upstream projects mixing
+        // single-tag and multi-tag columns fall back to the manual pairing
+        // dropdown.
         return parseRulesColumn(rulesCols[0])
     }
     return {

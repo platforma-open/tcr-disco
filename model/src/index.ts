@@ -204,8 +204,8 @@ export const model = BlockModel.create()
 
     // S&D 2.7.0+ emits per-sample barcodes as a multiplexingRules column
     // instead of a Barcode ID metadata column. The workflow synthesizes a
-    // Barcode ID from it, so hide the pairing dropdown when only this shape
-    // is present.
+    // Barcode ID from it, so hide the pairing dropdown when only this
+    // shape is present.
     //
     // Only single-tag rules count as usable: multiplexingSource.resolve()
     // rejects multi-tag (v1 limit). Returning true on a multi-tag column
@@ -213,11 +213,11 @@ export const model = BlockModel.create()
     // fail. Falling through to false keeps the dropdown reachable for
     // manual recovery.
     //
-    // Note: we don't verify axis names here. The
+    // Axis names go unchecked here. The
     // `pl7.app/sequencing/multiplexingRules` column-name contract requires
-    // `[sampleGroupId, sampleId]` axes by S&D spec, and the workflow's
-    // selector enforces that match — a non-conforming upstream would fail
-    // the selector and skip synthesis there too.
+    // `[sampleGroupId, sampleId]` axes by S&D spec; the workflow selector
+    // enforces the match. A non-conforming upstream would fail the
+    // selector and skip synthesis there too.
     const rulesCols = ctx.resultPool.selectColumns(
       (spec) => spec.name === 'pl7.app/sequencing/multiplexingRules',
     );

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { PredefinedGraphOption } from '@milaboratories/graph-maker';
 import { GraphMaker } from '@milaboratories/graph-maker';
-import type { PColumnIdAndSpec, PlRef } from '@platforma-sdk/model';
+import type { PColumnIdAndSpec } from '@platforma-sdk/model';
 import { plRefsEqual } from '@platforma-sdk/model';
 import { PlTabs } from '@platforma-sdk/ui-vue';
 import { computed } from 'vue';
@@ -99,17 +99,17 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
 });
 
 // Stable across remounts: changes only when block args change the default
-// filters. The previous `JSON.stringify(defaultOptions)` key flickered
-// between renders (PColumn spec key ordering isn't guaranteed in JSON), so
-// GraphMaker treated every nav as a data-identity change and reset the
-// saved filters in uiState back to defaults.
-const refKey = (r: PlRef | undefined) => (r ? `${r.blockId}:${r.name}` : '');
+// filters. A `JSON.stringify(defaultOptions)` key flickers between renders
+// because PColumn spec key ordering isn't guaranteed in JSON, which makes
+// every nav look like a data-identity change to GraphMaker and resets the
+// saved filters in uiState back to defaults. Composing primitives only —
+// adding ref identities (mainRef/contrastFactor) caused the key to
+// flicker during initial mount when args briefly resolve from undefined
+// to their real values, which re-triggered the same reset.
 const key = computed(() => [
   app.model.ui.selectedChain ?? 'alpha',
   (app.model.args.numerators ?? []).join(','),
   (app.model.args.denominators ?? []).join(','),
-  refKey(app.model.args.mainRef),
-  refKey(app.model.args.contrastFactor),
 ].join('|'));
 
 </script>
