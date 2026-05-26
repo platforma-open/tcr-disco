@@ -163,12 +163,15 @@ wf.prepare(func(args) {
 		i = i + 1
 	}
 	
-	return {
+	prepared := {
 		columns: bundleBuilder.build(),
 		resolvedContrastFactor: wf.resolve(args.contrastFactor),
-		resolvedCdSubsetCol: wf.resolve(args.cdSubsetCol),
 		metaRefs: metaRefs
 	}
+	if args.cdSubsetCol != undefined {
+		prepared.resolvedCdSubsetCol = wf.resolve(args.cdSubsetCol)
+	}
+	return prepared
 })
 
 wf.body(func(args) {
