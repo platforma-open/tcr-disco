@@ -5,9 +5,13 @@
 // Cell value shape: `Array<Record<TagName, Barcode>>`.
 //
 // Legacy projects whose S&D still emits a `Barcode ID` metadata column
-// flow through main.tpl.tengo's allMetadata loop and skip this resolver.
-// We register no fallback selector here — a wrong-axis match would
-// silently shadow the real column.
+// flow through main.tpl.tengo's allMetadata loop, which anchors its
+// selector to mainAlpha's sampleId axis. We don't add a second
+// `Barcode ID` selector here — without anchoring to the same
+// mainAlpha sampleId axis it could either match nothing and panic on
+// lookup (the failure mode that hit Standard data in PR #8) or match a
+// Barcode ID column from an unrelated dataset and silently feed wrong
+// values into synthesis.
 
 text := import("text")
 json := import("json")
