@@ -1,0 +1,112 @@
+// multiplexing-source — TCR Disco's lean resolver.
+//
+// Resolves the per-sample barcode value from the new
+// `pl7.app/sequencing/multiplexingRules` column emitted by S&D 2.7.0+.
+// Cell value shape: `Array<Record<TagName, Barcode>>`.
+//
+// Note: a separate legacy path exists in main.tpl.tengo for projects whose
+// upstream S&D still emits a `Barcode ID` metadata column directly — that
+// path runs off the `allMetadata` selector (anchored to mainAlpha[0]) and
+// short-circuits this resolver. Picking up a `Barcode ID` metadata column
+// here too risks matching an unrelated column on a different sampleId axis,
+// so this lib intentionally does not register a fallback selector for it.
+
+text := import("text")
+json := import("json")
+
+// Adds the bundle selector the workflow needs to resolve the new shape.
+//
+// Note on axis specs: Miltenyi's resolver anchors the rules-column's first
+// axis to `main.idx 0` (a sampleGroupId axis on a dataset-reference column).
+// TCR Disco's `mainAlpha` is a clonotype-counts column whose first axis is
+// `pl7.app/sampleId` — wrong shape for that anchor. We match by axis names
+// and types instead. Block/dataset domain anchoring is similarly inapplicable
+// here (mainAlpha's column-level domain has no pl7.app/block / pl7.app/dataset
+// keys), so we omit the domain constraint and rely on natural scoping: the
+// projects we target wire one upstream S&D dataset per main TCR pipeline.
+addSelectors := func(bundleBuilder) {
+    // Multiplexing rules column. Axes [sampleGroupId, sampleId].
+    bundleBuilder.addMulti({
+        axes: [
+            { name: "pl7.app/sampleGroupId", type: "String" },
+            { name: "pl7.app/sampleId",      type: "String" }
+        ],
+        name: "pl7.app/sequencing/multiplexingRules"
+    }, "multiplexingRules")
+}
+
+// Decode a JSON-as-string blob or raw map into the inner map.
+// PColumnData/Json shows up as either `{key: value}` or `{keyLength, data: {key: value}}`.
+unwrapColumnData := func(rawData) {
+    if is_map(rawData) && !is_undefined(rawData["data"]) {
+        return rawData["data"]
+    }
+    return rawData
+}
+
+// Parse the new multiplexingRules column into `{sampleId → barcodeValue}`.
+// Cell key:  JSON `[groupId, sampleId]`
+// Cell val:  JSON `Array<Record<TagName, Barcode>>`  (outer OR / alternatives;
+//            inner AND / multi-tag combo within one alternative)
+// v1 limits: exactly one tag, exactly one alternative per cell.
+parseRulesColumn := func(rulesCol) {
+    annotations := rulesCol.spec.annotations
+    if is_undefined(annotations) || is_undefined(annotations["pl7.app/sequencing/barcodeTags"]) {
+        return { ok: false, message: "Multiplexing rules column is missing the barcodeTags annotation." }
+    }
+    tags := json.decode(annotations["pl7.app/sequencing/barcodeTags"])
+    if !is_array(tags) || len(tags) == 0 {
+        return { ok: false, message: "Multiplexing rules column declares no barcode tags." }
+    }
+    if len(tags) > 1 {
+        return { ok: false, message: "TCR Disco v1 does not support multiple barcode tags (" + text.join(tags, ", ") + "). Use a single-tag rules column." }
+    }
+    tag := tags[0]
+
+    cellMap := unwrapColumnData(json.decode(rulesCol.data.getData()))
+    sampleBarcodes := {}
+    for cellKey, cellVal in cellMap {
+        keyArr := json.decode(cellKey)
+        if !is_array(keyArr) || len(keyArr) != 2 {
+            return { ok: false, message: "Multiplexing rules cell has malformed key " + cellKey + "; expected JSON [groupId, sampleId]." }
+        }
+        groupId := keyArr[0]
+        sampleId := keyArr[1]
+        alts := json.decode(cellVal)
+        if !is_array(alts) || len(alts) == 0 {
+            return { ok: false, message: "Multiplexing rules cell for group " + groupId + ", sample " + sampleId + " is empty." }
+        }
+        if len(alts) > 1 {
+            return { ok: false, message: "Multiplexing rules cell for group " + groupId + ", sample " + sampleId + " has multiple alternatives — TCR Disco v1 supports one alternative per sample." }
+        }
+        firstAlt := alts[0]
+        if is_undefined(firstAlt[tag]) || string(firstAlt[tag]) == "" {
+            return { ok: false, message: "Multiplexing rules cell for group " + groupId + ", sample " + sampleId + " has no value for tag '" + tag + "'." }
+        }
+        sampleBarcodes[sampleId] = string(firstAlt[tag])
+    }
+    return { ok: true, sampleBarcodes: sampleBarcodes, traceSource: rulesCol }
+}
+
+// resolve returns one of:
+//   { ok: true,  sampleBarcodes: {sampleId: barcode}, traceSource }
+//   { ok: false, message }
+//
+// Only the new `multiplexingRules` column is consulted. When it is absent,
+// the workflow's `allMetadata` iteration is the path for legacy projects
+// that still emit a `Barcode ID` metadata column directly.
+resolve := func(bundle) {
+    rulesCols := bundle.getColumns("multiplexingRules")
+    if !is_undefined(rulesCols) && len(rulesCols) > 0 {
+        return parseRulesColumn(rulesCols[0])
+    }
+    return {
+        ok: false,
+        message: "Dataset has no multiplexing rules column. Pick a pairing column manually in block settings, or author rules in Samples & Data."
+    }
+}
+
+export {
+    addSelectors: addSelectors,
+    resolve:      resolve
+}
