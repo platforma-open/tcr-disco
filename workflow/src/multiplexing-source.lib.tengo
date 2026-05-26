@@ -1,29 +1,26 @@
-// multiplexing-source — TCR Disco's lean resolver.
+// multiplexing-source — TCR Disco's barcode resolver.
 //
-// Resolves the per-sample barcode value from the new
+// Resolves per-sample barcode values from the
 // `pl7.app/sequencing/multiplexingRules` column emitted by S&D 2.7.0+.
 // Cell value shape: `Array<Record<TagName, Barcode>>`.
 //
-// Note: a separate legacy path exists in main.tpl.tengo for projects whose
-// upstream S&D still emits a `Barcode ID` metadata column directly — that
-// path runs off the `allMetadata` selector (anchored to mainAlpha[0]) and
-// short-circuits this resolver. Picking up a `Barcode ID` metadata column
-// here too risks matching an unrelated column on a different sampleId axis,
-// so this lib intentionally does not register a fallback selector for it.
+// Legacy projects whose S&D still emits a `Barcode ID` metadata column
+// flow through main.tpl.tengo's allMetadata selector and short-circuit
+// this resolver. We don't register a fallback for them here — a
+// wrong-axis match would silently shadow the real column.
 
 text := import("text")
 json := import("json")
 
-// Adds the bundle selector the workflow needs to resolve the new shape.
+// Miltenyi's equivalent resolver anchors the rules column's first axis to
+// `main.idx 0` (a sampleGroupId on a dataset-reference column). TCR Disco's
+// `mainAlpha` is a clonotype-counts column whose first axis is sampleId —
+// wrong shape for that anchor. Match by axis names and types instead.
 //
-// Note on axis specs: Miltenyi's resolver anchors the rules-column's first
-// axis to `main.idx 0` (a sampleGroupId axis on a dataset-reference column).
-// TCR Disco's `mainAlpha` is a clonotype-counts column whose first axis is
-// `pl7.app/sampleId` — wrong shape for that anchor. We match by axis names
-// and types instead. Block/dataset domain anchoring is similarly inapplicable
-// here (mainAlpha's column-level domain has no pl7.app/block / pl7.app/dataset
-// keys), so we omit the domain constraint and rely on natural scoping: the
-// projects we target wire one upstream S&D dataset per main TCR pipeline.
+// Block/dataset domain anchoring is also inapplicable here: mainAlpha's
+// column-level domain has no pl7.app/block / pl7.app/dataset keys. We
+// drop the domain constraint and rely on natural scoping — one upstream
+// S&D dataset per main TCR pipeline in practice.
 addSelectors := func(bundleBuilder) {
     // Multiplexing rules column. Axes [sampleGroupId, sampleId].
     bundleBuilder.addMulti({

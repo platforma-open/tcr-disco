@@ -98,7 +98,16 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
   return defaults;
 });
 
-const key = computed(() => (defaultOptions.value ? JSON.stringify(defaultOptions.value) : ''));
+// Stable across remounts: changes only when block args change the default
+// filters. The previous `JSON.stringify(defaultOptions)` key flickered
+// between renders (PColumn spec key ordering isn't guaranteed in JSON), so
+// GraphMaker treated every nav as a data-identity change and reset the
+// saved filters in uiState back to defaults.
+const key = computed(() => [
+  app.model.ui.selectedChain ?? 'alpha',
+  (app.model.args.numerators ?? []).join(','),
+  (app.model.args.denominators ?? []).join(','),
+].join('|'));
 
 </script>
 

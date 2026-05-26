@@ -121,9 +121,9 @@ wf.prepare(func(args) {
 		axes: [{anchor: "mainAlpha", idx: 0}]
 	}, "allMetadata");
 
-	// Adopt the new multiplexingRules column emitted by S&D 2.7.0+; the lib
-	// also keeps a selector for the legacy `Barcode ID` metadata column so
-	// pre-migration projects continue to work.
+	// Register the multiplexingRules selector. Legacy projects whose S&D
+	// still emits a Barcode ID metadata column flow through the allMetadata
+	// loop above instead.
 	multiplexingSource.addSelectors(bundleBuilder)
 
 	// If cdRef is provided, load it and its metadata
@@ -302,11 +302,11 @@ wf.body(func(args) {
 		}
 	}
 
-	// Synthesize "Barcode ID" column from multiplexingRules (or legacy
-	// selector) when allMetadata didn't already include one. This keeps the
-	// R script's pairing join working on projects where S&D 2.7.0+ no longer
-	// emits the Barcode ID metadata column. When a real Barcode ID metadata
-	// column is present, skip synthesis to avoid a duplicate column header.
+	// Synthesize a Barcode ID column from multiplexingRules when allMetadata
+	// didn't already carry one. find-pairs.R joins alpha and beta samples on
+	// this column, so S&D 2.7.0+ projects that no longer emit it directly
+	// need a synthesized stand-in. Skip when a real Barcode ID metadata
+	// column is already present, to avoid a duplicate header.
 	if !legacyBarcodeColPresent {
 		mx := multiplexingSource.resolve(columns)
 		if mx.ok {
