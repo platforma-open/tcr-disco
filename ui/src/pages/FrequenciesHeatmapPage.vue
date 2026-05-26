@@ -98,14 +98,24 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
   return defaults;
 });
 
-// Stable across remounts: changes only when block args change the default
-// filters. A `JSON.stringify(defaultOptions)` key flickers between renders
-// because PColumn spec key ordering isn't guaranteed in JSON, which makes
-// every nav look like a data-identity change to GraphMaker and resets the
-// saved filters in uiState back to defaults. Composing primitives only —
-// adding ref identities (mainRef/contrastFactor) caused the key to
-// flicker during initial mount when args briefly resolve from undefined
-// to their real values, which re-triggered the same reset.
+// FrequenciesHeatmap binds the stable key to Vue's `:key` attribute, not
+// GraphMaker's `:data-state-key` prop. Tested both: `:data-state-key`
+// here resets the saved filters in uiState to defaults on every nav;
+// `:key` preserves them. Same pattern in PairsHeatmapPage. Don't switch
+// back without re-testing the nav flow manually.
+//
+// Mechanism. `:data-state-key` is GraphMaker's invalidation signal —
+// when the prop differs from what GraphMaker stored, it overwrites
+// v-model with defaults. Vue's `:key` only controls component
+// identity — when it changes, Vue creates a new GraphMaker which
+// reads from v-model and inherits the saved filters. When the key
+// can't be made perfectly stable across mount cycles, recreate is
+// safer than invalidate.
+//
+// Key composed from primitives only. Adding ref identities
+// (mainRef/contrastFactor) made the key flicker during initial mount
+// when args briefly resolve from undefined to their real values,
+// which re-triggers the reset.
 const key = computed(() => [
   app.model.ui.selectedChain ?? 'alpha',
   (app.model.args.numerators ?? []).join(','),
@@ -116,9 +126,9 @@ const key = computed(() => [
 
 <template>
   <GraphMaker
+    :key="key"
     v-model="app.model.ui.frequenciesHeatmapState"
     chartType="heatmap"
-    :data-state-key="key"
     :p-frame="app.model.outputs.frequenciesHeatmapPf"
     :default-options="defaultOptions"
   >
