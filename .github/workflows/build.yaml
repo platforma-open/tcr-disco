@@ -20,7 +20,8 @@ jobs:
   run:
     needs:
       - init
-    uses: milaboratory/github-ci/.github/workflows/node-simple-pnpm.yaml@v4
+    # CANARY: point at the changeset-coverage-check PR for testing. Do not merge.
+    uses: milaboratory/github-ci/.github/workflows/node-simple-pnpm.yaml@feat/changeset-coverage-check
     with:
       app-name: 'Block: TCR Disco'
       app-name-slug: 'block-tcr-disco'
