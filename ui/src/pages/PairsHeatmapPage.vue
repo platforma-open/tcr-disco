@@ -71,9 +71,8 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
 // PairsHeatmap binds the stable key to Vue's `:key` attribute, not
 // GraphMaker's `:data-state-key` prop. Tested both: `:data-state-key`
 // here resets the saved filters in uiState to defaults on every nav;
-// `:key` preserves them. FrequenciesHeatmapPage uses `:data-state-key`
-// and keeps its filters — the asymmetry is real and reproducible.
-// Don't switch back without re-testing the nav flow manually.
+// `:key` preserves them. Same pattern in FrequenciesHeatmapPage. Don't
+// switch back without re-testing the nav flow manually.
 //
 // Mechanism. `:data-state-key` is GraphMaker's invalidation signal —
 // when the prop differs from what GraphMaker stored, it overwrites
