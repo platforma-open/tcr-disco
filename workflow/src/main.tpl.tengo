@@ -295,7 +295,14 @@ wf.body(func(args) {
 	metadataTable.setAxisHeader("pl7.app/sampleId", "internalSampleId")
 	legacyBarcodeColPresent := false
 	for metadataCol in columns.getColumns("allMetadata") {
-		label := metadataCol.spec.annotations["pl7.app/label"]
+		// Guard the annotations access — a column without annotations
+		// would otherwise panic on the key lookup. Treat missing-label
+		// as an empty header and skip the Barcode-ID comparison.
+		annotations := metadataCol.spec.annotations
+		label := ""
+		if !is_undefined(annotations) && !is_undefined(annotations["pl7.app/label"]) {
+			label = string(annotations["pl7.app/label"])
+		}
 		metadataTable.add(metadataCol, {header: label})
 		if label == "Barcode ID" {
 			legacyBarcodeColPresent = true
@@ -333,6 +340,10 @@ wf.body(func(args) {
 				}))
 			}
 			metadataTable.add(syntheticPCol, {header: "Barcode ID"})
+		} else {
+			// Surface the resolver's failure reason in block logs.
+			// Otherwise the only signal is an opaque join error in find-pairs.R.
+			ll.print("multiplexing-source: " + mx.message)
 		}
 	}
 	metadataTable.mem(defaultConvMem)

@@ -60,7 +60,16 @@ parseRulesColumn := func(rulesCol) {
     }
     tag := tags[0]
 
+    // Defensive: an upstream that emits the column without backing data,
+    // or with non-map JSON, would otherwise panic mid-iteration.
+    if is_undefined(rulesCol.data) {
+        return { ok: false, message: "Multiplexing rules column has no data." }
+    }
     cellMap := unwrapColumnData(json.decode(rulesCol.data.getData()))
+    if !is_map(cellMap) {
+        return { ok: false, message: "Multiplexing rules column data is not a map." }
+    }
+
     sampleBarcodes := {}
     for cellKey, cellVal in cellMap {
         keyArr := json.decode(cellKey)
@@ -77,6 +86,9 @@ parseRulesColumn := func(rulesCol) {
             return { ok: false, message: "Multiplexing rules cell for group " + groupId + ", sample " + sampleId + " has multiple alternatives — TCR Disco v1 supports one alternative per sample." }
         }
         firstAlt := alts[0]
+        if !is_map(firstAlt) {
+            return { ok: false, message: "Multiplexing rules alternative for group " + groupId + ", sample " + sampleId + " is not a map." }
+        }
         if is_undefined(firstAlt[tag]) || string(firstAlt[tag]) == "" {
             return { ok: false, message: "Multiplexing rules cell for group " + groupId + ", sample " + sampleId + " has no value for tag '" + tag + "'." }
         }
@@ -95,6 +107,9 @@ parseRulesColumn := func(rulesCol) {
 resolve := func(bundle) {
     rulesCols := bundle.getColumns("multiplexingRules")
     if !is_undefined(rulesCols) && len(rulesCols) > 0 {
+        // v1 only tries the first column. Multi-upstream projects with a
+        // mix of single-tag and multi-tag columns aren't a supported shape;
+        // the operator's recovery path is the manual pairing dropdown.
         return parseRulesColumn(rulesCols[0])
     }
     return {
