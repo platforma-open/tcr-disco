@@ -207,6 +207,15 @@ export const model = BlockModel.create()
     // Barcode ID from it, so hide the pairing dropdown when only this
     // shape is present.
     //
+    // Inspect only rulesCols[0] — must stay symmetric with the workflow's
+    // multiplexingSource.resolve() in multiplexing-source.lib.tengo, which
+    // attempts column 0 only. Using `.some()` here would lie when column 0
+    // is multi-tag but a later column is single-tag: the model would hide
+    // the dropdown and the workflow would log the multi-tag rejection and
+    // skip synthesis, leaving the user with broken pairs and no manual
+    // recovery path. If the workflow grows multi-column selection (v2),
+    // update both sites together.
+    //
     // Only single-tag rules count as usable: multiplexingSource.resolve()
     // rejects multi-tag (v1 limit). Returning true on a multi-tag column
     // would hide the dropdown AND skip synthesis — pairs would silently
@@ -221,17 +230,16 @@ export const model = BlockModel.create()
     const rulesCols = ctx.resultPool.selectColumns(
       (spec) => spec.name === 'pl7.app/sequencing/multiplexingRules',
     );
-    const hasUsableRulesCol = rulesCols?.some((col) => {
-      const tagsJson = col.spec.annotations?.['pl7.app/sequencing/barcodeTags'];
-      if (typeof tagsJson !== 'string') return false;
-      try {
-        const tags = JSON.parse(tagsJson) as unknown;
-        return Array.isArray(tags) && tags.length === 1;
-      } catch {
-        return false;
-      }
-    }) ?? false;
-    return hasUsableRulesCol;
+    const firstRulesCol = rulesCols?.[0];
+    if (!firstRulesCol) return false;
+    const tagsJson = firstRulesCol.spec.annotations?.['pl7.app/sequencing/barcodeTags'];
+    if (typeof tagsJson !== 'string') return false;
+    try {
+      const tags = JSON.parse(tagsJson) as unknown;
+      return Array.isArray(tags) && tags.length === 1;
+    } catch {
+      return false;
+    }
   })
 
   // Run report from workflow (report.txt): empty input or threshold filter warnings.
