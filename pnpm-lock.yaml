@@ -43,8 +43,8 @@ catalogs:
       specifier: 1.53.4
       version: 1.53.4
     '@platforma-sdk/workflow-tengo':
-      specifier: 5.19.0
-      version: 5.19.0
+      specifier: 5.26.0
+      version: 5.26.0
     '@vitejs/plugin-vue':
       specifier: 5.2.4
       version: 5.2.4
@@ -200,7 +200,7 @@ importers:
         version: link:../software
       '@platforma-sdk/workflow-tengo':
         specifier: 'catalog:'
-        version: 5.19.0
+        version: 5.26.0
     devDependencies:
       '@platforma-sdk/tengo-builder':
         specifier: 'catalog:'
@@ -1075,6 +1075,9 @@ packages:
     resolution: {integrity: sha512-wBgiIaq7+HwmTD0nsyEPdbficKXsIhycvVPep6qaOek8L3r83O9U2bg7aXDI7pfntE8UlmisYuCLly+4Hp4NYw==}
     hasBin: true
 
+  '@milaboratories/pframes-rs-wasip2@1.1.35':
+    resolution: {integrity: sha512-kcR9YLWAbKYSpksPOoJWkcrkSiUUAEKj/Wuyc9aFsd2bNbWcIb7mLGptFOuvhLn07bZHn0oNcVgupEqd/6Ftbw==}
+
   '@milaboratories/pl-client@2.16.25':
     resolution: {integrity: sha512-bQwWLNL/9Aox6/171wv7B5njwbKfXeFhZF41FWdrUDcQ5BpTJG4xyn8hXQwt4f39rT852Rkk7dlvDAmVjU3wQw==}
     engines: {node: '>=22.19.0'}
@@ -1292,8 +1295,8 @@ packages:
   '@platforma-sdk/ui-vue@1.53.4':
     resolution: {integrity: sha512-hOdjgZ9ivy9DZrLa31LVs0JXNY0271/Q6zs5/IQE31n+nqtNPvvwzbFd6nPBkzGIilcS9Gno+627uS6NTIymkw==}
 
-  '@platforma-sdk/workflow-tengo@5.19.0':
-    resolution: {integrity: sha512-xgWMWjA+nJM0zVKuJQTFFM8ogDNN7ehIqLi9n+GX0kBTiXua1eRSQ6+r8K39mf+eBeQjBp0MLJOsFKFxE2jmFg==}
+  '@platforma-sdk/workflow-tengo@5.26.0':
+    resolution: {integrity: sha512-lXoFzD0LsQqEF9WUkA48avAY7LOK9WdP7sIc/Bymu1fOm4peXEWWZFW7fYckCPhHEAwcyzjqh7jdE8pVXrfzvw==}
 
   '@platforma-sdk/workflow-tengo@5.8.1':
     resolution: {integrity: sha512-fxaliEQFRjas073cBLEUWlWFxxsaJvGqeHsUVcGqvVqOKcVbICLgZWHezE7XYSRAiTaSZaLUNuPOZGSgaO8y9g==}
@@ -6963,6 +6966,8 @@ snapshots:
       commander: 14.0.2
       selfsigned: 4.0.0
 
+  '@milaboratories/pframes-rs-wasip2@1.1.35': {}
+
   '@milaboratories/pl-client@2.16.25':
     dependencies:
       '@grpc/grpc-js': 1.13.4
@@ -7556,8 +7561,9 @@ snapshots:
       - typescript
       - universal-cookie
 
-  '@platforma-sdk/workflow-tengo@5.19.0':
+  '@platforma-sdk/workflow-tengo@5.26.0':
     dependencies:
+      '@milaboratories/pframes-rs-wasip2': 1.1.35
       '@milaboratories/software-pframes-conv': 2.2.9
       '@platforma-open/milaboratories.software-ptabler': 1.16.1
       '@platforma-open/milaboratories.software-ptexter': 1.2.2
