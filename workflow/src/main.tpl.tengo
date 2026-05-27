@@ -17,6 +17,7 @@ tcrPairsParamsLib := import(":libs.tcr_pairs_params")
 topFrequenciesLib := import(":libs.top_frequencies")
 cdSubsetParamsLib := import(":libs.cd_subset_params")
 tcrdiscoDaPfconvParamsLib := import(":libs.tcrdisco_da_pfconv_params")
+multiplexingSource := import(":multiplexing-source")
 
 mapToPValueData := func(map) {
 	data := {}
@@ -119,7 +120,10 @@ wf.prepare(func(args) {
 		name: "pl7.app/metadata",
 		axes: [{anchor: "mainAlpha", idx: 0}]
 	}, "allMetadata");
-	
+
+	// Register the multiplexingRules selector. Legacy Barcode ID metadata
+	// columns flow through the allMetadata loop above.
+	multiplexingSource.addSelectors(bundleBuilder)
 
 	// If cdRef is provided, load it and its metadata
 	if args.cdRef != undefined {
@@ -158,12 +162,15 @@ wf.prepare(func(args) {
 		i = i + 1
 	}
 	
-	return {
+	prepared := {
 		columns: bundleBuilder.build(),
 		resolvedContrastFactor: wf.resolve(args.contrastFactor),
-		resolvedCdSubsetCol: wf.resolve(args.cdSubsetCol),
 		metaRefs: metaRefs
 	}
+	if args.cdSubsetCol != undefined {
+		prepared.resolvedCdSubsetCol = wf.resolve(args.cdSubsetCol)
+	}
+	return prepared
 })
 
 wf.body(func(args) {
@@ -285,8 +292,56 @@ wf.body(func(args) {
 	// Load main metadata
 	metadataTable := pframes.tsvFileBuilder()
 	metadataTable.setAxisHeader("pl7.app/sampleId", "internalSampleId")
+	legacyBarcodeColPresent := false
 	for metadataCol in columns.getColumns("allMetadata") {
-		metadataTable.add(metadataCol, {header: metadataCol.spec.annotations["pl7.app/label"]})
+		// Guard against undefined annotations — accessing a key on undefined
+		// panics in Tengo. Missing-label columns get an empty header.
+		annotations := metadataCol.spec.annotations
+		label := ""
+		if !is_undefined(annotations) && !is_undefined(annotations["pl7.app/label"]) {
+			label = string(annotations["pl7.app/label"])
+		}
+		metadataTable.add(metadataCol, {header: label})
+		if label == "Barcode ID" {
+			legacyBarcodeColPresent = true
+		}
+	}
+
+	// Synthesize a Barcode ID column from multiplexingRules when allMetadata
+	// didn't already carry one. find-pairs.R uses this column to collapse
+	// paired alpha/beta samples (same well, different sequencing runs) onto
+	// one useSampleId for the correlation step; without it, S&D 2.7.0+
+	// projects lose the cross-chain link. Skip when a real Barcode ID
+	// column is already present to avoid duplicate headers.
+	if !legacyBarcodeColPresent {
+		mx := multiplexingSource.resolve(columns)
+		if mx.ok {
+			syntheticData := {}
+			for sampleId, barcodeValue in mx.sampleBarcodes {
+				syntheticData[json.encode([sampleId])] = barcodeValue
+			}
+			syntheticPCol := {
+				spec: {
+					kind:       "PColumn",
+					name:       "pl7.app/metadata",
+					valueType:  "String",
+					axesSpec:   [{name: "pl7.app/sampleId", type: "String"}],
+					annotations: {
+						"pl7.app/label":    "Barcode ID",
+						"pl7.app/columnId": "Barcode ID"
+					}
+				},
+				data: createJsonPColumnData(json.encode({
+					keyLength: 1,
+					data:      syntheticData
+				}))
+			}
+			metadataTable.add(syntheticPCol, {header: "Barcode ID"})
+		} else {
+			// Surface the resolver's failure reason in block logs — otherwise
+			// the only downstream signal is an opaque join error in find-pairs.R.
+			ll.print("multiplexing-source: " + mx.message)
+		}
 	}
 	metadataTable.mem(defaultConvMem)
 	metadataTable.cpu(defaultConvCpu)
