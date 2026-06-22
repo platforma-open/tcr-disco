@@ -1,24 +1,33 @@
 {
+  "files": [
+    "index.d.ts",
+    "index.js"
+  ],
   "scripts": {
-    "pretty": "prettier --write \"./**/*.{js,jsx,mjs,cjs,ts,tsx,json,vue}\"",
     "build": "turbo run build",
     "build:dev": "env PL_PKG_DEV=local turbo run build",
-    "test": "env PL_PKG_DEV=local turbo run test --concurrency 1 --env-mode=loose",
+    "test": "env PL_PKG_DEV=local turbo run test --concurrency 1",
     "test:dry-run": "env PL_PKG_DEV=local turbo run test --dry-run=json",
     "mark-stable": "turbo run mark-stable",
     "watch": "turbo watch build",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "update-sdk": "pl-blocks-deps-updater"
+    "update-sdk": "block-tools structure refresh --update-deps-only",
+    "fmt": "turbo run fmt",
+    "check": "turbo run check",
+    "do-pack": "turbo run do-pack",
+    "upgrade-sdk": "block-tools structure refresh --update-deps-only && pnpm i && block-tools structure refresh && pnpm i && pnpm fmt"
   },
-  "files": [
-    "index.d.ts",
-    "index.js"
-  ],
   "devDependencies": {
-    "turbo": "catalog:",
     "@changesets/cli": "catalog:",
-    "@platforma-sdk/blocks-deps-updater": "catalog:"
+    "@milaboratories/ts-builder": "catalog:",
+    "@platforma-sdk/block-tools": "catalog:",
+    "shx": "catalog:",
+    "turbo": "catalog:"
+  },
+  "peerDependencies": {
+    "oxfmt": "*",
+    "oxlint": "*"
   },
   "packageManager": "pnpm@9.12.0"
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { PlRef } from '@platforma-sdk/model';
-import { PFrameImpl, plRefsEqual } from '@platforma-sdk/model';
+import type { PlRef } from "@platforma-sdk/model";
+import { PFrameImpl, plRefsEqual } from "@platforma-sdk/model";
 import {
   PlAccordionSection,
   PlAgDataTableV2,
@@ -19,80 +19,90 @@ import {
   PlTooltip,
   usePlDataTableSettingsV2,
   useWatchFetch,
-} from '@platforma-sdk/ui-vue';
-import { computed, ref, watch } from 'vue';
-import { useApp } from '../app';
+} from "@platforma-sdk/ui-vue";
+import { computed, ref, watch } from "vue";
+import { useApp } from "../app";
 
 const app = useApp();
 
-const reportContent = computed(() => (app.model.outputs as { reportContent?: string })?.reportContent);
+const reportContent = computed(
+  () => (app.model.outputs as { reportContent?: string })?.reportContent,
+);
 
 const settingsAreShown = ref(false);
 const showSettings = () => {
   settingsAreShown.value = true;
 };
 
-const tableSettings = computed(() => usePlDataTableSettingsV2({
-  model: () => app.model.outputs.pt,
-  sheets: () => app.model.outputs.sheets,
-  filtersConfig: ({ column }) => {
-    const columnName = column.spec.name;
+const tableSettings = computed(
+  () =>
+    usePlDataTableSettingsV2({
+      model: () => app.model.outputs.pt,
+      sheets: () => app.model.outputs.sheets,
+      filtersConfig: ({ column }) => {
+        const columnName = column.spec.name;
 
-    // Filter for log2foldchange columns (>= log2FcThreshold or)
-    if (columnName === 'pl7.app/differentialTCRAbundance/log2foldchange') {
-      return {
-        default: {
-          type: 'number_greaterThanOrEqualTo',
-          reference: app.model.args.log2FcThreshold,
-        },
-      };
-    }
+        // Filter for log2foldchange columns (>= log2FcThreshold or)
+        if (columnName === "pl7.app/differentialTCRAbundance/log2foldchange") {
+          return {
+            default: {
+              type: "number_greaterThanOrEqualTo",
+              reference: app.model.args.log2FcThreshold,
+            },
+          };
+        }
 
-    // Filter for adjusted p-value columns (<= pAdjThreshold)
-    if (columnName === 'pl7.app/differentialTCRAbundance/padj') {
-      return {
-        default: {
-          type: 'number_lessThanOrEqualTo',
-          reference: app.model.args.pAdjThreshold,
-        },
-      };
-    }
+        // Filter for adjusted p-value columns (<= pAdjThreshold)
+        if (columnName === "pl7.app/differentialTCRAbundance/padj") {
+          return {
+            default: {
+              type: "number_lessThanOrEqualTo",
+              reference: app.model.args.pAdjThreshold,
+            },
+          };
+        }
 
-    if (columnName === 'pl7.app/differentialTCRAbundance/robustEnrichment') {
-      return {
-        default: {
-          type: 'string_equals',
-          reference: 'Robust',
-        },
-      };
-    }
+        if (columnName === "pl7.app/differentialTCRAbundance/robustEnrichment") {
+          return {
+            default: {
+              type: "string_equals",
+              reference: "Robust",
+            },
+          };
+        }
 
-    return {};
-  },
-}).value);
+        return {};
+      },
+    }).value,
+);
 
 // Update page title by dataset
 function setInput(inputRef?: PlRef) {
   app.model.args.mainRef = inputRef;
   if (inputRef) {
-    const mainLabel = app.model.outputs.inputOptions?.find((o) => plRefsEqual(o.ref, inputRef))?.label;
-    if (mainLabel)
-      app.model.ui.title = 'TCR Disco - ' + mainLabel;
+    const mainLabel = app.model.outputs.inputOptions?.find((o) =>
+      plRefsEqual(o.ref, inputRef),
+    )?.label;
+    if (mainLabel) app.model.ui.title = "TCR Disco - " + mainLabel;
   }
 }
 
 const metadataOptions = computed(() => {
-  return app.model.outputs.metadataOptions?.map((v: { ref: PlRef; label: string }) => ({
-    value: v.ref,
-    label: v.label,
-  })) ?? [];
+  return (
+    app.model.outputs.metadataOptions?.map((v: { ref: PlRef; label: string }) => ({
+      value: v.ref,
+      label: v.label,
+    })) ?? []
+  );
 });
 
 const metadataLabels = computed(() => {
-  return app.model.outputs.metadataOptions?.map((v: { ref: PlRef; label: string }) => ({
-    value: v.label,
-    label: v.label,
-  })) ?? [];
+  return (
+    app.model.outputs.metadataOptions?.map((v: { ref: PlRef; label: string }) => ({
+      value: v.label,
+      label: v.label,
+    })) ?? []
+  );
 });
 
 // CD4/8 dropdown: same options as main, but exclude the main dataset
@@ -106,73 +116,84 @@ const cdRefInputOptions = computed(() => {
 const contrastFactorOptions = computed(() => {
   return app.model.args.covariateRefs.map((ref) => ({
     value: ref,
-    label: metadataOptions.value.find((m) => m.value.name === ref.name)?.label ?? '',
+    label: metadataOptions.value.find((m) => m.value.name === ref.name)?.label ?? "",
   }));
 });
 
 // Get all possible numerator/denominator values
-const numeratorOptions = useWatchFetch(() => app.model.outputs.denominatorOptions, async (pframeHandle) => {
-  if (!pframeHandle) {
-    return undefined;
-  }
-  // Get ID of first pcolumn in the pframe (the only one we will access)
-  const pFrame = new PFrameImpl(pframeHandle);
-  const list = await pFrame.listColumns();
-  const id = list?.[0].columnId;
-  if (!id) {
-    return undefined;
-  }
-  // Get unique values of that first pcolumn
-  const response = await pFrame.getUniqueValues({ columnId: id, filters: [], limit: 1000000 });
-  if (!response) {
-    return undefined;
-  }
-  return [...response.values.data].map((v) => ({ value: String(v), label: String(v) }));
-});
+const numeratorOptions = useWatchFetch(
+  () => app.model.outputs.denominatorOptions,
+  async (pframeHandle) => {
+    if (!pframeHandle) {
+      return undefined;
+    }
+    // Get ID of first pcolumn in the pframe (the only one we will access)
+    const pFrame = new PFrameImpl(pframeHandle);
+    const list = await pFrame.listColumns();
+    const id = list?.[0].columnId;
+    if (!id) {
+      return undefined;
+    }
+    // Get unique values of that first pcolumn
+    const response = await pFrame.getUniqueValues({ columnId: id, filters: [], limit: 1000000 });
+    if (!response) {
+      return undefined;
+    }
+    return [...response.values.data].map((v) => ({ value: String(v), label: String(v) }));
+  },
+);
 
 // Check CD4/CD8 column selection
 // Get all possible numerator/denominator values
-const cdValues = useWatchFetch(() => app.model.outputs.cdSubsetOptions, async (pframeHandle) => {
-  if (!pframeHandle) {
-    return undefined;
-  }
-  // Get ID of first pcolumn in the pframe (the only one we will access)
-  const pFrame = new PFrameImpl(pframeHandle);
-  const list = await pFrame.listColumns();
-  const id = list?.[0].columnId;
-  if (!id) {
-    return undefined;
-  }
-  // Get unique values of that first pcolumn
-  const response = await pFrame.getUniqueValues({ columnId: id, filters: [], limit: 1000000 });
-  if (!response) {
-    return undefined;
-  }
+const cdValues = useWatchFetch(
+  () => app.model.outputs.cdSubsetOptions,
+  async (pframeHandle) => {
+    if (!pframeHandle) {
+      return undefined;
+    }
+    // Get ID of first pcolumn in the pframe (the only one we will access)
+    const pFrame = new PFrameImpl(pframeHandle);
+    const list = await pFrame.listColumns();
+    const id = list?.[0].columnId;
+    if (!id) {
+      return undefined;
+    }
+    // Get unique values of that first pcolumn
+    const response = await pFrame.getUniqueValues({ columnId: id, filters: [], limit: 1000000 });
+    if (!response) {
+      return undefined;
+    }
 
-  const vals = [...response.values.data].map((v) => ({ value: String(v), label: String(v) }));
+    const vals = [...response.values.data].map((v) => ({ value: String(v), label: String(v) }));
 
-  // Check if any of the values are 'CD4' or 'CD8'
-  const lowerLabels = vals.map((v) => v.label.toLowerCase());
-  app.model.ui.cdSubsetColValid = lowerLabels.some((label) => label == 'cd4' || label == 'cd8');
+    // Check if any of the values are 'CD4' or 'CD8'
+    const lowerLabels = vals.map((v) => v.label.toLowerCase());
+    app.model.ui.cdSubsetColValid = lowerLabels.some((label) => label == "cd4" || label == "cd8");
 
-  // Return all distinct values
-  return vals;
-});
+    // Return all distinct values
+    return vals;
+  },
+);
 
 // Make sure numerator and denominator are reset when contrast factor is changed
-watch(() => [app.model.args.contrastFactor], (_) => {
-  app.model.args.numerators = [];
-  app.model.args.denominators = [];
-});
+watch(
+  () => [app.model.args.contrastFactor],
+  (_) => {
+    app.model.args.numerators = [];
+    app.model.args.denominators = [];
+  },
+);
 
 // Clear CD4/8 selection if user sets main dataset to the same as CD4/8
-watch(() => app.model.args.mainRef, (mainRef) => {
-  const cdRef = app.model.args.cdRef;
-  if (cdRef && mainRef && plRefsEqual(cdRef, mainRef)) {
-    app.model.args.cdRef = undefined;
-  }
-});
-
+watch(
+  () => app.model.args.mainRef,
+  (mainRef) => {
+    const cdRef = app.model.args.cdRef;
+    if (cdRef && mainRef && plRefsEqual(cdRef, mainRef)) {
+      app.model.args.cdRef = undefined;
+    }
+  },
+);
 </script>
 
 <template>
@@ -187,11 +208,7 @@ watch(() => app.model.args.mainRef, (mainRef) => {
       </PlBtnGhost>
     </template>
 
-    <PlAlert
-      v-if="reportContent"
-      type="warn"
-      class="report-warning"
-    >
+    <PlAlert v-if="reportContent" type="warn" class="report-warning">
       <span style="white-space: pre-line">{{ reportContent }}</span>
     </PlAlert>
     <PlAgDataTableV2
@@ -219,11 +236,14 @@ watch(() => app.model.args.mainRef, (mainRef) => {
     <PlDropdownRef
       v-model="app.model.args.mainRef"
       :options="app.model.outputs.inputOptions"
-      label="Select main dataset" clearable required
+      label="Select main dataset"
+      clearable
+      required
       @update:model-value="setInput"
     >
       <template #tooltip>
-        Select the main dataset containing TCR alpha and beta chain clonotype counts for differential abundance analysis.
+        Select the main dataset containing TCR alpha and beta chain clonotype counts for
+        differential abundance analysis.
       </template>
     </PlDropdownRef>
     <PlDropdownMulti
@@ -233,7 +253,10 @@ watch(() => app.model.args.mainRef, (mainRef) => {
       required
     >
       <template #tooltip>
-        Select the metadata columns that describe your experimental design. These columns will be used to build the statistical model for differential abundance analysis. Examples include: Condition, Treatment, Replicate, Batch, or any other experimental variables that may affect clonotype abundance.
+        Select the metadata columns that describe your experimental design. These columns will be
+        used to build the statistical model for differential abundance analysis. Examples include:
+        Condition, Treatment, Replicate, Batch, or any other experimental variables that may affect
+        clonotype abundance.
       </template>
     </PlDropdownMulti>
     <PlDropdown
@@ -243,12 +266,16 @@ watch(() => app.model.args.mainRef, (mainRef) => {
       required
     >
       <template #tooltip>
-        Select the metadata column that defines the experimental groups you want to compare. The analysis will identify clonotypes that are differentially abundant between groups defined by this column.
+        Select the metadata column that defines the experimental groups you want to compare. The
+        analysis will identify clonotypes that are differentially abundant between groups defined by
+        this column.
       </template>
     </PlDropdown>
     <PlDropdownMulti
-      v-model="app.model.args.numerators" :options="numeratorOptions.value"
-      label="Numerator" required
+      v-model="app.model.args.numerators"
+      :options="numeratorOptions.value"
+      label="Numerator"
+      required
     >
       <template #tooltip>
         Select one or more experimental conditions to compare against the baseline (denominator).
@@ -261,8 +288,10 @@ watch(() => app.model.args.mainRef, (mainRef) => {
       required
     >
       <template #tooltip>
-        Select the control or baseline condition that will serve as the reference for comparison.
-        If multiple denominators are selected, only clonotypes that are differentially enriched for each numerator when compared individually against all selected denominators (excluding cases where the numerator matches the denominator) will be considered as enriched.
+        Select the control or baseline condition that will serve as the reference for comparison. If
+        multiple denominators are selected, only clonotypes that are differentially enriched for
+        each numerator when compared individually against all selected denominators (excluding cases
+        where the numerator matches the denominator) will be considered as enriched.
       </template>
     </PlDropdownMulti>
     <!-- Content hidden until you click THRESHOLD PARAMETERS -->
@@ -275,7 +304,9 @@ watch(() => app.model.args.mainRef, (mainRef) => {
           :step="0.1"
         >
           <template #tooltip>
-            Set the minimum log2 fold change threshold (keep ≥ log2(FC)) and the maximum adjusted p-value threshold (keep ≤ adjusted p-value) for identifying significantly enriched or depleted clonotypes.
+            Set the minimum log2 fold change threshold (keep ≥ log2(FC)) and the maximum adjusted
+            p-value threshold (keep ≤ adjusted p-value) for identifying significantly enriched or
+            depleted clonotypes.
           </template>
         </PlNumberField>
         <PlNumberField
@@ -295,7 +326,8 @@ watch(() => app.model.args.mainRef, (mainRef) => {
           placeholder="0"
         >
           <template #tooltip>
-            A clonotype must have at least "Min counts" in at least "Min (numerator) replicates" to be accepted as significantly enriched.
+            A clonotype must have at least "Min counts" in at least "Min (numerator) replicates" to
+            be accepted as significantly enriched.
           </template>
         </PlNumberField>
         <PlNumberField
@@ -311,7 +343,9 @@ watch(() => app.model.args.mainRef, (mainRef) => {
       Find TCR A/B pairs
       <PlTooltip class="info">
         <template #tooltip>
-          When enabled, the analysis will identify paired TCR alpha and beta chains by correlating the frequencies of differentially enriched clonotypes across matching samples. Only clonotypes that show positive correlation in their enrichment patterns will be considered
+          When enabled, the analysis will identify paired TCR alpha and beta chains by correlating
+          the frequencies of differentially enriched clonotypes across matching samples. Only
+          clonotypes that show positive correlation in their enrichment patterns will be considered
         </template>
       </PlTooltip>
     </PlCheckbox>
@@ -323,7 +357,9 @@ watch(() => app.model.args.mainRef, (mainRef) => {
       clearable
     >
       <template #tooltip>
-        Select the metadata column that will be used to match samples between alpha and beta chains for pairing analysis. This column should contain values that uniquely identify matching samples across both chains.
+        Select the metadata column that will be used to match samples between alpha and beta chains
+        for pairing analysis. This column should contain values that uniquely identify matching
+        samples across both chains.
       </template>
     </PlDropdown>
     <!-- Content hidden until you click -->
@@ -335,7 +371,9 @@ watch(() => app.model.args.mainRef, (mainRef) => {
         clearable
       >
         <template #tooltip>
-          Optionally select a dataset that contains CD4/CD8 cell subset information. If provided, clonotypes from the main dataset will be assigned to either CD4+ or CD8+ T cell subsets based on this dataset.
+          Optionally select a dataset that contains CD4/CD8 cell subset information. If provided,
+          clonotypes from the main dataset will be assigned to either CD4+ or CD8+ T cell subsets
+          based on this dataset.
         </template>
       </PlDropdownRef>
       <PlDropdown
@@ -346,12 +384,29 @@ watch(() => app.model.args.mainRef, (mainRef) => {
         clearable
       >
         <template #tooltip>
-          Select the metadata column from the CD4/8 dataset that contains the cell subset labels. This column must contain values that include "CD4" or "CD8" (case-insensitive) to identify CD4+ and CD8+ T cell subsets. The analysis will use this information to assign clonotypes from the main dataset to the appropriate T cell subset based on matching clonotypes.
+          Select the metadata column from the CD4/8 dataset that contains the cell subset labels.
+          This column must contain values that include "CD4" or "CD8" (case-insensitive) to identify
+          CD4+ and CD8+ T cell subsets. The analysis will use this information to assign clonotypes
+          from the main dataset to the appropriate T cell subset based on matching clonotypes.
         </template>
       </PlDropdown>
-      <PlAlert v-if="!app.model.ui.cdSubsetColValid && app.model.args.cdRef && app.model.args.cdSubsetCol && cdValues.value" type="warn">
-        {{ "Warning: The selected column doen't have any CD4 or CD8 values. please choose a column that has.\
-        First 5 values are: " + cdValues.value?.slice(0, 5).map((v) => v.label).join(', ') }}
+      <PlAlert
+        v-if="
+          !app.model.ui.cdSubsetColValid &&
+          app.model.args.cdRef &&
+          app.model.args.cdSubsetCol &&
+          cdValues.value
+        "
+        type="warn"
+      >
+        {{
+          "Warning: The selected column doen't have any CD4 or CD8 values. please choose a column that has.\
+        First 5 values are: " +
+          cdValues.value
+            ?.slice(0, 5)
+            .map((v) => v.label)
+            .join(", ")
+        }}
       </PlAlert>
     </PlAccordionSection>
   </PlSlideModal>
