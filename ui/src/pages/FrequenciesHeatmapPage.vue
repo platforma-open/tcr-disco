@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import type { PredefinedGraphOption } from '@milaboratories/graph-maker';
-import { GraphMaker } from '@milaboratories/graph-maker';
-import type { PColumnIdAndSpec } from '@platforma-sdk/model';
-import { plRefsEqual } from '@platforma-sdk/model';
-import { PlTabs } from '@platforma-sdk/ui-vue';
-import { computed } from 'vue';
-import { useApp } from '../app';
+import type { PredefinedGraphOption } from "@milaboratories/graph-maker";
+import { GraphMaker } from "@milaboratories/graph-maker";
+import type { PColumnIdAndSpec } from "@platforma-sdk/model";
+import { plRefsEqual } from "@platforma-sdk/model";
+import { PlTabs } from "@platforma-sdk/ui-vue";
+import { computed } from "vue";
+import { useApp } from "../app";
 
 const app = useApp();
 
@@ -13,63 +13,74 @@ function getIndex(name: string, pcols: PColumnIdAndSpec[]): number {
   return pcols.findIndex((p) => p.spec.name === name);
 }
 
-const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefined => {
+const defaultOptions = computed((): PredefinedGraphOption<"heatmap">[] | undefined => {
   if (!app.model.outputs.frequenciesHeatmapPcols) {
     return undefined;
   }
 
   const pcols = app.model.outputs.frequenciesHeatmapPcols;
-  const fractionIndex = getIndex('pl7.app/differentialTCRAbundance/countFraction', pcols);
+  const fractionIndex = getIndex("pl7.app/differentialTCRAbundance/countFraction", pcols);
 
   // Get the label from the contrastFactor PlRef
   const contrastFactorLabel = app.model.args.contrastFactor
     ? app.model.outputs.metadataOptions?.find((opt) =>
-      plRefsEqual(opt.ref, app.model.args.contrastFactor!),
-    )?.label
+        plRefsEqual(opt.ref, app.model.args.contrastFactor!),
+      )?.label
     : undefined;
 
-  const contrastIndex = pcols.findIndex((p) => p.spec.name === 'pl7.app/metadata'
-    && p.spec.annotations?.['pl7.app/label'] === contrastFactorLabel);
-  const subsetIndex = getIndex('pl7.app/differentialTCRAbundance/subset', pcols);
-  const cdr3Index = getIndex('pl7.app/vdj/sequence', pcols);
+  const contrastIndex = pcols.findIndex(
+    (p) =>
+      p.spec.name === "pl7.app/metadata" &&
+      p.spec.annotations?.["pl7.app/label"] === contrastFactorLabel,
+  );
+  const subsetIndex = getIndex("pl7.app/differentialTCRAbundance/subset", pcols);
+  const cdr3Index = getIndex("pl7.app/vdj/sequence", pcols);
 
-  if (fractionIndex === -1 || cdr3Index === -1 || !contrastFactorLabel || contrastIndex === -1 || !pcols[fractionIndex]?.spec.axesSpec) {
+  if (
+    fractionIndex === -1 ||
+    cdr3Index === -1 ||
+    !contrastFactorLabel ||
+    contrastIndex === -1 ||
+    !pcols[fractionIndex]?.spec.axesSpec
+  ) {
     return undefined;
   }
 
   const fractionSpec = pcols[fractionIndex].spec;
   const axesSpec = fractionSpec.axesSpec;
 
-  const defaults: PredefinedGraphOption<'heatmap'>[] = [
+  const defaults: PredefinedGraphOption<"heatmap">[] = [
     {
-      inputName: 'value',
+      inputName: "value",
       selectedSource: fractionSpec,
     },
     {
-      inputName: 'x',
+      inputName: "x",
       selectedSource: axesSpec[0], // internalSampleId
     },
-    { // first Y value, clonotypeKey
-      inputName: 'y',
+    {
+      // first Y value, clonotypeKey
+      inputName: "y",
       selectedSource: axesSpec[1],
     },
-    { // second Y value, CDR3 aa
-      inputName: 'y',
+    {
+      // second Y value, CDR3 aa
+      inputName: "y",
       selectedSource: pcols[cdr3Index].spec,
     },
     {
-      inputName: 'xGroupBy',
+      inputName: "xGroupBy",
       selectedSource: pcols[contrastIndex].spec,
     },
     {
-      inputName: 'annotationsX',
+      inputName: "annotationsX",
       selectedSource: pcols[contrastIndex].spec,
     },
   ];
 
   if (subsetIndex !== -1) {
     defaults.push({
-      inputName: 'annotationsY',
+      inputName: "annotationsY",
       selectedSource: pcols[subsetIndex].spec,
     });
   }
@@ -78,20 +89,20 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
   const contrastValues = [...app.model.args.numerators, ...app.model.args.denominators];
   if (contrastValues.length > 0) {
     defaults.push({
-      inputName: 'filters',
+      inputName: "filters",
       selectedSource: pcols[contrastIndex].spec,
-      filterType: 'equals',
+      filterType: "equals",
       selectedFilterValues: contrastValues,
     });
   }
 
-  const robustAnyIndex = getIndex('pl7.app/differentialTCRAbundance/robustEnrichment', pcols);
+  const robustAnyIndex = getIndex("pl7.app/differentialTCRAbundance/robustEnrichment", pcols);
   if (robustAnyIndex !== -1) {
     defaults.push({
-      inputName: 'filters',
+      inputName: "filters",
       selectedSource: pcols[robustAnyIndex].spec,
-      filterType: 'equals',
-      selectedFilterValues: ['Robust'],
+      filterType: "equals",
+      selectedFilterValues: ["Robust"],
     });
   }
 
@@ -116,12 +127,13 @@ const defaultOptions = computed((): PredefinedGraphOption<'heatmap'>[] | undefin
 // (mainRef/contrastFactor) made the key flicker during initial mount
 // when args briefly resolve from undefined to their real values,
 // which re-triggers the reset.
-const key = computed(() => [
-  app.model.ui.selectedChain ?? 'alpha',
-  (app.model.args.numerators ?? []).join(','),
-  (app.model.args.denominators ?? []).join(','),
-].join('|'));
-
+const key = computed(() =>
+  [
+    app.model.ui.selectedChain ?? "alpha",
+    (app.model.args.numerators ?? []).join(","),
+    (app.model.args.denominators ?? []).join(","),
+  ].join("|"),
+);
 </script>
 
 <template>

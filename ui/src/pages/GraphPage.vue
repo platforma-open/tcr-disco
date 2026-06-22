@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import type { PredefinedGraphOption } from '@milaboratories/graph-maker';
-import { GraphMaker } from '@milaboratories/graph-maker';
-import { PlMultiSequenceAlignment } from '@milaboratories/multi-sequence-alignment';
-import type { PColumnIdAndSpec, PlSelectionModel } from '@platforma-sdk/model';
-import { PlBtnGhost, PlSlideModal, PlTabs } from '@platforma-sdk/ui-vue';
-import { computed, ref } from 'vue';
-import { useApp } from '../app';
-import { isSequenceColumn } from '../util';
+import type { PredefinedGraphOption } from "@milaboratories/graph-maker";
+import { GraphMaker } from "@milaboratories/graph-maker";
+import { PlMultiSequenceAlignment } from "@milaboratories/multi-sequence-alignment";
+import type { PColumnIdAndSpec, PlSelectionModel } from "@platforma-sdk/model";
+import { PlBtnGhost, PlSlideModal, PlTabs } from "@platforma-sdk/ui-vue";
+import { computed, ref } from "vue";
+import { useApp } from "../app";
+import { isSequenceColumn } from "../util";
 
 const app = useApp();
 
@@ -17,47 +17,48 @@ function getIndex(name: string, pcols: PColumnIdAndSpec[]): number {
 }
 
 // Find out data type - should be differentialTCRAbundance
-const dataType = 'differentialTCRAbundance';
+const dataType = "differentialTCRAbundance";
 
 function getDefaultOptions(topTablePcols?: PColumnIdAndSpec[]) {
   if (!topTablePcols) {
     return undefined;
   }
 
-  const defaults: PredefinedGraphOption<'scatterplot-umap'>[] = [
+  const defaults: PredefinedGraphOption<"scatterplot-umap">[] = [
     {
-      inputName: 'x',
-      selectedSource: topTablePcols[getIndex('pl7.app/' + dataType + '/log2foldchange',
-        topTablePcols)].spec,
+      inputName: "x",
+      selectedSource:
+        topTablePcols[getIndex("pl7.app/" + dataType + "/log2foldchange", topTablePcols)].spec,
     },
     {
-      inputName: 'y',
-      selectedSource: topTablePcols[getIndex('pl7.app/' + dataType + '/minlog10padj',
-        topTablePcols)].spec,
+      inputName: "y",
+      selectedSource:
+        topTablePcols[getIndex("pl7.app/" + dataType + "/minlog10padj", topTablePcols)].spec,
     },
     {
-      inputName: 'grouping',
-      selectedSource: topTablePcols[getIndex('pl7.app/' + dataType + '/regulationDirection',
-        topTablePcols)].spec,
+      inputName: "grouping",
+      selectedSource:
+        topTablePcols[getIndex("pl7.app/" + dataType + "/regulationDirection", topTablePcols)].spec,
     },
     // Contrast
     {
-      inputName: 'tabBy',
-      selectedSource: topTablePcols[getIndex('pl7.app/' + dataType + '/log2foldchange',
-        topTablePcols)].spec.axesSpec[0],
+      inputName: "tabBy",
+      selectedSource:
+        topTablePcols[getIndex("pl7.app/" + dataType + "/log2foldchange", topTablePcols)].spec
+          .axesSpec[0],
     },
     // CDR3 aa
     {
-      inputName: 'tooltipContent',
+      inputName: "tooltipContent",
       selectedSource: {
-        kind: 'PColumn',
-        name: 'pl7.app/vdj/sequence',
-        valueType: 'String',
+        kind: "PColumn",
+        name: "pl7.app/vdj/sequence",
+        valueType: "String",
         axesSpec: [],
         annotations: {
-          'pl7.app/label': 'CDR3 aa',
-          'pl7.app/vdj/isAssemblingFeature': 'true',
-          'pl7.app/vdj/isMainSequence': 'true',
+          "pl7.app/label": "CDR3 aa",
+          "pl7.app/vdj/isAssemblingFeature": "true",
+          "pl7.app/vdj/isMainSequence": "true",
         },
       },
     },
@@ -67,13 +68,12 @@ function getDefaultOptions(topTablePcols?: PColumnIdAndSpec[]) {
 }
 
 const defaults = computed(() => getDefaultOptions(app.model.outputs.topTablePcols));
-const key = computed(() => (defaults.value ? JSON.stringify(defaults.value) : ''));
+const key = computed(() => (defaults.value ? JSON.stringify(defaults.value) : ""));
 
 const selection = ref<PlSelectionModel>({
   axesSpec: [],
   selectedKeys: [],
 });
-
 </script>
 
 <template>
@@ -94,10 +94,7 @@ const selection = ref<PlSelectionModel>({
         ]"
         :top-line="false"
       />
-      <PlBtnGhost
-        icon="dna"
-        @click.stop="() => (multipleSequenceAlignmentOpen = true)"
-      >
+      <PlBtnGhost icon="dna" @click.stop="() => (multipleSequenceAlignmentOpen = true)">
         Multiple Sequence Alignment
       </PlBtnGhost>
     </template>

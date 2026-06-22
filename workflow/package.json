@@ -1,20 +1,22 @@
 {
   "name": "@platforma-open/milaboratories.tcrdisco-enrichment.workflow",
   "version": "1.2.2",
-  "type": "module",
   "description": "Block Workflow",
+  "type": "module",
   "scripts": {
-    "build": "rm -rf dist && pl-tengo check && pl-tengo build",
-    "test": "vitest",
-    "format": "/usr/bin/env emacs --script ./format.el"
+    "build": "shx rm -rf dist && pl-tengo build",
+    "test": "vitest run --passWithNoTests",
+    "format": "/usr/bin/env emacs --script ./format.el || echo 'No emacs.'",
+    "check": "pl-tengo check"
   },
   "dependencies": {
-    "@platforma-sdk/workflow-tengo": "catalog:",
-    "@platforma-open/milaboratories.run-tcrdisco-enrichment.software": "workspace:*"
+    "@platforma-open/milaboratories.run-tcrdisco-enrichment.software": "workspace:*",
+    "@platforma-sdk/workflow-tengo": "catalog:"
   },
   "devDependencies": {
     "@platforma-sdk/tengo-builder": "catalog:",
     "@platforma-sdk/test": "catalog:",
+    "shx": "catalog:",
     "vitest": "catalog:"
   }
 }
