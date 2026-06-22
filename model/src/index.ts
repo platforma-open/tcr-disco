@@ -1,23 +1,29 @@
 import type { GraphMakerState } from "@milaboratories/graph-maker";
 import type {
+  CanonicalizedJson,
   InferOutputsType,
   PColumn,
   PColumnDataUniversal,
   PColumnIdAndSpec,
   PFrameHandle,
+  PlDataTableFilters,
+  PlDataTableFilterSpecLeaf,
   PlDataTableStateV2,
   PlMultiSequenceAlignmentModel,
   PlRef,
+  PTableColumnId,
   TreeNodeAccessor,
 } from "@platforma-sdk/model";
 import {
   BlockModel,
+  canonicalizeJson,
   createPFrameForGraphs,
+  createPlDataTable,
   createPlDataTableSheet,
   createPlDataTableStateV2,
-  createPlDataTableV2,
   getUniquePartitionKeys,
   isPColumnSpec,
+  toColumnSnapshotProvider,
 } from "@platforma-sdk/model";
 
 export type UiState = {
@@ -63,6 +69,39 @@ function filterPCols(pCols: PColumn<TreeNodeAccessor>[]): PColumn<TreeNodeAccess
       col.spec.name === "pl7.app/differentialTCRAbundance/robustEnrichment",
   );
   return pCols;
+}
+
+// Resolve a table column id (for default-filter leaves) by its p-column spec
+// name, within the columns being shown in a given table. Returns undefined when
+// the column is absent so the corresponding default filter is simply skipped.
+function tableColumnId(
+  pCols: PColumn<PColumnDataUniversal>[],
+  name: string,
+): CanonicalizedJson<PTableColumnId> | undefined {
+  const col = pCols.find((c) => c.spec.name === name);
+  return col ? canonicalizeJson<PTableColumnId>({ type: "column", id: col.id }) : undefined;
+}
+
+// Build the default-filter tree passed to createPlDataTable as `options.filters`.
+// V3 concatenates these with the user's filters and applies them to the table data
+// (V2 only surfaced them for display). Unfilled leaves are dropped; an empty set
+// yields undefined.
+function defaultTableFilters(
+  leaves: (PlDataTableFilterSpecLeaf | undefined)[],
+): PlDataTableFilters | undefined {
+  const present = leaves.filter((l): l is PlDataTableFilterSpecLeaf => l !== undefined);
+  if (present.length === 0) return undefined;
+  return { type: "and", filters: present };
+}
+
+// Wrap already-resolved p-columns as V3 `TableColumnVariant`s. Marked primary so
+// they form the table's join backbone (V2's default "all columns are core"); the
+// SDK auto-discovers and left-joins the matching label columns. The snapshot
+// provider derives each column's real data status from its accessor.
+function toTableColumns(pCols: PColumn<PColumnDataUniversal>[]) {
+  return toColumnSnapshotProvider(pCols)
+    .getAllColumns()
+    .map((column) => ({ column, isPrimary: true }));
 }
 
 export const model = BlockModel.create()
@@ -260,7 +299,31 @@ export const model = BlockModel.create()
       return undefined;
     }
 
-    return createPlDataTableV2(ctx, pCols, ctx.uiState?.tableState);
+    const log2fcId = tableColumnId(pCols, "pl7.app/differentialTCRAbundance/log2foldchange");
+    const padjId = tableColumnId(pCols, "pl7.app/differentialTCRAbundance/padj");
+    const robustEnrichmentId = tableColumnId(
+      pCols,
+      "pl7.app/differentialTCRAbundance/robustEnrichment",
+    );
+    const filters = defaultTableFilters([
+      // Filter for log2foldchange columns (>= log2FcThreshold)
+      log2fcId !== undefined
+        ? { type: "greaterThanOrEqual", column: log2fcId, x: ctx.args.log2FcThreshold }
+        : undefined,
+      // Filter for adjusted p-value columns (<= pAdjThreshold)
+      padjId !== undefined
+        ? { type: "lessThanOrEqual", column: padjId, x: ctx.args.pAdjThreshold }
+        : undefined,
+      robustEnrichmentId !== undefined
+        ? { type: "patternEquals", column: robustEnrichmentId, value: "Robust" }
+        : undefined,
+    ]);
+
+    return createPlDataTable(ctx, {
+      columns: toTableColumns(pCols),
+      tableState: ctx.uiState?.tableState,
+      filters,
+    });
   })
 
   .output("sheets", (ctx) => {
@@ -286,7 +349,23 @@ export const model = BlockModel.create()
       return undefined;
     }
 
-    return createPlDataTableV2(ctx, pCols, ctx.uiState?.pairsTableState);
+    const padjId = tableColumnId(pCols, "pl7.app/differentialTCRAbundance/padj");
+    const filters = defaultTableFilters([
+      // if (columnName === 'pl7.app/differentialTCRAbundance/max_cc_info') {
+      //   return { default: { type: 'string_equals', reference: 'max' } };
+      // }
+
+      // Filter for adjusted p-value columns (<= pAdjThreshold)
+      padjId !== undefined
+        ? { type: "lessThanOrEqual", column: padjId, x: ctx.args.pAdjThreshold }
+        : undefined,
+    ]);
+
+    return createPlDataTable(ctx, {
+      columns: toTableColumns(pCols),
+      tableState: ctx.uiState?.pairsTableState,
+      filters,
+    });
   })
 
   .output("pairsSheets", (ctx) => {
