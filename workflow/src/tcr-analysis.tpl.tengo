@@ -41,7 +41,8 @@ self.defineOutputs("topTableFileAlpha","topTableFileBeta","daFileAlpha",
 "daFileBeta","contrastMap","mainAlphaFrequenciesTsv","mainBetaFrequenciesTsv",
 "clonotypeToSubsetAlpha","clonotypeToSubsetBeta",
 "robustEnrichmentPFAlpha_clonotype","robustEnrichmentPFBeta_clonotype",
-"robustAnyAlphaTsv","robustAnyBetaTsv","reportContent")
+"robustAnyAlphaTsv","robustAnyBetaTsv",
+"meanTargetFreqAlphaTsv","meanTargetFreqBetaTsv","reportContent")
 
 self.body(func(inputs) {
 
@@ -180,16 +181,22 @@ self.body(func(inputs) {
 		}
 	}
 
+	// Pass covariates + contrast factor + numerators so the script can compute the
+	// per-clonotype mean frequency of target (numerator) replicates (heatmap Y sort).
 	getEnrichedFrequenciesExec := exec.builder().
 		software(getEnrichedFrequenciesSoftware).
 		addFile("mainAlpha.tsv", mainAlphaTsv).
 		addFile("mainBeta.tsv", mainBetaTsv).
 		addFile("DA_alpha.csv", diffExec.getFile("DA_alpha.csv")).
 		addFile("DA_beta.csv", diffExec.getFile("DA_beta.csv")).
+		addFile("covariates.tsv", covariatesTsv).
 		arg("--main_alpha").arg("mainAlpha.tsv").
 		arg("--main_beta").arg("mainBeta.tsv").
 		arg("--da_alpha").arg("DA_alpha.csv").
 		arg("--da_beta").arg("DA_beta.csv").
+		arg("--covariates").arg("covariates.tsv").
+		arg("--contrast_col").arg(contrastColLabel).
+		arg("--numerators").arg(string(json.encode(inputs.numerators))).
 		arg("-o").arg(".").
 		saveFile("main_alpha_frequencies.tsv").
 		saveFile("main_beta_frequencies.tsv").
@@ -197,6 +204,8 @@ self.body(func(inputs) {
 		saveFile("clonotype_to_subset_beta.tsv").
 		saveFile("robust_any_alpha.tsv").
 		saveFile("robust_any_beta.tsv").
+		saveFile("mean_target_freq_alpha.tsv").
+		saveFile("mean_target_freq_beta.tsv").
 		run()
 	mainAlphaFrequenciesTsv := getEnrichedFrequenciesExec.getFile("main_alpha_frequencies.tsv")
 	mainBetaFrequenciesTsv := getEnrichedFrequenciesExec.getFile("main_beta_frequencies.tsv")
@@ -204,6 +213,8 @@ self.body(func(inputs) {
 	clonotypeToSubsetBeta := getEnrichedFrequenciesExec.getFile("clonotype_to_subset_beta.tsv")
 	robustAnyAlphaTsv := getEnrichedFrequenciesExec.getFile("robust_any_alpha.tsv")
 	robustAnyBetaTsv := getEnrichedFrequenciesExec.getFile("robust_any_beta.tsv")
+	meanTargetFreqAlphaTsv := getEnrichedFrequenciesExec.getFile("mean_target_freq_alpha.tsv")
+	meanTargetFreqBetaTsv := getEnrichedFrequenciesExec.getFile("mean_target_freq_beta.tsv")
 
 	// Build format 2 PFrames
 	robustEnrichmentPFAlpha_clonotype := undefined
@@ -229,6 +240,8 @@ self.body(func(inputs) {
 		robustEnrichmentPFBeta_clonotype: robustEnrichmentPFBeta_clonotype,
 		robustAnyAlphaTsv: robustAnyAlphaTsv,
 		robustAnyBetaTsv: robustAnyBetaTsv,
+		meanTargetFreqAlphaTsv: meanTargetFreqAlphaTsv,
+		meanTargetFreqBetaTsv: meanTargetFreqBetaTsv,
 		reportContent: diffExec.getFileContent("report.txt")
 	}
 })

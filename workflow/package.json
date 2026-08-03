@@ -1,6 +1,7 @@
 {
   "name": "@platforma-open/milaboratories.tcrdisco-enrichment.workflow",
   "version": "1.2.2",
+  "private": true,
   "description": "Block Workflow",
   "type": "module",
   "scripts": {
@@ -16,7 +17,6 @@
   "devDependencies": {
     "@platforma-sdk/tengo-builder": "catalog:",
     "@platforma-sdk/test": "catalog:",
-    "shx": "catalog:",
-    "vitest": "catalog:"
+    "shx": "catalog:"
   }
 }
