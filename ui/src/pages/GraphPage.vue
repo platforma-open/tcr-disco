@@ -67,8 +67,29 @@ function getDefaultOptions(topTablePcols?: PColumnIdAndSpec[]) {
   return defaults;
 }
 
-const defaults = computed(() => getDefaultOptions(app.model.outputs.topTablePcols));
-const key = computed(() => (defaults.value ? JSON.stringify(defaults.value) : ""));
+// Both chains' pcols/pFrames are precomputed in the model; pick the active ones
+// so a chain switch reads cached, chain-consistent data (no async recompute that
+// would briefly leave the remounted chart with the other chain's default options).
+const chain = computed(() => app.model.data.selectedChain ?? "alpha");
+const topTablePcols = computed(() => app.model.outputs.topTablePcols?.[chain.value]);
+const topTablePf = computed(() =>
+  chain.value === "beta" ? app.model.outputs.topTablePfBeta : app.model.outputs.topTablePfAlpha,
+);
+const defaults = computed(() => getDefaultOptions(topTablePcols.value));
+
+// Per-chain chart state: alpha and beta keep independent objects so a custom
+// data-mapping on one chain can't reference the other chain's columns. The chart
+// is remounted on chain switch (`:key` below) so its store re-reads this state.
+const currentGraphState = computed({
+  get: () =>
+    app.model.data.selectedChain === "beta"
+      ? app.model.data.graphStateBeta
+      : app.model.data.graphState,
+  set: (value) => {
+    if (app.model.data.selectedChain === "beta") app.model.data.graphStateBeta = value;
+    else app.model.data.graphState = value;
+  },
+});
 
 const selection = ref<PlSelectionModel>({
   axesSpec: [],
@@ -78,16 +99,16 @@ const selection = ref<PlSelectionModel>({
 
 <template>
   <GraphMaker
-    v-model="app.model.ui.graphState"
+    :key="app.model.data.selectedChain ?? 'alpha'"
+    v-model="currentGraphState"
     v-model:selection="selection"
-    :data-state-key="key"
     chartType="scatterplot-umap"
-    :p-frame="app.model.outputs.topTablePf"
+    :p-frame="topTablePf"
     :default-options="defaults"
   >
     <template #titleLineSlot>
       <PlTabs
-        v-model="app.model.ui.selectedChain"
+        v-model="app.model.data.selectedChain"
         :options="[
           { value: 'alpha', label: 'TCR Alpha Chain' },
           { value: 'beta', label: 'TCR Beta Chain' },
@@ -106,7 +127,7 @@ const selection = ref<PlSelectionModel>({
   >
     <template #title>Multiple Sequence Alignment</template>
     <PlMultiSequenceAlignment
-      v-model="app.model.ui.alignmentModel"
+      v-model="app.model.data.alignmentModel"
       :sequence-column-predicate="isSequenceColumn"
       :p-frame="app.model.outputs.msaPf"
       :selection="selection"

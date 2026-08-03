@@ -1,6 +1,4 @@
-import type { GraphMakerState } from "@milaboratories/graph-maker";
 import type {
-  CanonicalizedJson,
   InferOutputsType,
   PColumn,
   PColumnDataUniversal,
@@ -8,52 +6,87 @@ import type {
   PFrameHandle,
   PlDataTableFilters,
   PlDataTableFilterSpecLeaf,
-  PlDataTableStateV2,
-  PlMultiSequenceAlignmentModel,
-  PlRef,
   PTableColumnId,
+  RenderCtxBase,
   TreeNodeAccessor,
 } from "@platforma-sdk/model";
 import {
-  BlockModel,
-  canonicalizeJson,
+  BlockModelV3,
   createPFrameForGraphs,
-  createPlDataTable,
   createPlDataTableSheet,
-  createPlDataTableStateV2,
+  createPlDataTableV3,
   getUniquePartitionKeys,
   isPColumnSpec,
-  toColumnSnapshotProvider,
+  toColumnProvider,
 } from "@platforma-sdk/model";
+import { blockDataModel } from "./dataModel";
+import type { BlockArgs, BlockData } from "./types";
 
-export type UiState = {
-  tableState: PlDataTableStateV2;
-  pairsTableState: PlDataTableStateV2;
-  title?: string;
-  selectedChain?: "alpha" | "beta";
-  cdSubsetColValid: boolean;
-  graphState: GraphMakerState;
-  pairsHeatmapState: GraphMakerState;
-  frequenciesHeatmapState: GraphMakerState;
-  alignmentModel: PlMultiSequenceAlignmentModel;
-};
+export * from "./types";
+export { blockDataModel } from "./dataModel";
 
-export type BlockArgs = {
-  name?: string;
-  mainRef?: PlRef;
-  cdRef?: PlRef;
-  cdSubsetCol?: PlRef;
-  pairingMetadataCol?: string;
-  covariateRefs: PlRef[];
-  contrastFactor?: PlRef;
-  numerators: string[];
-  denominators: string[];
-  findTcrAbPairs: boolean;
-  thresholdCounts: number;
-  thresholdSamples: number;
-  log2FcThreshold: number;
-  pAdjThreshold: number;
-};
+// Builds the enriched-clonotypes-heatmap pFrame for one chain. The chain is an
+// explicit arg (not read from `ctx.data.selectedChain`), so the two outputs below
+// don't depend on the selected chain: both are built once and cached, and a chain
+// switch in the UI never recomputes them — the UI just picks the active handle.
+function buildFreqHeatmapPf(
+  ctx: RenderCtxBase<BlockArgs, BlockData>,
+  chain: "alpha" | "beta",
+): PFrameHandle | undefined {
+  const outputName = chain === "alpha" ? "mainAlphaFrequenciesPF" : "mainBetaFrequenciesPF";
+  let allPcols = ctx.outputs?.resolve(outputName)?.getPColumns();
+  if (allPcols === undefined) {
+    return undefined;
+  }
+
+  const subtypeLabel = chain === "alpha" ? "clonotypeToSubsetAlpha" : "clonotypeToSubsetBeta";
+  const clonotypeToSubsetPcols = ctx.outputs
+    ?.resolve({ field: subtypeLabel, allowPermanentAbsence: true })
+    ?.getPColumns();
+  if (clonotypeToSubsetPcols !== undefined) {
+    allPcols = [...allPcols, ...clonotypeToSubsetPcols];
+  }
+
+  const robustAnyLabel = chain === "alpha" ? "robustAnyAlpha" : "robustAnyBeta";
+  const robustAnyPcols = ctx.outputs
+    ?.resolve({ field: robustAnyLabel, allowPermanentAbsence: true })
+    ?.getPColumns();
+  if (robustAnyPcols !== undefined) {
+    allPcols = [...allPcols, ...robustAnyPcols];
+  }
+
+  // Y sort key. Added explicitly (like robustAny); it is a value column, so
+  // createPFrameForGraphs does not auto-discover it (no dup).
+  const meanTargetFreqLabel = chain === "alpha" ? "meanTargetFreqAlpha" : "meanTargetFreqBeta";
+  const meanTargetFreqPcols = ctx.outputs
+    ?.resolve({ field: meanTargetFreqLabel, allowPermanentAbsence: true })
+    ?.getPColumns();
+  if (meanTargetFreqPcols !== undefined) {
+    allPcols = [...allPcols, ...meanTargetFreqPcols];
+  }
+
+  // NB: do NOT add the per-clonotype V gene / CDR3 columns explicitly here —
+  // createPFrameForGraphs auto-discovers them as related columns of the clonotype
+  // axis (adding them again throws "Duplicate column id"). They are listed in
+  // frequenciesHeatmapPcols only so the UI can find their index for the Y-label
+  // default-options.
+  return createPFrameForGraphs(ctx, allPcols);
+}
+
+// Builds the volcano-plot pFrame for one chain. Chain is an explicit arg (not
+// read from selectedChain), so the two outputs below are cached and a chain
+// switch never recomputes them — the UI just picks the active handle.
+function buildTopTablePf(
+  ctx: RenderCtxBase<BlockArgs, BlockData>,
+  chain: "alpha" | "beta",
+): PFrameHandle | undefined {
+  const outputName = chain === "alpha" ? "topDegPFAlpha" : "topDegPFBeta";
+  const pCols = ctx.outputs?.resolve(outputName)?.getPColumns();
+  if (pCols === undefined) {
+    return undefined;
+  }
+  return createPFrameForGraphs(ctx, filterPCols(pCols));
+}
 
 // Filter columns for volcano plot
 function filterPCols(pCols: PColumn<TreeNodeAccessor>[]): PColumn<TreeNodeAccessor>[] {
@@ -77,9 +110,11 @@ function filterPCols(pCols: PColumn<TreeNodeAccessor>[]): PColumn<TreeNodeAccess
 function tableColumnId(
   pCols: PColumn<PColumnDataUniversal>[],
   name: string,
-): CanonicalizedJson<PTableColumnId> | undefined {
+): PTableColumnId | undefined {
   const col = pCols.find((c) => c.spec.name === name);
-  return col ? canonicalizeJson<PTableColumnId>({ type: "column", id: col.id }) : undefined;
+  // SDK 1.80: filter-leaf `column` is the PTableColumnId object, not a
+  // canonicalized-JSON string.
+  return col ? { type: "column", id: col.id } : undefined;
 }
 
 // Build the default-filter tree passed to createPlDataTable as `options.filters`.
@@ -94,96 +129,47 @@ function defaultTableFilters(
   return { type: "and", filters: present };
 }
 
-// Wrap already-resolved p-columns as V3 `TableColumnVariant`s. Marked primary so
-// they form the table's join backbone (V2's default "all columns are core"); the
-// SDK auto-discovers and left-joins the matching label columns. The snapshot
-// provider derives each column's real data status from its accessor.
-function toTableColumns(pCols: PColumn<PColumnDataUniversal>[]) {
-  return toColumnSnapshotProvider(pCols)
-    .getAllColumns()
-    .map((column) => ({ column, isPrimary: true }));
+// Wrap already-resolved p-columns as ColumnLazy recipes for the V3 table's
+// `primaryColumns`. They form the table's join backbone; the SDK auto-discovers
+// and left-joins the matching label columns (discoverLabelColumns). SDK 1.80
+// replaced `toColumnSnapshotProvider(...).getAllColumns()` + `{column,isPrimary}`
+// with the column-provider recipe model.
+function toPrimaryColumns(pCols: PColumn<PColumnDataUniversal>[]) {
+  return toColumnProvider({ columns: pCols, isFinal: true }).getColumns();
 }
 
-export const model = BlockModel.create()
+export const platforma = BlockModelV3.create(blockDataModel)
 
-  .withArgs<BlockArgs>({
-    covariateRefs: [],
-    numerators: [],
-    denominators: [],
-    findTcrAbPairs: false,
-    thresholdCounts: 10,
-    thresholdSamples: 3,
-    log2FcThreshold: 0,
-    pAdjThreshold: 0.05,
+  // Project the unified data into the workflow's args shape. Validation lives
+  // here (replaces V1 `.argsValid`): throwing marks args invalid and disables
+  // Run. Pure function of `data` only.
+  .args<BlockArgs>((data) => {
+    if (data.mainRef === undefined) throw new Error("Main dataset is required");
+    if (data.contrastFactor === undefined) throw new Error("Contrast factor is required");
+    if (data.numerators.length === 0) throw new Error("Select at least one numerator");
+    if (data.denominators.length === 0) throw new Error("Select at least one denominator");
+    // CD4/CD8 dataset is optional; when set, its subset column must be chosen and
+    // must actually contain CD4/CD8 values (verified by the UI, snapshotted into
+    // data.cdSubsetColValid on the user's column selection).
+    if (data.cdRef && (data.cdSubsetCol === undefined || !data.cdSubsetColValid))
+      throw new Error("Selected CD4/CD8 subset column must contain CD4 or CD8 values");
+
+    return {
+      mainRef: data.mainRef,
+      cdRef: data.cdRef,
+      cdSubsetCol: data.cdSubsetCol,
+      pairingMetadataCol: data.pairingMetadataCol,
+      covariateRefs: data.covariateRefs,
+      contrastFactor: data.contrastFactor,
+      numerators: data.numerators,
+      denominators: data.denominators,
+      findTcrAbPairs: data.findTcrAbPairs,
+      thresholdCounts: data.thresholdCounts,
+      thresholdSamples: data.thresholdSamples,
+      log2FcThreshold: data.log2FcThreshold,
+      pAdjThreshold: data.pAdjThreshold,
+    };
   })
-
-  .withUiState<UiState>({
-    title: "TCR Disco",
-    tableState: createPlDataTableStateV2(),
-    pairsTableState: createPlDataTableStateV2(),
-    selectedChain: "alpha",
-    cdSubsetColValid: false,
-    graphState: {
-      title: "Volcano plot",
-      template: "dots",
-      currentTab: null,
-    },
-    pairsHeatmapState: {
-      title: "TCR A/B pairs correlation heatmap",
-      template: "heatmapClustered",
-      layersSettings: {
-        heatmapClustered: {
-          dendrogramX: false,
-          dendrogramY: false,
-        },
-      },
-      axesSettings: {
-        axisX: {
-          cellSize: 20,
-        },
-        axisY: {
-          cellSize: 20,
-        },
-      },
-    },
-    frequenciesHeatmapState: {
-      title: "Enriched clonotypes heatmap",
-      template: "heatmapClustered",
-      layersSettings: {
-        heatmapClustered: {
-          normalizationDirection: "row",
-          normalizationMethod: "standardScaling",
-          dendrogramX: false,
-          dendrogramY: false,
-          NAValueAs: null,
-          showEmptyColumns: true,
-        },
-      },
-      axesSettings: {
-        axisX: {
-          cellSize: 20,
-        },
-        axisY: {
-          cellSize: 20,
-        },
-      },
-    },
-    alignmentModel: {},
-  })
-
-  .argsValid(
-    (ctx) =>
-      ctx.args.mainRef !== undefined &&
-      ctx.args.covariateRefs !== undefined &&
-      ctx.args.contrastFactor !== undefined &&
-      ctx.args.numerators.length > 0 &&
-      ctx.args.denominators.length > 0 &&
-      ctx.args.log2FcThreshold !== undefined &&
-      ctx.args.pAdjThreshold !== undefined &&
-      ctx.args.thresholdCounts !== undefined &&
-      ctx.args.thresholdSamples !== undefined &&
-      (!ctx.args.cdRef || (ctx.args.cdSubsetCol !== undefined && ctx.uiState?.cdSubsetColValid)),
-  )
 
   // Allow user to choose Alpha chain, will pick beta if available
   // @TODO: Should we allow single analysis of beta chain?
@@ -218,18 +204,18 @@ export const model = BlockModel.create()
   )
 
   .output("denominatorOptions", (ctx) => {
-    if (!ctx.args.contrastFactor) return undefined;
+    if (!ctx.data.contrastFactor) return undefined;
 
-    const pColumn = ctx.resultPool.getPColumnByRef(ctx.args.contrastFactor);
+    const pColumn = ctx.resultPool.getPColumnByRef(ctx.data.contrastFactor);
     if (!pColumn) return undefined;
 
     return ctx.createPFrame([pColumn]);
   })
 
   .output("cdSubsetOptions", (ctx) => {
-    if (!ctx.args.cdSubsetCol) return undefined;
+    if (!ctx.data.cdSubsetCol) return undefined;
 
-    const pColumn = ctx.resultPool.getPColumnByRef(ctx.args.cdSubsetCol);
+    const pColumn = ctx.resultPool.getPColumnByRef(ctx.data.cdSubsetCol);
     if (!pColumn) return undefined;
 
     return ctx.createPFrame([pColumn]);
@@ -292,7 +278,7 @@ export const model = BlockModel.create()
   })
 
   .outputWithStatus("pt", (ctx) => {
-    const selectedChain = ctx.uiState?.selectedChain ?? "alpha";
+    const selectedChain = ctx.data.selectedChain ?? "alpha";
     const outputName = selectedChain === "alpha" ? "topDegPFAlpha" : "topDegPFBeta";
     const pCols = ctx.outputs?.resolve(outputName)?.getPColumns();
     if (pCols === undefined) {
@@ -308,26 +294,29 @@ export const model = BlockModel.create()
     const filters = defaultTableFilters([
       // Filter for log2foldchange columns (>= log2FcThreshold)
       log2fcId !== undefined
-        ? { type: "greaterThanOrEqual", column: log2fcId, x: ctx.args.log2FcThreshold }
+        ? { type: "greaterThanOrEqual", column: log2fcId, x: ctx.data.log2FcThreshold }
         : undefined,
       // Filter for adjusted p-value columns (<= pAdjThreshold)
       padjId !== undefined
-        ? { type: "lessThanOrEqual", column: padjId, x: ctx.args.pAdjThreshold }
+        ? { type: "lessThanOrEqual", column: padjId, x: ctx.data.pAdjThreshold }
         : undefined,
       robustEnrichmentId !== undefined
         ? { type: "patternEquals", column: robustEnrichmentId, value: "Robust" }
         : undefined,
     ]);
 
-    return createPlDataTable(ctx, {
-      columns: toTableColumns(pCols),
-      tableState: ctx.uiState?.tableState,
+    const tableState = selectedChain === "alpha" ? ctx.data.tableState : ctx.data.tableStateBeta;
+
+    return createPlDataTableV3(ctx, {
+      primaryColumns: toPrimaryColumns(pCols),
+      columns: [],
+      tableState,
       filters,
     });
   })
 
   .output("sheets", (ctx) => {
-    const selectedChain = ctx.uiState?.selectedChain ?? "alpha";
+    const selectedChain = ctx.data.selectedChain ?? "alpha";
     const outputName = selectedChain === "alpha" ? "topDegPFAlpha" : "topDegPFBeta";
     const pCols = ctx.outputs?.resolve(outputName)?.getPColumns();
     if (pCols === undefined || pCols.length === 0) {
@@ -357,13 +346,14 @@ export const model = BlockModel.create()
 
       // Filter for adjusted p-value columns (<= pAdjThreshold)
       padjId !== undefined
-        ? { type: "lessThanOrEqual", column: padjId, x: ctx.args.pAdjThreshold }
+        ? { type: "lessThanOrEqual", column: padjId, x: ctx.data.pAdjThreshold }
         : undefined,
     ]);
 
-    return createPlDataTable(ctx, {
-      columns: toTableColumns(pCols),
-      tableState: ctx.uiState?.pairsTableState,
+    return createPlDataTableV3(ctx, {
+      primaryColumns: toPrimaryColumns(pCols),
+      columns: [],
+      tableState: ctx.data.pairsTableState,
       filters,
     });
   })
@@ -383,34 +373,33 @@ export const model = BlockModel.create()
     return [createPlDataTableSheet(ctx, pCols[0].spec.axesSpec[0], partitionKeys)];
   })
 
-  .outputWithStatus("topTablePf", (ctx): PFrameHandle | undefined => {
-    const selectedChain = ctx.uiState?.selectedChain ?? "alpha";
-    const outputName = selectedChain === "alpha" ? "topDegPFAlpha" : "topDegPFBeta";
-    let pCols = ctx.outputs?.resolve(outputName)?.getPColumns();
-    if (pCols === undefined) {
-      return undefined;
-    }
-
-    pCols = filterPCols(pCols);
-
-    return createPFrameForGraphs(ctx, pCols);
-  })
+  // Two chain-scoped volcano pFrames, each independent of selectedChain so a
+  // chain switch never recomputes them (see buildTopTablePf). The UI picks one.
+  .outputWithStatus("topTablePfAlpha", (ctx): PFrameHandle | undefined =>
+    buildTopTablePf(ctx, "alpha"),
+  )
+  .outputWithStatus("topTablePfBeta", (ctx): PFrameHandle | undefined =>
+    buildTopTablePf(ctx, "beta"),
+  )
 
   .output("topTablePcols", (ctx) => {
-    const selectedChain = ctx.uiState?.selectedChain ?? "alpha";
-    const outputName = selectedChain === "alpha" ? "topDegPFAlpha" : "topDegPFBeta";
-    const pCols = ctx.outputs?.resolve(outputName)?.getPColumns();
-    if (pCols === undefined) {
-      return undefined;
-    }
-
-    return pCols.map(
-      (c) =>
-        ({
-          columnId: c.id,
-          spec: c.spec,
-        }) satisfies PColumnIdAndSpec,
-    );
+    // Both chains' lists, independent of selectedChain, so a switch doesn't
+    // recompute them; the UI picks the active chain's list for defaultOptions.
+    const forChain = (chain: "alpha" | "beta"): PColumnIdAndSpec[] | undefined => {
+      const outputName = chain === "alpha" ? "topDegPFAlpha" : "topDegPFBeta";
+      const pCols = ctx.outputs?.resolve(outputName)?.getPColumns();
+      if (pCols === undefined) {
+        return undefined;
+      }
+      return pCols.map(
+        (c) =>
+          ({
+            columnId: c.id,
+            spec: c.spec,
+          }) satisfies PColumnIdAndSpec,
+      );
+    };
+    return { alpha: forChain("alpha"), beta: forChain("beta") };
   })
 
   .outputWithStatus("pairsHeatmapPf", (ctx): PFrameHandle | undefined => {
@@ -430,18 +419,36 @@ export const model = BlockModel.create()
         col.spec.name !== "pl7.app/differentialTCRAbundance/trb_VGene",
     );
 
+    // Scope label columns to this block's clonotyping run(s). Multiple runs in a
+    // project otherwise yield several identical-spec CDR3 columns, making the X/Y
+    // sources ambiguous ("Inconsistent value"). The pairs clonotypeKey axes carry
+    // the run id — keep only label columns from the same run(s).
+    const pairRunIds = new Set(
+      pCols
+        .flatMap((c) => c.spec.axesSpec ?? [])
+        .filter(
+          (a) => a.name === "pl7.app/vdj/clonotypeKey" || a.name === "pl7.app/vdj/scClonotypeKey",
+        )
+        .map((a) => a.domain?.["pl7.app/vdj/clonotypingRunId"])
+        .filter((r): r is string => r !== undefined),
+    );
+
     // Get from the pool CDR3 aa and VGene pcolumns
     const cdr3Pcols = ctx.resultPool.selectColumns(
       (spec) =>
         spec.name === "pl7.app/vdj/sequence" &&
         spec.domain?.["pl7.app/alphabet"] === "aminoacid" &&
-        spec.domain?.["pl7.app/vdj/feature"] === "CDR3",
+        spec.domain?.["pl7.app/vdj/feature"] === "CDR3" &&
+        (pairRunIds.size === 0 ||
+          pairRunIds.has(spec.axesSpec?.[0]?.domain?.["pl7.app/vdj/clonotypingRunId"] ?? "")),
     );
     const vGenePcols = ctx.resultPool.selectColumns(
       (spec) =>
         spec.name === "pl7.app/vdj/sequence" &&
         spec.domain?.["pl7.app/alphabet"] === "aminoacid" &&
-        spec.domain?.["pl7.app/vdj/feature"] === "VGene",
+        spec.domain?.["pl7.app/vdj/feature"] === "VGene" &&
+        (pairRunIds.size === 0 ||
+          pairRunIds.has(spec.axesSpec?.[0]?.domain?.["pl7.app/vdj/clonotypingRunId"] ?? "")),
     );
 
     if (cdr3Pcols !== undefined && vGenePcols !== undefined) {
@@ -484,12 +491,26 @@ export const model = BlockModel.create()
         col.spec.name !== "pl7.app/differentialTCRAbundance/trb_VGene",
     );
 
+    // Scope CDR3 labels to THIS block's clonotyping run(s) (see pairsHeatmapPf) —
+    // avoids ambiguous X/Y sources when the project has multiple clonotyping runs.
+    const pairRunIds = new Set(
+      pCols
+        .flatMap((c) => c.spec.axesSpec ?? [])
+        .filter(
+          (a) => a.name === "pl7.app/vdj/clonotypeKey" || a.name === "pl7.app/vdj/scClonotypeKey",
+        )
+        .map((a) => a.domain?.["pl7.app/vdj/clonotypingRunId"])
+        .filter((r): r is string => r !== undefined),
+    );
+
     // Get from the pool CDR3 aa and VGene pcolumns
     const cdr3Pcols = ctx.resultPool.selectColumns(
       (spec) =>
         spec.name === "pl7.app/vdj/sequence" &&
         spec.domain?.["pl7.app/alphabet"] === "aminoacid" &&
-        spec.domain?.["pl7.app/vdj/feature"] === "CDR3",
+        spec.domain?.["pl7.app/vdj/feature"] === "CDR3" &&
+        (pairRunIds.size === 0 ||
+          pairRunIds.has(spec.axesSpec?.[0]?.domain?.["pl7.app/vdj/clonotypingRunId"] ?? "")),
     );
     if (cdr3Pcols !== undefined) {
       filteredPcols = [...filteredPcols, ...cdr3Pcols] as PColumn<TreeNodeAccessor>[];
@@ -503,113 +524,109 @@ export const model = BlockModel.create()
     );
   })
 
-  .outputWithStatus("frequenciesHeatmapPf", (ctx): PFrameHandle | undefined => {
-    const selectedChain = ctx.uiState?.selectedChain ?? "alpha";
-    const outputName =
-      selectedChain === "alpha" ? "mainAlphaFrequenciesPF" : "mainBetaFrequenciesPF";
-    let allPcols = ctx.outputs?.resolve(outputName)?.getPColumns();
-    if (allPcols === undefined) {
-      return undefined;
-    }
-
-    // Get all metadata columns that are compatible with the Sample axis
-    // const sampleIds = ctx.resultPool.selectColumns(
-    //   (spec) => spec.name === 'pl7.app/label'
-    //     && spec.axesSpec?.some((axis) => axis.name === 'pl7.app/sampleId'
-    //       || axis.name === 'pl7.app/vdj/clonotypeKey'
-    //       || axis.name === 'pl7.app/vdj/scClonotypeKey'
-    //       || axis.name === 'pl7.app/metadata'),
-    // ) as PColumn<PColumnDataUniversal>[];
-
-    // let allPcols = [...pCols, ...sampleIds];
-    // let allPcols = pCols;
-
-    const subtypeLabel =
-      selectedChain === "alpha" ? "clonotypeToSubsetAlpha" : "clonotypeToSubsetBeta";
-    const clonotypeToSubsetPcols = ctx.outputs
-      ?.resolve({ field: subtypeLabel, allowPermanentAbsence: true })
-      ?.getPColumns();
-    if (clonotypeToSubsetPcols !== undefined) {
-      allPcols = [...allPcols, ...clonotypeToSubsetPcols];
-    }
-
-    const robustAnyLabel = selectedChain === "alpha" ? "robustAnyAlpha" : "robustAnyBeta";
-    const robustAnyPcols = ctx.outputs
-      ?.resolve({ field: robustAnyLabel, allowPermanentAbsence: true })
-      ?.getPColumns();
-    if (robustAnyPcols !== undefined) {
-      allPcols = [...allPcols, ...robustAnyPcols];
-    }
-
-    return createPFrameForGraphs(ctx, allPcols);
-  })
+  // Two chain-scoped pFrames, each independent of selectedChain so a chain switch
+  // never recomputes them (see buildFreqHeatmapPf). The UI picks the active one.
+  .outputWithStatus("frequenciesHeatmapPfAlpha", (ctx): PFrameHandle | undefined =>
+    buildFreqHeatmapPf(ctx, "alpha"),
+  )
+  .outputWithStatus("frequenciesHeatmapPfBeta", (ctx): PFrameHandle | undefined =>
+    buildFreqHeatmapPf(ctx, "beta"),
+  )
 
   .output("frequenciesHeatmapPcols", (ctx) => {
-    const selectedChain = ctx.uiState?.selectedChain ?? "alpha";
-    const outputName =
-      selectedChain === "alpha" ? "mainAlphaFrequenciesPF" : "mainBetaFrequenciesPF";
-    const pCols = ctx.outputs?.resolve(outputName)?.getPColumns();
-    if (pCols === undefined) {
-      return undefined;
-    }
+    // Both chains' column lists are computed here, independent of selectedChain,
+    // so switching the chain does NOT recompute them (the pool scans below are
+    // the switch-latency cost). The UI picks the active chain's list, and only
+    // its default-options recalculate. See FrequenciesHeatmapPage.
+    const forChain = (selectedChain: "alpha" | "beta"): PColumnIdAndSpec[] | undefined => {
+      const outputName =
+        selectedChain === "alpha" ? "mainAlphaFrequenciesPF" : "mainBetaFrequenciesPF";
+      const pCols = ctx.outputs?.resolve(outputName)?.getPColumns();
+      if (pCols === undefined) {
+        return undefined;
+      }
 
-    const subtypeLabel =
-      selectedChain === "alpha" ? "clonotypeToSubsetAlpha" : "clonotypeToSubsetBeta";
-    const clonotypeToSubsetPcols = ctx.outputs
-      ?.resolve({ field: subtypeLabel, allowPermanentAbsence: true })
-      ?.getPColumns();
+      const subtypeLabel =
+        selectedChain === "alpha" ? "clonotypeToSubsetAlpha" : "clonotypeToSubsetBeta";
+      const clonotypeToSubsetPcols = ctx.outputs
+        ?.resolve({ field: subtypeLabel, allowPermanentAbsence: true })
+        ?.getPColumns();
 
-    // Get all metadata columns that are compatible with the Sample axis
-    const metadataCols = ctx.resultPool.selectColumns((spec) => spec.name === "pl7.app/metadata");
+      // Get all metadata columns that are compatible with the Sample axis
+      const metadataCols = ctx.resultPool.selectColumns((spec) => spec.name === "pl7.app/metadata");
 
-    // Get the sequence column for the sleected chain
-    const chain = selectedChain === "alpha" ? "TCRAlpha" : "TCRBeta";
-    const sequenceCol = ctx.resultPool.selectColumns(
-      (spec) =>
-        spec.name === "pl7.app/vdj/sequence" &&
-        spec.domain?.["pl7.app/alphabet"] === "aminoacid" &&
-        spec.domain?.["pl7.app/vdj/feature"] === "CDR3" &&
-        spec.axesSpec[0].domain?.["pl7.app/vdj/chain"] === chain,
-    );
+      // Get the sequence column for the selected chain
+      const chain = selectedChain === "alpha" ? "TCRAlpha" : "TCRBeta";
+      const sequenceCol = ctx.resultPool.selectColumns(
+        (spec) =>
+          spec.name === "pl7.app/vdj/sequence" &&
+          spec.domain?.["pl7.app/alphabet"] === "aminoacid" &&
+          spec.domain?.["pl7.app/vdj/feature"] === "CDR3" &&
+          spec.axesSpec[0].domain?.["pl7.app/vdj/chain"] === chain,
+      );
 
-    const robustAnyLabel = selectedChain === "alpha" ? "robustAnyAlpha" : "robustAnyBeta";
-    const robustAnyPcols = ctx.outputs
-      ?.resolve({ field: robustAnyLabel, allowPermanentAbsence: true })
-      ?.getPColumns();
+      // Per-clonotype V gene, to offer as a Y label part.
+      const vGeneCol = ctx.resultPool.selectColumns(
+        (spec) =>
+          spec.name === "pl7.app/vdj/geneHit" &&
+          spec.domain?.["pl7.app/vdj/reference"] === "VGene" &&
+          spec.axesSpec[0]?.domain?.["pl7.app/vdj/chain"] === chain,
+      );
 
-    let allCols = [...pCols, ...metadataCols];
-    if (clonotypeToSubsetPcols !== undefined) {
-      allCols = [...allCols, ...clonotypeToSubsetPcols];
-    }
-    if (robustAnyPcols !== undefined) {
-      allCols = [...allCols, ...robustAnyPcols];
-    }
-    if (sequenceCol !== undefined) {
-      allCols = [...allCols, ...sequenceCol];
-    }
+      const robustAnyLabel = selectedChain === "alpha" ? "robustAnyAlpha" : "robustAnyBeta";
+      const robustAnyPcols = ctx.outputs
+        ?.resolve({ field: robustAnyLabel, allowPermanentAbsence: true })
+        ?.getPColumns();
 
-    return allCols.map(
-      (c) =>
-        ({
-          columnId: c.id,
-          spec: c.spec,
-        }) satisfies PColumnIdAndSpec,
-    );
+      // Y sort key column.
+      const meanTargetFreqLabel =
+        selectedChain === "alpha" ? "meanTargetFreqAlpha" : "meanTargetFreqBeta";
+      const meanTargetFreqPcols = ctx.outputs
+        ?.resolve({ field: meanTargetFreqLabel, allowPermanentAbsence: true })
+        ?.getPColumns();
+
+      let allCols = [...pCols, ...metadataCols];
+      if (clonotypeToSubsetPcols !== undefined) {
+        allCols = [...allCols, ...clonotypeToSubsetPcols];
+      }
+      if (robustAnyPcols !== undefined) {
+        allCols = [...allCols, ...robustAnyPcols];
+      }
+      if (meanTargetFreqPcols !== undefined) {
+        allCols = [...allCols, ...meanTargetFreqPcols];
+      }
+      if (sequenceCol !== undefined) {
+        allCols = [...allCols, ...sequenceCol];
+      }
+      if (vGeneCol !== undefined) {
+        allCols = [...allCols, ...vGeneCol];
+      }
+
+      return allCols.map(
+        (c) =>
+          ({
+            columnId: c.id,
+            spec: c.spec,
+          }) satisfies PColumnIdAndSpec,
+      );
+    };
+
+    return { alpha: forChain("alpha"), beta: forChain("beta") };
   })
 
   .output("msaPf", (ctx) => {
-    const selectedChain = ctx.uiState?.selectedChain ?? "alpha";
+    const selectedChain = ctx.data.selectedChain ?? "alpha";
     const outputName = selectedChain === "alpha" ? "topDegPFAlpha" : "topDegPFBeta";
     const msaCols = ctx.outputs?.resolve(outputName)?.getPColumns();
     if (!msaCols) return undefined;
 
-    const datasetRef = ctx.args.mainRef;
+    const datasetRef = ctx.data.mainRef;
     if (datasetRef === undefined) return undefined;
 
     return createPFrameForGraphs(ctx, msaCols);
   })
 
-  .title((ctx) => ctx.uiState?.title ?? "TCR Disco")
+  .title((ctx) => ctx.data.title ?? "TCR Disco")
 
   .sections((ctx) => {
     const sections: Array<{ type: "link"; href: `/${string}`; label: string }> = [
@@ -622,7 +639,7 @@ export const model = BlockModel.create()
       },
     ];
 
-    if (ctx.args.findTcrAbPairs) {
+    if (ctx.data.findTcrAbPairs) {
       sections.push({ type: "link" as const, href: "/pairs" as const, label: "TCR AB Pairs" });
       sections.push({
         type: "link" as const,
@@ -634,6 +651,6 @@ export const model = BlockModel.create()
     return sections;
   })
 
-  .done(2);
+  .done();
 
-export type BlockOutputs = InferOutputsType<typeof model>;
+export type BlockOutputs = InferOutputsType<typeof platforma>;

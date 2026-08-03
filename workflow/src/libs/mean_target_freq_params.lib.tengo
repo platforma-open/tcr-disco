@@ -1,0 +1,43 @@
+ll := import("@platforma-sdk/workflow-tengo:ll")
+
+// Per-clonotype "mean frequency of target replicates" column, used to sort the
+// heatmap Y axis. Clonotype-axis-only (partitionKeyLength 0), one Double value
+// per clonotype.
+getColumns := func(countsSpec) {
+	field := "differentialTCRAbundance"
+
+	axes := [
+			{
+				column: "clonotypeKey",
+				spec: countsSpec.axesSpec[1]
+			}
+			]
+
+	columns := [
+			{
+				column: "meanTargetFreq",
+				id: "meantargetfreq",
+				allowNA: true,
+				spec: {
+					name: "pl7.app/" + field + "/meanTargetFrequency",
+					valueType: "Double",
+					annotations: {
+						"pl7.app/label": "Mean numerator frequency",
+						"pl7.app/table/orderPriority": "70",
+						"pl7.app/table/visibility": "optional"
+					}
+				}
+			}
+			]
+
+	return {
+		axes: axes,
+		columns: columns,
+		"storageFormat": "Parquet",
+		"partitionKeyLength": 0
+	}
+}
+
+export ll.toStrict({
+	getColumns: getColumns
+})
