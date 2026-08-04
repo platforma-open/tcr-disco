@@ -10,8 +10,8 @@ catalogs:
       specifier: 2.29.5
       version: 2.29.5
     '@milaboratories/graph-maker':
-      specifier: 1.6.1
-      version: 1.6.1
+      specifier: 1.7.0
+      version: 1.7.0
     '@milaboratories/helpers':
       specifier: 1.14.5
       version: 1.14.5
@@ -129,7 +129,7 @@ importers:
     dependencies:
       '@milaboratories/graph-maker':
         specifier: 'catalog:'
-        version: 1.6.1(@milaboratories/pl-model-common@1.47.3)(@platforma-sdk/model@1.80.13)(@platforma-sdk/ui-vue@1.80.13(@bytecodealliance/preview2-shim@0.17.9)(typescript@5.8.2))(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)(typescript@5.8.2)
+        version: 1.7.0(@milaboratories/pl-model-common@1.47.3)(@platforma-sdk/model@1.80.13)(@platforma-sdk/ui-vue@1.80.13(@bytecodealliance/preview2-shim@0.17.9)(typescript@5.8.2))(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)(typescript@5.8.2)
       '@milaboratories/helpers':
         specifier: 'catalog:'
         version: 1.14.5
@@ -191,7 +191,7 @@ importers:
     dependencies:
       '@milaboratories/graph-maker':
         specifier: 'catalog:'
-        version: 1.6.1(@milaboratories/pl-model-common@1.47.3)(@platforma-sdk/model@1.80.13)(@platforma-sdk/ui-vue@1.80.13(@bytecodealliance/preview2-shim@0.17.9)(typescript@5.8.2))(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)(typescript@5.8.2)
+        version: 1.7.0(@milaboratories/pl-model-common@1.47.3)(@platforma-sdk/model@1.80.13)(@platforma-sdk/ui-vue@1.80.13(@bytecodealliance/preview2-shim@0.17.9)(typescript@5.8.2))(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)(typescript@5.8.2)
       '@milaboratories/multi-sequence-alignment':
         specifier: 'catalog:'
         version: 1.46.3(@platforma-sdk/model@1.80.13)(@platforma-sdk/ui-vue@1.80.13(@bytecodealliance/preview2-shim@0.17.9)(typescript@5.8.2))(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)(typescript@5.8.2)
@@ -1084,8 +1084,8 @@ packages:
     resolution: {integrity: sha512-X0ZtxOnIJlAd9Y7CyBtWSKHgVuTKXbIryMwJaoYSEz0gY3JZVnsD0f59J/lwe3Key0/lSYh3EbL/pP5jACIzfQ==}
     engines: {node: '>=22.19.0'}
 
-  '@milaboratories/graph-maker@1.6.1':
-    resolution: {integrity: sha512-Al9Ll57P4yLbDSLkfFDS6s1JPTsbqcApJRqvtXWHVf+rMvY7ZOhNeQfyVKSX08kpVPFeXGZa9PpEwu8HSSpCPQ==}
+  '@milaboratories/graph-maker@1.7.0':
+    resolution: {integrity: sha512-p4xFV1clQEXPq0j8R3MrOZbYIWpV/9QJTejsHPVdzMvNrlkdqx52PHPMN3/vaxhArh7sS4tnYUHfrcoKKplImw==}
     peerDependencies:
       '@platforma-sdk/model': 1.79.27
       '@platforma-sdk/ui-vue': 1.79.27
@@ -7743,7 +7743,7 @@ snapshots:
       '@types/node': 24.5.2
       utility-types: 3.11.0
 
-  '@milaboratories/graph-maker@1.6.1(@milaboratories/pl-model-common@1.47.3)(@platforma-sdk/model@1.80.13)(@platforma-sdk/ui-vue@1.80.13(@bytecodealliance/preview2-shim@0.17.9)(typescript@5.8.2))(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)(typescript@5.8.2)':
+  '@milaboratories/graph-maker@1.7.0(@milaboratories/pl-model-common@1.47.3)(@platforma-sdk/model@1.80.13)(@platforma-sdk/ui-vue@1.80.13(@bytecodealliance/preview2-shim@0.17.9)(typescript@5.8.2))(d3-dispatch@3.0.1)(d3-path@3.1.0)(d3-scale-chromatic@3.1.0)(typescript@5.8.2)':
     dependencies:
       '@ag-grid-community/core': 32.3.9
       '@milaboratories/helpers': 1.14.5
