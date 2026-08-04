@@ -17,7 +17,7 @@ catalog:
   '@milaboratories/multi-sequence-alignment': 1.46.3
   "@platforma-sdk/blocks-deps-updater": 2.0.0
 
-  "@milaboratories/graph-maker": 1.6.1
+  "@milaboratories/graph-maker": 1.7.0
   "@milaboratories/helpers": 1.14.5
   '@platforma-open/milaboratories.runenv-r-tcr-disco': 1.0.0
   '@platforma-open/milaboratories.runenv-r-differential-expression': 1.0.7
