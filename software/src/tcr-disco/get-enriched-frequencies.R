@@ -36,11 +36,11 @@ option_list <- list(
   ),
   make_option(c("--contrast_col"),
     type = "character", default = NULL,
-    help = "Contrast-factor column label used to identify target/baseline samples", metavar = "character"
+    help = "Contrast-factor column label used to identify numerator/denominator samples", metavar = "character"
   ),
   make_option(c("--numerators"),
     type = "character", default = "[]",
-    help = "JSON array of numerator (target) values of the contrast factor", metavar = "character"
+    help = "JSON array of numerator values of the contrast factor", metavar = "character"
   )
 )
 
@@ -114,45 +114,45 @@ write.table(main_beta_table[, keep_cols1],
                 paste0(output_folder, "/main_beta_frequencies.tsv"),
                 sep = "\t", quote = F, row.names = F)
 
-# Per-clonotype "mean frequency of target replicates", used to sort the heatmap
-# Y axis. Target replicates = samples whose contrast-factor value is a numerator.
-# For each clonotype: mean of its per-sample `fraction` over only the target
+# Per-clonotype "mean frequency of numerator replicates", used to sort the heatmap
+# Y axis. Numerator replicates = samples whose contrast-factor value is a numerator.
+# For each clonotype: mean of its per-sample `fraction` over only the numerator
 # replicates where it is present (absent replicates are excluded, not counted as
-# 0). Clonotypes absent in all targets get 0.
+# 0). Clonotypes absent in all numerators get 0.
 covariates_table <- read.table(covariates_file, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 # internalSampleId == the Sample column; the contrast column header is R-sanitized
 # on read (check.names = TRUE), matching make.names() of the label (same as main.R).
 contrast_col_safe <- if (is.null(contrast_col)) NULL else make.names(contrast_col)
-target_samples <- if (!is.null(contrast_col_safe) && contrast_col_safe %in% colnames(covariates_table)) {
+numerator_samples <- if (!is.null(contrast_col_safe) && contrast_col_safe %in% colnames(covariates_table)) {
   covariates_table$Sample[covariates_table[[contrast_col_safe]] %in% numerators]
 } else {
   character(0)
 }
 
-mean_target_freq <- function(main_table) {
+mean_numerator_freq <- function(main_table) {
   all_keys <- unique(main_table$clonotypeKey)
   res <- data.frame(clonotypeKey = all_keys,
-                    meanTargetFreq = rep(0, length(all_keys)),
+                    meanNumeratorFreq = rep(0, length(all_keys)),
                     stringsAsFactors = FALSE)
-  target_in_data <- intersect(unique(main_table$internalSampleId), target_samples)
-  n_target <- length(target_in_data)
-  if (n_target > 0 && nrow(main_table) > 0) {
-    sub <- main_table[main_table$internalSampleId %in% target_in_data,
+  numerator_in_data <- intersect(unique(main_table$internalSampleId), numerator_samples)
+  n_numerator <- length(numerator_in_data)
+  if (n_numerator > 0 && nrow(main_table) > 0) {
+    sub <- main_table[main_table$internalSampleId %in% numerator_in_data,
                       c("clonotypeKey", "fraction")]
-    # `sub` has a row only where the clonotype is present in a target sample, so
-    # the mean is over present target replicates only (absent ones excluded).
+    # `sub` has a row only where the clonotype is present in a numerator sample, so
+    # the mean is over present numerator replicates only (absent ones excluded).
     agg <- aggregate(fraction ~ clonotypeKey, data = sub, FUN = mean)
-    res$meanTargetFreq <- agg$fraction[match(all_keys, agg$clonotypeKey)]
-    res$meanTargetFreq[is.na(res$meanTargetFreq)] <- 0
+    res$meanNumeratorFreq <- agg$fraction[match(all_keys, agg$clonotypeKey)]
+    res$meanNumeratorFreq[is.na(res$meanNumeratorFreq)] <- 0
   }
   res
 }
 
-write.table(mean_target_freq(main_alpha_table),
-                paste0(output_folder, "/mean_target_freq_alpha.tsv"),
+write.table(mean_numerator_freq(main_alpha_table),
+                paste0(output_folder, "/mean_numerator_freq_alpha.tsv"),
                 sep = "\t", quote = F, row.names = F)
-write.table(mean_target_freq(main_beta_table),
-                paste0(output_folder, "/mean_target_freq_beta.tsv"),
+write.table(mean_numerator_freq(main_beta_table),
+                paste0(output_folder, "/mean_numerator_freq_beta.tsv"),
                 sep = "\t", quote = F, row.names = F)
 
 if ("subset" %in% colnames(main_alpha_table)) {

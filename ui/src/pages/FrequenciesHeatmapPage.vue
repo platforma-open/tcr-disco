@@ -83,9 +83,9 @@ const defaultOptions = computed((): PredefinedGraphOption<"heatmap">[] | undefin
     (p) =>
       p.spec.name === "pl7.app/vdj/geneHit" && p.spec.domain?.["pl7.app/vdj/reference"] === "VGene",
   );
-  // Per-clonotype mean target-replicate frequency (Y sort key).
-  const meanTargetFreqIndex = getIndex(
-    "pl7.app/differentialTCRAbundance/meanTargetFrequency",
+  // Per-clonotype mean numerator frequency (Y sort key).
+  const meanNumeratorFreqIndex = getIndex(
+    "pl7.app/differentialTCRAbundance/meanNumeratorFrequency",
     pcols,
   );
 
@@ -141,12 +141,12 @@ const defaultOptions = computed((): PredefinedGraphOption<"heatmap">[] | undefin
     });
   }
 
-  // Sort Y by mean target-replicate frequency (direction set via axisY.sorting).
+  // Sort Y by mean numerator-replicate frequency (direction set via axisY.sorting).
   // Minimal spec so findColumnBy resolves it (full annotations wouldn't match).
-  if (meanTargetFreqIndex !== -1) {
+  if (meanNumeratorFreqIndex !== -1) {
     defaults.push({
       inputName: "ySortBy",
-      selectedSource: labelSourceSpec(pcols[meanTargetFreqIndex].spec),
+      selectedSource: labelSourceSpec(pcols[meanNumeratorFreqIndex].spec),
     });
   }
 

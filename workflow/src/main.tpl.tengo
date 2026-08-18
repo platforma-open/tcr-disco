@@ -15,7 +15,7 @@ tcrAbPairsTpl := assets.importTemplate(":tcr-ab-pairs")
 topTablePfconvParamsLib := import(":libs.top_table_pfconv_params")
 tcrPairsParamsLib := import(":libs.tcr_pairs_params")
 topFrequenciesLib := import(":libs.top_frequencies")
-meanTargetFreqParamsLib := import(":libs.mean_target_freq_params")
+meanNumeratorFreqParamsLib := import(":libs.mean_numerator_freq_params")
 cdSubsetParamsLib := import(":libs.cd_subset_params")
 tcrdiscoDaPfconvParamsLib := import(":libs.tcrdisco_da_pfconv_params")
 multiplexingSource := import(":multiplexing-source")
@@ -461,8 +461,8 @@ wf.body(func(args) {
 	robustEnrichmentPFBeta_clonotype := tcrAnalysis.output("robustEnrichmentPFBeta_clonotype")
 	robustAnyAlphaTsv := tcrAnalysis.output("robustAnyAlphaTsv")
 	robustAnyBetaTsv := tcrAnalysis.output("robustAnyBetaTsv")
-	meanTargetFreqAlphaTsv := tcrAnalysis.output("meanTargetFreqAlphaTsv")
-	meanTargetFreqBetaTsv := tcrAnalysis.output("meanTargetFreqBetaTsv")
+	meanNumeratorFreqAlphaTsv := tcrAnalysis.output("meanNumeratorFreqAlphaTsv")
+	meanNumeratorFreqBetaTsv := tcrAnalysis.output("meanNumeratorFreqBetaTsv")
 	reportContent := tcrAnalysis.output("reportContent")
 
 	////////////////// Spec preparation ////////////////
@@ -626,15 +626,15 @@ wf.body(func(args) {
 			{mem: defaultConvMem, cpu: defaultConvCpu})
 	}
 
-	// Per-clonotype mean target-replicate frequency (heatmap Y sort key)
-	meanTargetFreqAlphaParams := meanTargetFreqParamsLib.getColumns(copy(mainAlphaSpec))
-	meanTargetFreqAlphaPf := xsv.importFile(meanTargetFreqAlphaTsv, "tsv", meanTargetFreqAlphaParams,
+	// Per-clonotype mean numerator-replicate frequency (heatmap Y sort key)
+	meanNumeratorFreqAlphaParams := meanNumeratorFreqParamsLib.getColumns(copy(mainAlphaSpec))
+	meanNumeratorFreqAlphaPf := xsv.importFile(meanNumeratorFreqAlphaTsv, "tsv", meanNumeratorFreqAlphaParams,
 		{mem: defaultConvMem, cpu: defaultConvCpu})
 
-	meanTargetFreqBetaPf := undefined
+	meanNumeratorFreqBetaPf := undefined
 	if mainBetaSpec != undefined {
-		meanTargetFreqBetaParams := meanTargetFreqParamsLib.getColumns(copy(mainBetaSpec))
-		meanTargetFreqBetaPf = xsv.importFile(meanTargetFreqBetaTsv, "tsv", meanTargetFreqBetaParams,
+		meanNumeratorFreqBetaParams := meanNumeratorFreqParamsLib.getColumns(copy(mainBetaSpec))
+		meanNumeratorFreqBetaPf = xsv.importFile(meanNumeratorFreqBetaTsv, "tsv", meanNumeratorFreqBetaParams,
 			{mem: defaultConvMem, cpu: defaultConvCpu})
 	}
 
@@ -659,10 +659,10 @@ wf.body(func(args) {
 		outputs.robustAnyBeta = pframes.exportFrame(robustAnyBetaPf)
 	}
 
-	// Mean target-replicate frequency per clonotype (heatmap Y sort key)
-	outputs.meanTargetFreqAlpha = pframes.exportFrame(meanTargetFreqAlphaPf)
-	if meanTargetFreqBetaPf != undefined {
-		outputs.meanTargetFreqBeta = pframes.exportFrame(meanTargetFreqBetaPf)
+	// Mean numerator-replicate frequency per clonotype (heatmap Y sort key)
+	outputs.meanNumeratorFreqAlpha = pframes.exportFrame(meanNumeratorFreqAlphaPf)
+	if meanNumeratorFreqBetaPf != undefined {
+		outputs.meanNumeratorFreqBeta = pframes.exportFrame(meanNumeratorFreqBetaPf)
 	}
 
 	// Report file indicating empty inputs or too much filtering
