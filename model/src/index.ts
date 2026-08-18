@@ -57,12 +57,13 @@ function buildFreqHeatmapPf(
 
   // Y sort key. Added explicitly (like robustAny); it is a value column, so
   // createPFrameForGraphs does not auto-discover it (no dup).
-  const meanTargetFreqLabel = chain === "alpha" ? "meanTargetFreqAlpha" : "meanTargetFreqBeta";
-  const meanTargetFreqPcols = ctx.outputs
-    ?.resolve({ field: meanTargetFreqLabel, allowPermanentAbsence: true })
+  const meanNumeratorFreqLabel =
+    chain === "alpha" ? "meanNumeratorFreqAlpha" : "meanNumeratorFreqBeta";
+  const meanNumeratorFreqPcols = ctx.outputs
+    ?.resolve({ field: meanNumeratorFreqLabel, allowPermanentAbsence: true })
     ?.getPColumns();
-  if (meanTargetFreqPcols !== undefined) {
-    allPcols = [...allPcols, ...meanTargetFreqPcols];
+  if (meanNumeratorFreqPcols !== undefined) {
+    allPcols = [...allPcols, ...meanNumeratorFreqPcols];
   }
 
   // NB: do NOT add the per-clonotype V gene / CDR3 columns explicitly here —
@@ -579,10 +580,10 @@ export const platforma = BlockModelV3.create(blockDataModel)
         ?.getPColumns();
 
       // Y sort key column.
-      const meanTargetFreqLabel =
-        selectedChain === "alpha" ? "meanTargetFreqAlpha" : "meanTargetFreqBeta";
-      const meanTargetFreqPcols = ctx.outputs
-        ?.resolve({ field: meanTargetFreqLabel, allowPermanentAbsence: true })
+      const meanNumeratorFreqLabel =
+        selectedChain === "alpha" ? "meanNumeratorFreqAlpha" : "meanNumeratorFreqBeta";
+      const meanNumeratorFreqPcols = ctx.outputs
+        ?.resolve({ field: meanNumeratorFreqLabel, allowPermanentAbsence: true })
         ?.getPColumns();
 
       let allCols = [...pCols, ...metadataCols];
@@ -592,8 +593,8 @@ export const platforma = BlockModelV3.create(blockDataModel)
       if (robustAnyPcols !== undefined) {
         allCols = [...allCols, ...robustAnyPcols];
       }
-      if (meanTargetFreqPcols !== undefined) {
-        allCols = [...allCols, ...meanTargetFreqPcols];
+      if (meanNumeratorFreqPcols !== undefined) {
+        allCols = [...allCols, ...meanNumeratorFreqPcols];
       }
       if (sequenceCol !== undefined) {
         allCols = [...allCols, ...sequenceCol];

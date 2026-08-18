@@ -24,7 +24,7 @@ function defaultFreqHeatmapState(): BlockData["frequenciesHeatmapState"] {
     axesSettings: {
       axisX: { cellSize: 20 },
       // Label parts come from `defaultAxesSettings` (see the factory comment).
-      // sorting "desc" ranks by the ySortBy column (mean target frequency, wired
+      // sorting "desc" ranks by the ySortBy column (mean numerator frequency, wired
       // in FrequenciesHeatmapPage).
       axisY: { cellSize: 20, sorting: "desc" },
     },
