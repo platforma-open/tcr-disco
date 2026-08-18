@@ -51,7 +51,7 @@ function defaultData(): BlockData {
     findTcrAbPairs: false,
     thresholdCounts: 10,
     thresholdSamples: 3,
-    log2FcThreshold: 0,
+    log2FcThreshold: 3,
     pAdjThreshold: 0.05,
     title: "TCR Disco",
     selectedChain: "alpha",
