@@ -19,6 +19,7 @@ import {
   isPColumnSpec,
   toColumnProvider,
 } from "@platforma-sdk/model";
+import { kind } from "@platforma-open/milaboratories.tcrdisco-enrichment.kind";
 import { blockDataModel } from "./dataModel";
 import type { BlockArgs, BlockData } from "./types";
 
@@ -139,7 +140,26 @@ function toPrimaryColumns(pCols: PColumn<PColumnDataUniversal>[]) {
   return toColumnProvider({ columns: pCols, isFinal: true }).getColumns();
 }
 
-export const platforma = BlockModelV3.create(blockDataModel)
+export const platforma = BlockModelV3.create({ dataModel: blockDataModel, kind })
+
+  // The reverse of the kind's `init`: project the analysis back out so a project
+  // can be exported as a template and re-applied. Only what the contract carries
+  // — view state and the CD4/CD8 pair are deliberately not restorable this way
+  // (see the kind's `BlockParams`).
+  .templateParams((data) => ({
+    title: data.title,
+    mainRef: data.mainRef,
+    contrastFactor: data.contrastFactor,
+    numerators: data.numerators,
+    denominators: data.denominators,
+    covariateRefs: data.covariateRefs,
+    findTcrAbPairs: data.findTcrAbPairs,
+    pairingMetadataCol: data.pairingMetadataCol,
+    thresholdCounts: data.thresholdCounts,
+    thresholdSamples: data.thresholdSamples,
+    log2FcThreshold: data.log2FcThreshold,
+    pAdjThreshold: data.pAdjThreshold,
+  }))
 
   // Project the unified data into the workflow's args shape. Validation lives
   // here (replaces V1 `.argsValid`): throwing marks args invalid and disables

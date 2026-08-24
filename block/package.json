@@ -29,6 +29,7 @@
   "devDependencies": {
     "@milaboratories/ts-builder": "catalog:",
     "@milaboratories/ts-configs": "catalog:",
+    "@platforma-open/milaboratories.tcrdisco-enrichment.kind": "workspace:*",
     "@platforma-open/milaboratories.tcrdisco-enrichment.model": "workspace:*",
     "@platforma-open/milaboratories.tcrdisco-enrichment.ui": "workspace:*",
     "@platforma-open/milaboratories.tcrdisco-enrichment.workflow": "workspace:*",

@@ -1,3 +1,4 @@
+import { kind } from "@platforma-open/milaboratories.tcrdisco-enrichment.kind";
 import { createPlDataTableStateV2, DataModelBuilder } from "@platforma-sdk/model";
 import type { BlockData, LegacyBlockArgs, LegacyUiState } from "./types";
 
@@ -81,7 +82,7 @@ function defaultData(): BlockData {
   };
 }
 
-export const blockDataModel = new DataModelBuilder()
+export const blockDataModel = new DataModelBuilder({ kind })
   .from<BlockData>("v1")
   // Fires once per project saved under the V1 model. The `name` arg field is
   // intentionally dropped — nothing read it.
@@ -130,4 +131,26 @@ export const blockDataModel = new DataModelBuilder()
     frequenciesHeatmapStateBeta:
       (prev as Partial<BlockData>).frequenciesHeatmapStateBeta ?? defaultFreqHeatmapState(),
   }))
-  .init(() => defaultData());
+  // `params` is absent when a block is created by hand rather than from a
+  // template, so every field the kind's contract carries falls back to the same
+  // default a hand-created block gets. Fields the contract deliberately omits
+  // (the CD4/CD8 pair, all view state) are taken from the defaults only.
+  .init(({ params }) => {
+    const d = defaultData();
+    if (params === undefined) return d;
+    return {
+      ...d,
+      title: params.title ?? d.title,
+      mainRef: params.mainRef,
+      contrastFactor: params.contrastFactor,
+      numerators: params.numerators ?? d.numerators,
+      denominators: params.denominators ?? d.denominators,
+      covariateRefs: params.covariateRefs ?? d.covariateRefs,
+      findTcrAbPairs: params.findTcrAbPairs ?? d.findTcrAbPairs,
+      pairingMetadataCol: params.pairingMetadataCol,
+      thresholdCounts: params.thresholdCounts ?? d.thresholdCounts,
+      thresholdSamples: params.thresholdSamples ?? d.thresholdSamples,
+      log2FcThreshold: params.log2FcThreshold ?? d.log2FcThreshold,
+      pAdjThreshold: params.pAdjThreshold ?? d.pAdjThreshold,
+    };
+  });
