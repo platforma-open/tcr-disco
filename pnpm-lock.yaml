@@ -18,6 +18,9 @@ catalogs:
     '@milaboratories/multi-sequence-alignment':
       specifier: 1.46.3
       version: 1.46.3
+    '@milaboratories/pl-model-common':
+      specifier: 1.48.0
+      version: 1.48.0
     '@milaboratories/ts-builder':
       specifier: 1.7.0
       version: 1.7.0
@@ -51,6 +54,9 @@ catalogs:
     '@platforma-sdk/workflow-tengo':
       specifier: 6.8.3
       version: 6.8.3
+    es-toolkit:
+      specifier: 1.41.0
+      version: 1.41.0
     shx:
       specifier: ~0.4.0
       version: 0.4.0
@@ -133,15 +139,18 @@ importers:
 
   kind:
     dependencies:
+      '@milaboratories/pl-model-common':
+        specifier: 'catalog:'
+        version: 1.48.0
       '@platforma-sdk/block-kind':
         specifier: 'catalog:'
         version: 1.1.0
-      '@platforma-sdk/model':
-        specifier: 'catalog:'
-        version: 1.82.0
       '@types/node':
         specifier: '*'
         version: 24.5.2
+      es-toolkit:
+        specifier: 'catalog:'
+        version: 1.41.0
       typescript:
         specifier: '*'
         version: 5.9.3

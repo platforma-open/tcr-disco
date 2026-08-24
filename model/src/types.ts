@@ -19,10 +19,12 @@ export type BlockData = {
   numerators: string[];
   denominators: string[];
   findTcrAbPairs: boolean;
-  thresholdCounts: number;
-  thresholdSamples: number;
-  log2FcThreshold: number;
-  pAdjThreshold: number;
+  // A cleared PlNumberField writes `undefined`, so these hold no value mid-edit.
+  // The args lambda refuses that (Run disabled); the workflow only ever sees numbers.
+  thresholdCounts: number | undefined;
+  thresholdSamples: number | undefined;
+  log2FcThreshold: number | undefined;
+  pAdjThreshold: number | undefined;
 
   // --- UI-only state (never projected) ---
   title?: string;

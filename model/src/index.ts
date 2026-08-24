@@ -1,3 +1,4 @@
+import { kind } from "@platforma-open/milaboratories.tcrdisco-enrichment.kind";
 import type {
   InferOutputsType,
   PColumn,
@@ -19,12 +20,11 @@ import {
   isPColumnSpec,
   toColumnProvider,
 } from "@platforma-sdk/model";
-import { kind } from "@platforma-open/milaboratories.tcrdisco-enrichment.kind";
 import { blockDataModel } from "./dataModel";
 import type { BlockArgs, BlockData } from "./types";
 
-export * from "./types";
 export { blockDataModel } from "./dataModel";
+export * from "./types";
 
 // Builds the enriched-clonotypes-heatmap pFrame for one chain. The chain is an
 // explicit arg (not read from `ctx.data.selectedChain`), so the two outputs below
@@ -174,6 +174,12 @@ export const platforma = BlockModelV3.create({ dataModel: blockDataModel, kind }
     // data.cdSubsetColValid on the user's column selection).
     if (data.cdRef && (data.cdSubsetCol === undefined || !data.cdSubsetColValid))
       throw new Error("Selected CD4/CD8 subset column must contain CD4 or CD8 values");
+    // Thresholds have defaults, so an empty one means the user cleared the field.
+    // Throwing keeps the run gated until a number is back in it.
+    if (data.thresholdCounts === undefined) throw new Error("Min UMI counts is required");
+    if (data.thresholdSamples === undefined) throw new Error("Min replicates is required");
+    if (data.log2FcThreshold === undefined) throw new Error("Log2(FC) threshold is required");
+    if (data.pAdjThreshold === undefined) throw new Error("Adjusted p-value threshold is required");
 
     return {
       mainRef: data.mainRef,
@@ -314,11 +320,11 @@ export const platforma = BlockModelV3.create({ dataModel: blockDataModel, kind }
     );
     const filters = defaultTableFilters([
       // Filter for log2foldchange columns (>= log2FcThreshold)
-      log2fcId !== undefined
+      log2fcId !== undefined && ctx.data.log2FcThreshold !== undefined
         ? { type: "greaterThanOrEqual", column: log2fcId, x: ctx.data.log2FcThreshold }
         : undefined,
       // Filter for adjusted p-value columns (<= pAdjThreshold)
-      padjId !== undefined
+      padjId !== undefined && ctx.data.pAdjThreshold !== undefined
         ? { type: "lessThanOrEqual", column: padjId, x: ctx.data.pAdjThreshold }
         : undefined,
       robustEnrichmentId !== undefined
@@ -366,7 +372,7 @@ export const platforma = BlockModelV3.create({ dataModel: blockDataModel, kind }
       // }
 
       // Filter for adjusted p-value columns (<= pAdjThreshold)
-      padjId !== undefined
+      padjId !== undefined && ctx.data.pAdjThreshold !== undefined
         ? { type: "lessThanOrEqual", column: padjId, x: ctx.data.pAdjThreshold }
         : undefined,
     ]);
@@ -646,6 +652,8 @@ export const platforma = BlockModelV3.create({ dataModel: blockDataModel, kind }
 
     return createPFrameForGraphs(ctx, msaCols);
   })
+
+  .output("isRunning", (ctx): boolean => ctx.outputs?.getIsReadyOrError() === false)
 
   .title((ctx) => ctx.data.title ?? "TCR Disco")
 

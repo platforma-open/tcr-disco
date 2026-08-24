@@ -209,6 +209,9 @@ watch(
     }
   },
 );
+
+const requiredError = (v: number | undefined) =>
+  v === undefined ? "Value is required" : undefined;
 </script>
 
 <template>
@@ -321,6 +324,7 @@ watch(
         <PlNumberField
           v-model="app.model.data.log2FcThreshold"
           label="Log2(FC)"
+          :errorMessage="requiredError(app.model.data.log2FcThreshold)"
           :minValue="0"
           :step="0.1"
         >
@@ -333,6 +337,7 @@ watch(
         <PlNumberField
           v-model="app.model.data.pAdjThreshold"
           label="Adjusted p-value"
+          :errorMessage="requiredError(app.model.data.pAdjThreshold)"
           :minValue="0"
           :maxValue="1"
           :step="0.01"
@@ -342,6 +347,7 @@ watch(
         <PlNumberField
           v-model="app.model.data.thresholdCounts"
           label="Min UMI counts"
+          :errorMessage="requiredError(app.model.data.thresholdCounts)"
           :minValue="0"
           :step="1"
           placeholder="0"
@@ -354,6 +360,7 @@ watch(
         <PlNumberField
           v-model="app.model.data.thresholdSamples"
           label="Min replicates"
+          :errorMessage="requiredError(app.model.data.thresholdSamples)"
           :minValue="0"
           :step="1"
           placeholder="0"
