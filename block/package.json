@@ -19,7 +19,7 @@
   "scripts": {
     "pretty": "prettier --write \"./**/*.{js,jsx,mjs,cjs,ts,tsx,json,vue}\"",
     "build": "ts-builder build --target block-facade && block-tools pack",
-    "prepublishOnly": "block-tools pack && block-tools publish -r 's3://prod-miltenyi-registry-euce1/pub/releases/?region=eu-central-1'",
+    "prepublishOnly": "block-tools pack && block-tools publish -r 's3://prod-miltenyi-registry-euce1/pub/releases/?region=eu-central-1' --registry-serve-url miltenyi-ga-x7k9m.pl-open.science",
     "do-pack": "shx rm -f package.tgz && pnpm pack && shx mv *.tgz package.tgz",
     "check": "ts-builder type-check --target block-facade"
   },
