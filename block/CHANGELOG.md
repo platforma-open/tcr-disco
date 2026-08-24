@@ -1,5 +1,45 @@
 # @platforma-open/milaboratories.tcrdisco-enrichment
 
+## 1.3.0
+
+### Minor Changes
+
+- 41ba15b: Add the block-kind package, so the block satisfies the canonical structure of block-tools 2.14.3 (every block must declare exactly one sibling `kind/`) and can be created from a project template.
+
+  `BlockParams` carries the analysis only — the input dataset, the contrast factor and its numerators/denominators, covariates, the A/B pairing switch and its metadata column, and the four thresholds. View state is out by design, and so are `cdRef` / `cdSubsetCol`: the args lambda refuses a `cdRef` whose subset column has not been confirmed to hold CD4/CD8 values, and that confirmation is only produced when a user picks the column in the UI, so a template-set pair would leave the block permanently args-invalid.
+
+  The model gains the three wiring points 1.82.0 requires: `new DataModelBuilder({ kind })`, `init(({ params }) => …)` falling back to the hand-created defaults for every field, and `templateParams()` projecting the same fields back out for template export.
+
+- 66f209d: Enriched-clonotypes heatmap: log-transformed blue-red frequency map with CDR3 + V-gene Y labels, ranked by a per-clonotype "Mean numerator frequency" — the mean of the clonotype's per-replicate fraction over the numerator replicates where it is present.
+
+  Per-chain state for the volcano plot and the enriched-clonotypes heatmap: alpha and beta keep independent chart state, so a custom data-mapping on one chain no longer becomes inconsistent after switching to the other. Both charts also precompute per-chain pFrames/columns, so switching chains does not trigger a model recompute.
+
+- 66f209d: Migrate block to BlockModelV3. Persisted state is unchanged for existing projects via a legacy upgrader; UI bindings move from `app.model.args` / `app.model.ui` to the unified `app.model.data`. The CD4/CD8 subset validation no longer writes back from a watched output — the validity is snapshotted into data only on the user's column selection.
+
+  Fix a latent data-loss bug in the contrast-factor watcher: it was watching a fresh `[contrastFactor]` array, so Vue saw a change on every `data` reconcile and cleared the user's numerator/denominator selection even when the contrast factor was unchanged. It now watches the ref directly and only resets on a genuine change.
+
+  Fix the data tables never settling ("error ↔ updating" loop): `usePlDataTableSettingsV2` was wrapped in `computed(() => …().value)`, re-instantiating the composable every tick and driving a non-converging table recompute / stale-handle loop. It is now called once at setup (Main and Pairs pages).
+
+### Patch Changes
+
+- d6494fa: Drop the stale `test` script from the workflow package, which failed CI with `sh: 1: vitest: not found`.
+
+  The script survived the structurer migration, but `vitest` is centralized in the `test` package and is not a workflow dependency. The workflow has no test files, so the canonical end-state for it is no `test` script at all; the `test` package keeps running `vitest run --passWithNoTests`.
+
+- 6ae7506: Prune `renv.lock` from 196 packages to the 57-package runtime closure of the three packages the R scripts actually load (`optparse`, `jsonlite`, `DESeq2`).
+
+  The lock was copied in from an upstream project at scaffold time and only ever added to, never pruned. The 139 removed packages were unreachable dev tooling — `devtools`, the tidyverse metapackage, `shiny`, `rmarkdown`, the git clients, and `tcrgrapher` (no longer referenced by any script). Several were among the slowest source compiles in the image (`sass`, `httpuv`, `ragg`/`systemfonts`/`textshaping`, `data.table`, `edgeR`), so the docker `renv::restore()` layer — 1419 s of a 1473 s cold build — shrinks accordingly.
+
+  Retained package versions are unchanged; the new lock is a strict subset of the old one. No behavior change.
+
+- d485fc7: Block Run while any threshold parameter is empty.
+
+  Clearing a `PlNumberField` writes `undefined`, which previously reached the workflow as a missing threshold. `BlockData` now types the four thresholds as `number | undefined` (what the field can actually produce), the args lambda throws on each so Run is disabled, and the field shows "Value is required" so the user can see which one is holding the run back.
+
+- Updated dependencies [66f209d]
+- Updated dependencies [6ae7506]
+  - @platforma-open/milaboratories.run-tcrdisco-enrichment.software@1.3.0
+
 ## 1.2.2
 
 ### Patch Changes

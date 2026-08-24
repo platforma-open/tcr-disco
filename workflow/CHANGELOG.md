@@ -1,5 +1,23 @@
 # @platforma-open/milaboratories.tcrdisco-enrichment.workflow
 
+## 1.3.0
+
+### Minor Changes
+
+- 66f209d: Enriched-clonotypes heatmap: log-transformed blue-red frequency map with CDR3 + V-gene Y labels, ranked by a per-clonotype "Mean numerator frequency" — the mean of the clonotype's per-replicate fraction over the numerator replicates where it is present.
+
+  Per-chain state for the volcano plot and the enriched-clonotypes heatmap: alpha and beta keep independent chart state, so a custom data-mapping on one chain no longer becomes inconsistent after switching to the other. Both charts also precompute per-chain pFrames/columns, so switching chains does not trigger a model recompute.
+
+### Patch Changes
+
+- d6494fa: Drop the stale `test` script from the workflow package, which failed CI with `sh: 1: vitest: not found`.
+
+  The script survived the structurer migration, but `vitest` is centralized in the `test` package and is not a workflow dependency. The workflow has no test files, so the canonical end-state for it is no `test` script at all; the `test` package keeps running `vitest run --passWithNoTests`.
+
+- Updated dependencies [66f209d]
+- Updated dependencies [6ae7506]
+  - @platforma-open/milaboratories.run-tcrdisco-enrichment.software@1.3.0
+
 ## 1.2.2
 
 ### Patch Changes
