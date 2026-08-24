@@ -1,14 +1,21 @@
 {
   "name": "@platforma-open/milaboratories.run-tcrdisco-enrichment.software",
   "version": "1.2.1",
-  "type": "module",
   "description": "Block Software: Run TCR Disco with R",
+  "files": [
+    "./dist/**/*"
+  ],
+  "type": "module",
   "scripts": {
-    "build": "pl-pkg build",
-    "prepublishOnly": "pl-pkg prepublish",
-    "do-pack": "rm -f *.tgz && pl-pkg build && pnpm pack && mv platforma-open*.tgz package.tgz",
+    "build": "block-tools software build",
+    "do-pack": "shx rm -f *.tgz && block-tools software build && pnpm pack && shx mv platforma-open*.tgz package.tgz",
     "changeset": "changeset",
     "version-packages": "changeset version"
+  },
+  "devDependencies": {
+    "@platforma-open/milaboratories.runenv-python-3": "catalog:",
+    "@platforma-open/milaboratories.runenv-r-differential-expression": "catalog:",
+    "@platforma-sdk/block-tools": "catalog:"
   },
   "block-software": {
     "entrypoints": {
@@ -32,7 +39,8 @@
             "dockerfile": "Dockerfile"
           },
           "cmd": [
-            "/app/main.R"
+            "Rscript",
+            "/app/subset-assignment.R"
           ]
         }
       },
@@ -56,6 +64,7 @@
             "dockerfile": "Dockerfile"
           },
           "cmd": [
+            "Rscript",
             "/app/main.R"
           ]
         }
@@ -80,6 +89,7 @@
             "dockerfile": "Dockerfile"
           },
           "cmd": [
+            "Rscript",
             "/app/get-enriched-frequencies.R"
           ]
         }
@@ -104,14 +114,11 @@
             "dockerfile": "Dockerfile"
           },
           "cmd": [
+            "Rscript",
             "/app/find-pairs.R"
           ]
         }
       }
     }
-  },
-  "devDependencies": {
-    "@platforma-open/milaboratories.runenv-r-differential-expression": "catalog:",
-    "@platforma-sdk/package-builder": "catalog:"
   }
 }
