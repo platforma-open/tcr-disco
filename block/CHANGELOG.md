@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.tcrdisco-enrichment
 
+## 1.3.2
+
+### Patch Changes
+
+- 417bee3: Add registry-serve-url
+
 ## 1.3.1
 
 ### Patch Changes
