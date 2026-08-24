@@ -1,4 +1,4 @@
-import type { PlRef } from "@platforma-sdk/model";
+import type { PlRef } from "@milaboratories/pl-model-common";
 
 /**
  * This block's init-params contract — the shape a block of this kind receives at

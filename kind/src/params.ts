@@ -1,5 +1,7 @@
+import { isPlRef, type PlRef } from "@milaboratories/pl-model-common";
 import { assertParamsObject } from "@platforma-sdk/block-kind";
-import { isPlRef, type PlRef } from "@platforma-sdk/model";
+import { isBoolean, isString } from "es-toolkit";
+import { isArray, isNumber } from "es-toolkit/compat";
 import type { BlockParams } from "./types";
 
 /**
@@ -67,16 +69,15 @@ export function parseInitializationParams(value: unknown): BlockParams {
 // own default takes over. Each guard therefore narrows only what is present.
 
 function requireString(field: string, v: unknown): asserts v is string | undefined {
-  if (v !== undefined && typeof v !== "string") throw new Error(`'${field}' must be a string.`);
+  if (v !== undefined && !isString(v)) throw new Error(`'${field}' must be a string.`);
 }
 
 function requireBoolean(field: string, v: unknown): asserts v is boolean | undefined {
-  if (v !== undefined && typeof v !== "boolean")
-    throw new Error(`'${field}' must be true or false.`);
+  if (v !== undefined && !isBoolean(v)) throw new Error(`'${field}' must be true or false.`);
 }
 
 function requireNumber(field: string, v: unknown): asserts v is number | undefined {
-  if (v !== undefined && (typeof v !== "number" || !Number.isFinite(v)))
+  if (v !== undefined && (!isNumber(v) || !Number.isFinite(v)))
     throw new Error(`'${field}' must be a number.`);
 }
 
@@ -85,7 +86,9 @@ function requireNonNegative(field: string, v: unknown): asserts v is number | un
   if (v !== undefined && v < 0) throw new Error(`'${field}' must not be negative.`);
 }
 
-/** A sample or read count: whole and not negative. */
+/**
+ * A sample or read count: whole and not negative.
+ */
 function requireCount(field: string, v: unknown): asserts v is number | undefined {
   requireNumber(field, v);
   if (v !== undefined && (!Number.isInteger(v) || v < 0))
@@ -100,8 +103,7 @@ function requireProbability(field: string, v: unknown): asserts v is number | un
 
 function requireStringArray(field: string, v: unknown): asserts v is string[] | undefined {
   if (v === undefined) return;
-  if (!Array.isArray(v) || v.some((e) => typeof e !== "string"))
-    throw new Error(`'${field}' must be an array of strings.`);
+  if (!isArray(v) || !v.every(isString)) throw new Error(`'${field}' must be an array of strings.`);
 }
 
 // `isPlRef` is the SDK's own guard, so a reference is recognized the same way
@@ -114,6 +116,6 @@ function requireRef(field: string, v: unknown): asserts v is PlRef | undefined {
 
 function requireRefArray(field: string, v: unknown): asserts v is PlRef[] | undefined {
   if (v === undefined) return;
-  if (!Array.isArray(v) || v.some((e) => !isPlRef(e)))
+  if (!isArray(v) || !v.every(isPlRef))
     throw new Error(`'${field}' must be an array of references to columns.`);
 }

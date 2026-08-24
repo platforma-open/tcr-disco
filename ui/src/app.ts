@@ -6,8 +6,10 @@ import MainPage from "./pages/MainPage.vue";
 import PairsHeatmapPage from "./pages/PairsHeatmapPage.vue";
 import PairsPage from "./pages/PairsPage.vue";
 
-export const sdkPlugin = defineAppV3(platforma, () => {
+export const sdkPlugin = defineAppV3(platforma, (app) => {
   return {
+    // Loader line across the top of the block page while the workflow computes.
+    progress: () => app.model.outputs.isRunning,
     routes: {
       "/": () => MainPage,
       "/graph": () => GraphPage,
