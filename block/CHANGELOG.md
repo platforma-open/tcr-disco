@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.tcrdisco-enrichment
 
+## 1.3.3
+
+### Patch Changes
+
+- cbd767a: Update SDK and MSA
+
 ## 1.3.2
 
 ### Patch Changes
