@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.tcrdisco-enrichment
 
+## 1.3.4
+
+### Patch Changes
+
+- 039af51: Update description and release block
+
 ## 1.3.3
 
 ### Patch Changes
