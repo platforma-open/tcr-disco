@@ -48,7 +48,7 @@
     "meta": {
       "title": "TCR Disco",
       "logo": "file:../logos/block-logo.png",
-      "url": "https://github.com/platforma-open/tcrdisco-enrichment",
+      "url": "https://github.com/platforma-open/tcr-disco",
       "support": "mailto:support@milaboratories.com",
       "description": "Calculates differential abundances of TCR α/β clonotypes between experimental conditions and enables computational pairing of TCRα and TCRβ chains.",
       "longDescription": "file:../docs/description.md",

@@ -1,6 +1,6 @@
 # Overview
 
-The Miltenyi TCR Disco block calculates differential abundance of TCR α/β clonotypes across experimental conditions to identify clonotypes that are significantly enriched or depleted. The block uses clonotype count data obtained from V(D)J clonotyping blocks and applies statistical tests to identify significant changes in clonotype abundance while accounting for biological variability and differences in library size.
+The Miltenyi TCR Disco block calculates differential abundance of TCR α/β clonotypes across experimental conditions to identify clonotypes that are significantly enriched or depleted. The block uses clonotype count data obtained from V(D)J clonotyping blocks and applies statistical tests to identify significant changes in clonotype abundance while accounting for biological variability and differences in library size.  
 Differentially abundant clonotypes can be correlated based on their abundance patterns and annotated to CD4/CD8 T-cell populations to provide additional biological context.
 
 Uniquely, the block also enables computational pairing of TCRα and TCRβ chains for detected differentially abundant clonotypes.
