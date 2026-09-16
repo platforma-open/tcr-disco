@@ -19,7 +19,7 @@
   "scripts": {
     "pretty": "prettier --write \"./**/*.{js,jsx,mjs,cjs,ts,tsx,json,vue}\"",
     "build": "ts-builder build --target block-facade && block-tools pack",
-    "prepublishOnly": "block-tools pack && block-tools publish -r 's3://prod-miltenyi-registry-euce1/pub/releases/?region=eu-central-1' --registry-serve-url miltenyi-ga-x7k9m.pl-open.science",
+    "prepublishOnly": "block-tools publish -r s3://milab-euce1-prod-pkgs-s3-block-registry/pub/releases/?region=eu-central-1 --registry-serve-url https://blocks.pl-open.science",
     "do-pack": "shx rm -f package.tgz && pnpm pack && shx mv *.tgz package.tgz",
     "check": "ts-builder type-check --target block-facade"
   },
@@ -48,9 +48,9 @@
     "meta": {
       "title": "TCR Disco",
       "logo": "file:../logos/block-logo.png",
-      "url": "https://github.com/platforma-open/tcrdisco-enrichment",
+      "url": "https://github.com/platforma-open/tcr-disco",
       "support": "mailto:support@milaboratories.com",
-      "description": "Calculates differential abundances of clonotypes between conditions in TCR alpha and beta chains using DESeq2.",
+      "description": "Calculates differential abundances of TCR α/β clonotypes between experimental conditions and enables computational pairing of TCRα and TCRβ chains.",
       "longDescription": "file:../docs/description.md",
       "changelog": "file:../CHANGELOG.md",
       "tags": [
