@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.tcrdisco-enrichment
 
+## 1.3.5
+
+### Patch Changes
+
+- 994e755: Move to workflow-tengo 6.11.1
+
 ## 1.3.4
 
 ### Patch Changes
