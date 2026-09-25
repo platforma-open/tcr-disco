@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.tcrdisco-enrichment
 
+## 1.3.6
+
+### Patch Changes
+
+- a4ec239: Update SDK: PlAgDataTable no longer recreates its grid in an endless loop
+
 ## 1.3.5
 
 ### Patch Changes
