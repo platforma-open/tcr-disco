@@ -21,7 +21,7 @@ catalog:
 
   "@milaboratories/graph-maker": 1.8.0
   "@milaboratories/helpers": 1.14.5
-  "@milaboratories/pl-model-common": 1.48.0
+  "@milaboratories/pl-model-common": 1.51.0
   "es-toolkit": 1.41.0
   "@platforma-open/milaboratories.runenv-r-tcr-disco": 1.0.0
   "@platforma-open/milaboratories.runenv-r-differential-expression": 1.0.7
