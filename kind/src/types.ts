@@ -24,7 +24,7 @@ import type { PlRef } from "@milaboratories/pl-model-common";
  * later is additive; removing them is not.
  */
 export type BlockParams = {
-  /** Block label in the project tree. Falls back to "TCRdisco". */
+  /** Block label in the project tree. Falls back to "TCR Disco". */
   title?: string;
 
   /** Main clonotype dataset — the abundance column the analysis runs on. */
