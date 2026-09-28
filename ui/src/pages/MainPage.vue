@@ -65,7 +65,7 @@ function setInput(inputRef?: PlRef) {
     const mainLabel = app.model.outputs.inputOptions?.find((o) =>
       plRefsEqual(o.ref, inputRef),
     )?.label;
-    if (mainLabel) app.model.data.title = "TCRdisco - " + mainLabel;
+    if (mainLabel) app.model.data.title = "TCR Disco - " + mainLabel;
   }
 }
 

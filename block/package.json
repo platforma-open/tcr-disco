@@ -46,7 +46,7 @@
       "ui": "@platforma-open/milaboratories.tcrdisco-enrichment.ui/dist"
     },
     "meta": {
-      "title": "TCRdisco",
+      "title": "TCR Disco",
       "logo": "file:../logos/block-logo.png",
       "url": "https://github.com/platforma-open/tcr-disco",
       "support": "mailto:support@milaboratories.com",
