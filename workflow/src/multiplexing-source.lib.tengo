@@ -1,4 +1,4 @@
-// multiplexing-source — TCR Disco's barcode resolver.
+// multiplexing-source — TCRdisco's barcode resolver.
 //
 // Resolves per-sample barcode values from S&D 2.7.0+'s
 // `pl7.app/sequencing/multiplexingRules` column.
@@ -17,8 +17,8 @@ text := import("text")
 json := import("json")
 
 // Miltenyi's equivalent resolver anchors the rules column's first axis to
-// `main.idx 0` (a sampleGroupId on a dataset-reference column). TCR
-// Disco's `mainAlpha` is a clonotype-counts column whose first axis is
+// `main.idx 0` (a sampleGroupId on a dataset-reference column). TCRdisco's
+// `mainAlpha` is a clonotype-counts column whose first axis is
 // sampleId — wrong shape for that anchor. We match by axis names and
 // types instead.
 //
@@ -61,7 +61,7 @@ parseRulesColumn := func(rulesCol) {
         return { ok: false, message: "Multiplexing rules column declares no barcode tags." }
     }
     if len(tags) > 1 {
-        return { ok: false, message: "TCR Disco v1 does not support multiple barcode tags (" + text.join(tags, ", ") + "). Use a single-tag rules column." }
+        return { ok: false, message: "TCRdisco v1 does not support multiple barcode tags (" + text.join(tags, ", ") + "). Use a single-tag rules column." }
     }
     tag := tags[0]
 
@@ -88,7 +88,7 @@ parseRulesColumn := func(rulesCol) {
             return { ok: false, message: "Multiplexing rules cell for group " + groupId + ", sample " + sampleId + " is empty." }
         }
         if len(alts) > 1 {
-            return { ok: false, message: "Multiplexing rules cell for group " + groupId + ", sample " + sampleId + " has multiple alternatives — TCR Disco v1 supports one alternative per sample." }
+            return { ok: false, message: "Multiplexing rules cell for group " + groupId + ", sample " + sampleId + " has multiple alternatives — TCRdisco v1 supports one alternative per sample." }
         }
         firstAlt := alts[0]
         if !is_map(firstAlt) {
