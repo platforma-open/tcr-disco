@@ -1,5 +1,13 @@
 # @platforma-open/milaboratories.tcrdisco-enrichment.model
 
+## 1.3.1
+
+### Patch Changes
+
+- 4819a25: Change block name
+- Updated dependencies [4819a25]
+  - @platforma-open/milaboratories.tcrdisco-enrichment.kind@1.1.1
+
 ## 1.3.0
 
 ### Minor Changes

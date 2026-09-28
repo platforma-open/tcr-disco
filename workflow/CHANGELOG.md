@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.tcrdisco-enrichment.workflow
 
+## 1.3.1
+
+### Patch Changes
+
+- 4819a25: Change block name
+
 ## 1.3.0
 
 ### Minor Changes
