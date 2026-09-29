@@ -41,6 +41,28 @@ function defaultGraphState(): BlockData["graphState"] {
   };
 }
 
+// Drops a chart's saved color mappings for the sources bound to its Grouping
+// input, so they are seeded afresh. graph-maker (>= 1.9) reads the
+// `pl7.app/graph/palette` annotation only when it creates a mapping; a mapping
+// already saved in `dataBindAes` wins. A volcano saved before that keeps its own
+// colors for the regulation direction and never picks up the Up/Down/NS palette
+// the column declares. `dataBindAes` is keyed by the ids graph-maker gives the
+// selected sources, so the entries are found through the Grouping selection
+// rather than by column name.
+function withGroupingColorsReseeded(state: BlockData["graphState"]): BlockData["graphState"] {
+  const aes = state.dataBindAes;
+  if (aes === undefined) return state;
+  const components = state.optionsState?.components as
+    | Record<string, { selectorStates?: { selectedSource: string }[] } | undefined>
+    | undefined;
+  const grouping = new Set(
+    (components?.grouping?.selectorStates ?? []).map((s) => s.selectedSource),
+  );
+  if (grouping.size === 0) return state;
+  const kept = Object.fromEntries(Object.entries(aes).filter(([source]) => !grouping.has(source)));
+  return { ...state, dataBindAes: kept };
+}
+
 // Single source of truth for fresh-project defaults, reused by both `init`
 // (new projects) and `upgradeLegacy` (fallbacks for fields absent in V1 state).
 // Mirrors the pre-V3 `.withArgs` / `.withUiState` defaults exactly.
@@ -130,6 +152,13 @@ export const blockDataModel = new DataModelBuilder({ kind })
     graphStateBeta: (prev as Partial<BlockData>).graphStateBeta ?? defaultGraphState(),
     frequenciesHeatmapStateBeta:
       (prev as Partial<BlockData>).frequenciesHeatmapStateBeta ?? defaultFreqHeatmapState(),
+  }))
+  // v4: graph-maker 1.9 — let the regulation-direction palette seed both
+  // volcanos' grouping colors.
+  .migrate<BlockData>("v4", (prev) => ({
+    ...prev,
+    graphState: withGroupingColorsReseeded(prev.graphState),
+    graphStateBeta: withGroupingColorsReseeded(prev.graphStateBeta),
   }))
   // `params` is absent when a block is created by hand rather than from a
   // template, so every field the kind's contract carries falls back to the same
