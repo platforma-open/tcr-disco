@@ -19,7 +19,7 @@ catalog:
   "@milaboratories/multi-sequence-alignment": 1.47.25
   "@platforma-sdk/blocks-deps-updater": 2.0.0
 
-  "@milaboratories/graph-maker": 1.8.0
+  "@milaboratories/graph-maker": 1.9.0
   "@milaboratories/helpers": 1.14.5
   "@milaboratories/pl-model-common": 1.51.0
   "es-toolkit": 1.41.0
