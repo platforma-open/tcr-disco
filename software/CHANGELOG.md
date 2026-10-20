@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.run-tcrdisco-enrichment.software
 
+## 1.3.1
+
+### Patch Changes
+
+- 64007a8: Release every package through npm trusted publishing (OIDC) so each package's trusted publisher is used before it expires.
+
 ## 1.3.0
 
 ### Minor Changes
