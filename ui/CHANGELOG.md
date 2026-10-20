@@ -1,5 +1,13 @@
 # @platforma-open/milaboratories.tcrdisco-enrichment.ui
 
+## 1.3.3
+
+### Patch Changes
+
+- 64007a8: Release every package through npm trusted publishing (OIDC) so each package's trusted publisher is used before it expires.
+- Updated dependencies [64007a8]
+  - @platforma-open/milaboratories.tcrdisco-enrichment.model@1.3.3
+
 ## 1.3.2
 
 ### Patch Changes
