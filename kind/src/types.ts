@@ -1,4 +1,4 @@
-import type { PlRef } from "@milaboratories/pl-model-common";
+import type { ColumnUniversalId, ColumnValueId } from "@milaboratories/pl-model-common";
 
 /**
  * This block's init-params contract — the shape a block of this kind receives at
@@ -14,6 +14,11 @@ import type { PlRef } from "@milaboratories/pl-model-common";
  * sequence-alignment model): re-running a template must reproduce an analysis,
  * not someone's scroll position.
  *
+ * Columns are result-pool column ids, each naming the block that produced the
+ * column. Picked values are column value ids of the contrast factor column: each
+ * names the column it was picked from, and through it the block that produced
+ * the value.
+ *
  * Two analysis fields are deliberately absent, and both for the same reason:
  * `cdRef` and `cdSubsetCol` (the CD4/CD8 subset source and its column). The args
  * lambda refuses a `cdRef` whose subset column has not been confirmed to hold
@@ -28,28 +33,28 @@ export type BlockParams = {
   title?: string;
 
   /** Main clonotype dataset — the abundance column the analysis runs on. */
-  mainRef?: PlRef;
+  mainRef?: ColumnUniversalId;
 
   /** Metadata column whose values name the groups being compared. */
-  contrastFactor?: PlRef;
+  contrastFactor?: ColumnUniversalId;
 
   /** Values of `contrastFactor` treated as target groups (enrichment is measured in these). */
-  numerators?: string[];
+  numerators?: ColumnValueId[];
 
   /** Values of `contrastFactor` treated as baseline groups (each numerator is compared against all of these). */
-  denominators?: string[];
+  denominators?: ColumnValueId[];
 
   /** Further metadata columns entered into the differential-abundance design as covariates. */
-  covariateRefs?: PlRef[];
+  covariateRefs?: ColumnUniversalId[];
 
   /** Correlate alpha/beta clonotype frequencies across target samples to predict chain pairs. */
   findTcrAbPairs?: boolean;
 
   /**
-   * Label of the metadata column that collapses paired alpha/beta samples onto one
-   * sample id for the pairing correlation. Read only when `findTcrAbPairs` is set.
+   * Metadata column that collapses paired alpha/beta samples onto one sample id for
+   * the pairing correlation. Read only when `findTcrAbPairs` is set.
    */
-  pairingMetadataCol?: string;
+  pairingMetadataCol?: ColumnUniversalId;
 
   /** Minimum count for a clonotype to be kept, per target sample. */
   thresholdCounts?: number;

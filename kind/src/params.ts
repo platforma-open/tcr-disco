@@ -1,4 +1,9 @@
-import { isPlRef, type PlRef } from "@milaboratories/pl-model-common";
+import {
+  isColumnUniversalId,
+  isColumnValueId,
+  type ColumnUniversalId,
+  type ColumnValueId,
+} from "@milaboratories/pl-model-common";
 import { assertParamsObject } from "@platforma-sdk/block-kind";
 import { isBoolean, isString } from "es-toolkit";
 import { isArray, isNumber } from "es-toolkit/compat";
@@ -37,13 +42,13 @@ export function parseInitializationParams(value: unknown): BlockParams {
   } = value;
 
   requireString("title", title);
-  requireRef("mainRef", mainRef);
-  requireRef("contrastFactor", contrastFactor);
-  requireStringArray("numerators", numerators);
-  requireStringArray("denominators", denominators);
-  requireRefArray("covariateRefs", covariateRefs);
+  requireColumn("mainRef", mainRef);
+  requireColumn("contrastFactor", contrastFactor);
+  requireColumnValueArray("numerators", numerators);
+  requireColumnValueArray("denominators", denominators);
+  requireColumnArray("covariateRefs", covariateRefs);
   requireBoolean("findTcrAbPairs", findTcrAbPairs);
-  requireString("pairingMetadataCol", pairingMetadataCol);
+  requireColumn("pairingMetadataCol", pairingMetadataCol);
   requireCount("thresholdCounts", thresholdCounts);
   requireCount("thresholdSamples", thresholdSamples);
   requireNonNegative("log2FcThreshold", log2FcThreshold);
@@ -101,21 +106,31 @@ function requireProbability(field: string, v: unknown): asserts v is number | un
     throw new Error(`'${field}' must be greater than 0 and at most 1.`);
 }
 
-function requireStringArray(field: string, v: unknown): asserts v is string[] | undefined {
+// The groups being compared are values of the contrast factor column, so any value
+// the user's metadata holds is legal -- only the column value id form is checked. A
+// value the column no longer holds stays picked and is shown as not available.
+function requireColumnValueArray(
+  field: string,
+  v: unknown,
+): asserts v is ColumnValueId[] | undefined {
   if (v === undefined) return;
-  if (!isArray(v) || !v.every(isString)) throw new Error(`'${field}' must be an array of strings.`);
+  if (!isArray(v) || !v.every(isColumnValueId))
+    throw new Error(`'${field}' must be an array of column values, written as column value ids.`);
 }
 
-// `isPlRef` is the SDK's own guard, so a reference is recognized the same way
-// here as everywhere else. Ids are placeholders during the pre-flight check that
+// `isColumnUniversalId` is the SDK's own guard, so a column is recognized the same
+// way here as everywhere else. Ids are placeholders during the pre-flight check that
 // runs before any block exists, so shape is all that can be checked.
-function requireRef(field: string, v: unknown): asserts v is PlRef | undefined {
-  if (v !== undefined && !isPlRef(v))
-    throw new Error(`'${field}' must be a reference to a column.`);
+function requireColumn(field: string, v: unknown): asserts v is ColumnUniversalId | undefined {
+  if (v !== undefined && !isColumnUniversalId(v))
+    throw new Error(`'${field}' must be an upstream column, written as a column id.`);
 }
 
-function requireRefArray(field: string, v: unknown): asserts v is PlRef[] | undefined {
+function requireColumnArray(
+  field: string,
+  v: unknown,
+): asserts v is ColumnUniversalId[] | undefined {
   if (v === undefined) return;
-  if (!isArray(v) || !v.every(isPlRef))
-    throw new Error(`'${field}' must be an array of references to columns.`);
+  if (!isArray(v) || !v.every(isColumnUniversalId))
+    throw new Error(`'${field}' must be an array of upstream columns, written as column ids.`);
 }
