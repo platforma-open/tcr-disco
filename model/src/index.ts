@@ -12,7 +12,6 @@ import type {
 } from "@platforma-sdk/model";
 import {
   BlockModelV3,
-  blockDependencies,
   createPFrameForGraphs,
   createPlDataTableSheet,
   createPlDataTableV3,
@@ -330,8 +329,6 @@ export const platforma = BlockModelV3.create({ dataModel: blockDataModel, kind }
   })
 
   .output("isRunning", (ctx): boolean => ctx.outputs?.getIsReadyOrError() === false)
-
-  .plugin(blockDependencies)
 
   .title((ctx) => ctx.data.title ?? "TCRdisco")
 
