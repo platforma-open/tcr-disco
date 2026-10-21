@@ -2,7 +2,7 @@
 import type { PredefinedGraphOption } from "@milaboratories/graph-maker";
 import { GraphMaker } from "@milaboratories/graph-maker";
 import type { PColumnIdAndSpec, PColumnSpec } from "@platforma-sdk/model";
-import { plRefsEqual } from "@platforma-sdk/model";
+import { columnValueLabel } from "@platforma-sdk/model";
 import { PlTabs } from "@platforma-sdk/ui-vue";
 import { computed } from "vue";
 import { useApp } from "../app";
@@ -63,12 +63,12 @@ const defaultOptions = computed((): PredefinedGraphOption<"heatmap">[] | undefin
 
   const fractionIndex = getIndex("pl7.app/differentialTCRAbundance/countFraction", pcols);
 
-  // Get the label from the contrastFactor PlRef
-  const contrastFactorLabel = app.model.data.contrastFactor
-    ? app.model.outputs.metadataOptions?.find((opt) =>
-        plRefsEqual(opt.ref, app.model.data.contrastFactor!),
-      )?.label
-    : undefined;
+  // Get the label of the contrast factor column
+  const contrastFactor = app.model.data.contrastFactor;
+  const contrastFactorLabel =
+    contrastFactor === undefined
+      ? undefined
+      : app.model.outputs.metadataOptions?.find((opt) => opt.value === contrastFactor)?.label;
 
   const contrastIndex = pcols.findIndex(
     (p) =>
@@ -158,7 +158,9 @@ const defaultOptions = computed((): PredefinedGraphOption<"heatmap">[] | undefin
   }
 
   // Add filters for the contrast values that have been selected
-  const contrastValues = [...app.model.data.numerators, ...app.model.data.denominators];
+  const contrastValues = [...app.model.data.numerators, ...app.model.data.denominators].map(
+    columnValueLabel,
+  );
   if (contrastValues.length > 0) {
     defaults.push({
       inputName: "filters",
