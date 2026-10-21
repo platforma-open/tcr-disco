@@ -1,10 +1,12 @@
 import { kind } from "@platforma-open/milaboratories.tcrdisco-enrichment.kind";
-import type { ColumnUniversalId, PlRef } from "@platforma-sdk/model";
+import type { ColumnUniversalId, ColumnValueId, PlRef } from "@platforma-sdk/model";
 import {
+  createColumnValueId,
   createGlobalPObjectId,
   createPlDataTableStateV2,
   DataModelBuilder,
   isColumnValueId,
+  isPlRef,
 } from "@platforma-sdk/model";
 import type {
   BlockData,
@@ -79,11 +81,13 @@ function withGroupingColorsReseeded(state: BlockData["graphState"]): BlockData["
 
 // Moves stored data to column ids. A ref to an upstream output becomes the
 // result-pool id of that output, which names the same block and column. The
-// compared groups were plain values of the contrast factor column and the pairing
-// column was the label of a metadata column; neither names the block that produced
-// it, so they cannot become ids and are dropped, to be picked again.
+// compared groups were plain values of the contrast factor column, so each becomes
+// a value id of that column's new id; without a contrast factor ref they name no
+// column and are dropped. The pairing column was the label of a metadata column,
+// which names no producing block, so it is dropped, to be picked again.
 function toColumnIds(data: BlockDataV4): BlockData {
   const { mainRef, cdRef, cdSubsetCol, contrastFactor } = data;
+  const contrastColumn = isPlRef(contrastFactor) ? plRefToColumnId(contrastFactor) : undefined;
   return {
     ...data,
     mainRef: mainRef === undefined ? undefined : plRefToColumnId(mainRef),
@@ -92,13 +96,29 @@ function toColumnIds(data: BlockDataV4): BlockData {
     pairingMetadataCol: undefined,
     covariateRefs: data.covariateRefs.map(plRefToColumnId),
     contrastFactor: contrastFactor === undefined ? undefined : plRefToColumnId(contrastFactor),
-    numerators: data.numerators.filter((numerator) => isColumnValueId(numerator)),
-    denominators: data.denominators.filter((denominator) => isColumnValueId(denominator)),
+    numerators: toColumnValueIds(data.numerators, contrastColumn),
+    denominators: toColumnValueIds(data.denominators, contrastColumn),
   };
 }
 
 function plRefToColumnId(ref: PlRef): ColumnUniversalId {
   return createGlobalPObjectId(ref.blockId, ref.name);
+}
+
+// A pick that already is a value id is kept as is; a plain value becomes a value
+// id of `column` unchanged, a number in text staying text, since the column's
+// value type is not known here. Order and repeats are kept.
+function toColumnValueIds(
+  picks: readonly unknown[],
+  column: ColumnUniversalId | undefined,
+): ColumnValueId[] {
+  return picks.flatMap((pick) => {
+    if (isColumnValueId(pick)) return [pick];
+    if (column === undefined) return [];
+    if (typeof pick === "string" || (typeof pick === "number" && Number.isFinite(pick)))
+      return [createColumnValueId({ column, value: pick })];
+    return [];
+  });
 }
 
 // Single source of truth for fresh-project defaults, reused by both `init`
