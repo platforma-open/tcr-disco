@@ -29,8 +29,8 @@ export type ColumnPickerOption = {
  * (the first of exactly two axes) and alpha-chain clonotype. The beta chain of the same
  * clonotyping run is found by the workflow.
  */
-export function getInputOptions(ctx: RenderCtxBase): ColumnPickerOption[] {
-  const columns = resultPool(ctx).filter({ include: TCR_ALPHA_ABUNDANCE });
+export function getInputOptions(): ColumnPickerOption[] {
+  const columns = resultPool().filter({ include: TCR_ALPHA_ABUNDANCE });
   return toPickerOptions(
     deriveColumnOptions(columns, {
       includeNativeLabel: false,
@@ -41,13 +41,13 @@ export function getInputOptions(ctx: RenderCtxBase): ColumnPickerOption[] {
 }
 
 /** Sample metadata columns of upstream blocks. */
-export function getMetadataOptions(ctx: RenderCtxBase): ColumnPickerOption[] {
-  return toPickerOptions(deriveColumnOptions(getMetadataCollection(ctx)));
+export function getMetadataOptions(): ColumnPickerOption[] {
+  return toPickerOptions(deriveColumnOptions(getMetadataCollection()));
 }
 
 /** Sample metadata columns of upstream blocks, as recipes. */
-export function getMetadataColumns(ctx: RenderCtxBase): ColumnRecipe[] {
-  return getMetadataCollection(ctx).getColumns();
+export function getMetadataColumns(): ColumnRecipe[] {
+  return getMetadataCollection().getColumns();
 }
 
 /**
@@ -55,30 +55,23 @@ export function getMetadataColumns(ctx: RenderCtxBase): ColumnRecipe[] {
  * of it has arrived.
  */
 export function getOutputColumns(
-  ctx: RenderCtxBase,
   accessor: TreeNodeAccessor | undefined,
 ): ColumnsCollection | undefined {
   if (accessor === undefined) return undefined;
-  const collection = ColumnsCollection([accessor], { ctx: ctx.ctx });
+  const collection = ColumnsCollection([accessor]);
   return collection.isFinal() ? collection : undefined;
 }
 
 /** Upstream CDR3 amino-acid sequence columns keyed by a clonotype of the given chain at their first axis. */
-export function getChainCdr3Columns(
-  ctx: RenderCtxBase,
-  chain: "TCRAlpha" | "TCRBeta",
-): ColumnRecipe[] {
-  return getAminoAcidSequenceColumns(ctx, "CDR3").filter(
+export function getChainCdr3Columns(chain: "TCRAlpha" | "TCRBeta"): ColumnRecipe[] {
+  return getAminoAcidSequenceColumns("CDR3").filter(
     (column) => column.getSpec().axesSpec[0]?.domain?.["pl7.app/vdj/chain"] === chain,
   );
 }
 
 /** Upstream V gene hit columns keyed by a clonotype of the given chain at their first axis. */
-export function getChainVGeneColumns(
-  ctx: RenderCtxBase,
-  chain: "TCRAlpha" | "TCRBeta",
-): ColumnRecipe[] {
-  return resultPool(ctx)
+export function getChainVGeneColumns(chain: "TCRAlpha" | "TCRBeta"): ColumnRecipe[] {
+  return resultPool()
     .filter({
       include: {
         name: [exact("pl7.app/vdj/geneHit")],
@@ -94,11 +87,10 @@ export function getChainVGeneColumns(
  * given clonotyping runs; of every run when none is given.
  */
 export function getRunSequenceColumns(
-  ctx: RenderCtxBase,
   feature: "CDR3" | "VGene",
   runIds: ReadonlySet<string>,
 ): ColumnRecipe[] {
-  const columns = getAminoAcidSequenceColumns(ctx, feature);
+  const columns = getAminoAcidSequenceColumns(feature);
   if (runIds.size === 0) return columns;
   return columns.filter((column) =>
     runIds.has(column.getSpec().axesSpec[0]?.domain?.["pl7.app/vdj/clonotypingRunId"] ?? ""),
@@ -106,8 +98,8 @@ export function getRunSequenceColumns(
 }
 
 /** Upstream label columns of bulk or single-cell clonotypes. */
-export function getClonotypeLabelColumns(ctx: RenderCtxBase): ColumnRecipe[] {
-  return resultPool(ctx)
+export function getClonotypeLabelColumns(): ColumnRecipe[] {
+  return resultPool()
     .filter({
       include: {
         name: [exact("pl7.app/label")],
@@ -123,8 +115,8 @@ export function getClonotypeLabelColumns(ctx: RenderCtxBase): ColumnRecipe[] {
  * the first multiplexing rules column carries a single barcode tag the workflow can build one
  * from.
  */
-export function hasBarcodeSource(ctx: RenderCtxBase): boolean {
-  const legacyBarcodeColumns = resultPool(ctx).filter({
+export function hasBarcodeSource(): boolean {
+  const legacyBarcodeColumns = resultPool().filter({
     include: {
       name: [exact(METADATA_COLUMN_NAME)],
       annotations: { "pl7.app/label": [exact("Barcode ID")] },
@@ -132,7 +124,7 @@ export function hasBarcodeSource(ctx: RenderCtxBase): boolean {
   });
   if (!legacyBarcodeColumns.isEmpty()) return true;
 
-  const firstRulesColumn = resultPool(ctx)
+  const firstRulesColumn = resultPool()
     .filter({ include: { name: [exact("pl7.app/sequencing/multiplexingRules")] } })
     .getColumns()[0];
   if (firstRulesColumn === undefined) return false;
@@ -186,7 +178,7 @@ export type ColumnFrame =
 
 /** A frame of `column` alone, while the column and its frame are there. */
 export function createColumnFrame(ctx: RenderCtxBase, column: ColumnUniversalId): ColumnFrame {
-  const status = ColumnRecipe.getStatus(column, { ctx: ctx.ctx });
+  const status = ColumnRecipe.getStatus(column);
   if (status !== "present") return { type: status, column };
   const frame = ctx.createPFrame([column]);
   if (frame === undefined) return { type: "resolving", column };
@@ -215,19 +207,16 @@ const TCR_ALPHA_ABUNDANCE: RelaxedColumnSelector = {
   },
 };
 
-function resultPool(ctx: RenderCtxBase): ColumnsCollection {
-  return ColumnsCollection(["result_pool"], { ctx: ctx.ctx });
+function resultPool(): ColumnsCollection {
+  return ColumnsCollection(["result_pool"]);
 }
 
-function getMetadataCollection(ctx: RenderCtxBase): ColumnsCollection {
-  return resultPool(ctx).filter({ include: { name: [exact(METADATA_COLUMN_NAME)] } });
+function getMetadataCollection(): ColumnsCollection {
+  return resultPool().filter({ include: { name: [exact(METADATA_COLUMN_NAME)] } });
 }
 
-function getAminoAcidSequenceColumns(
-  ctx: RenderCtxBase,
-  feature: "CDR3" | "VGene",
-): ColumnRecipe[] {
-  return resultPool(ctx)
+function getAminoAcidSequenceColumns(feature: "CDR3" | "VGene"): ColumnRecipe[] {
+  return resultPool()
     .filter({
       include: {
         name: [exact("pl7.app/vdj/sequence")],
