@@ -106,8 +106,8 @@ function plRefToColumnId(ref: PlRef): ColumnUniversalId {
 }
 
 // A pick that already is a value id is kept as is; a plain value becomes a value
-// id of `column` unchanged, a number in text staying text, since the column's
-// value type is not known here. Order and repeats are kept.
+// id of `column` holding its text, the form every column value id carries: text
+// stays as stored, a number becomes its decimal text. Order and repeats are kept.
 function toColumnValueIds(
   picks: readonly unknown[],
   column: ColumnUniversalId | undefined,
@@ -116,7 +116,7 @@ function toColumnValueIds(
     if (isColumnValueId(pick)) return [pick];
     if (column === undefined) return [];
     if (typeof pick === "string" || (typeof pick === "number" && Number.isFinite(pick)))
-      return [createColumnValueId({ column, value: pick })];
+      return [createColumnValueId({ column, value: String(pick) })];
     return [];
   });
 }

@@ -1,4 +1,5 @@
 import type {
+  ColumnRecipe,
   ColumnUniversalId,
   PColumn,
   PColumnDataUniversal,
@@ -8,13 +9,7 @@ import type {
   StringMatcher,
   TreeNodeAccessor,
 } from "@platforma-sdk/model";
-import {
-  Column,
-  ColumnRecipe,
-  ColumnsCollection,
-  deriveColumnOptions,
-  isDataColumn,
-} from "@platforma-sdk/model";
+import { ColumnsCollection, deriveColumnOptions, isDataColumn } from "@platforma-sdk/model";
 
 /** A column offered in a column picker, by its result-pool id. */
 export type ColumnPickerOption = {
@@ -46,15 +41,6 @@ export function getMetadataOptions(ctx: RenderCtxBase): ColumnPickerOption[] {
 /** Sample metadata columns of upstream blocks, as recipes. */
 export function getMetadataColumns(ctx: RenderCtxBase): ColumnRecipe[] {
   return getMetadataCollection(ctx).getColumns();
-}
-
-/**
- * The column with this id, found by id alone. `undefined` while it is still resolving and once
- * it is gone: a stored id may name a column its upstream block no longer produces.
- */
-export function findColumn(ctx: RenderCtxBase, id: ColumnUniversalId): ColumnRecipe | undefined {
-  if (ColumnRecipe.getStatus(id, { ctx: ctx.ctx }) !== "present") return undefined;
-  return Column(id, { ctx: ctx.ctx });
 }
 
 /**

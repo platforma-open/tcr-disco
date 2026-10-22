@@ -48,6 +48,15 @@ describe("v5 migration", () => {
     expect(data.denominators.map((id) => parseColumnValueId(id).value)).toEqual(["day 0", "1"]);
   });
 
+  test("a pick stored as a number becomes its decimal text", () => {
+    const migrated = blockDataModel.migrate({
+      version: "v4",
+      data: { ...storedAtV4, numerators: [7, 0.5], denominators: [0] },
+    }).data;
+    expect(migrated.numerators.map((id) => parseColumnValueId(id).value)).toEqual(["7", "0.5"]);
+    expect(migrated.denominators.map((id) => parseColumnValueId(id).value)).toEqual(["0"]);
+  });
+
   test("the pairing column, a label, is dropped", () => {
     expect(data.pairingMetadataCol).toBeUndefined();
   });
