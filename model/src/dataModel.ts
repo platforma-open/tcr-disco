@@ -1,6 +1,22 @@
 import { kind } from "@platforma-open/milaboratories.tcrdisco-enrichment.kind";
-import { createPlDataTableStateV2, DataModelBuilder } from "@platforma-sdk/model";
-import type { BlockData, LegacyBlockArgs, LegacyUiState } from "./types";
+import type { ColumnUniversalId, ColumnValueId, PlRef } from "@platforma-sdk/model";
+import {
+  createColumnValueId,
+  createGlobalPObjectId,
+  createPlDataTableStateV2,
+  DataModelBuilder,
+  isColumnValueId,
+  isPlRef,
+} from "@platforma-sdk/model";
+import type {
+  BlockData,
+  BlockDataV1,
+  BlockDataV2,
+  BlockDataV3,
+  BlockDataV4,
+  LegacyBlockArgs,
+  LegacyUiState,
+} from "./types";
 
 // Fresh enriched-clonotypes heatmap state. The Y label-part default (show
 // CDR3-aa + V-gene, hide the clone-key axis) is NOT stored here — it lives on the
@@ -63,6 +79,48 @@ function withGroupingColorsReseeded(state: BlockData["graphState"]): BlockData["
   return { ...state, dataBindAes: kept };
 }
 
+// Moves stored data to column ids. A ref to an upstream output becomes the
+// result-pool id of that output, which names the same block and column. The
+// compared groups were plain values of the contrast factor column, so each becomes
+// a value id of that column's new id; without a contrast factor ref they name no
+// column and are dropped. The pairing column was the label of a metadata column,
+// which names no producing block, so it is dropped, to be picked again.
+function toColumnIds(data: BlockDataV4): BlockData {
+  const { mainRef, cdRef, cdSubsetCol, contrastFactor } = data;
+  const contrastColumn = isPlRef(contrastFactor) ? plRefToColumnId(contrastFactor) : undefined;
+  return {
+    ...data,
+    mainRef: mainRef === undefined ? undefined : plRefToColumnId(mainRef),
+    cdRef: cdRef === undefined ? undefined : plRefToColumnId(cdRef),
+    cdSubsetCol: cdSubsetCol === undefined ? undefined : plRefToColumnId(cdSubsetCol),
+    pairingMetadataCol: undefined,
+    covariateRefs: data.covariateRefs.map(plRefToColumnId),
+    contrastFactor: contrastFactor === undefined ? undefined : plRefToColumnId(contrastFactor),
+    numerators: toColumnValueIds(data.numerators, contrastColumn),
+    denominators: toColumnValueIds(data.denominators, contrastColumn),
+  };
+}
+
+function plRefToColumnId(ref: PlRef): ColumnUniversalId {
+  return createGlobalPObjectId(ref.blockId, ref.name);
+}
+
+// A pick that already is a value id is kept as is; a plain value becomes a value
+// id of `column` holding its text, the form every column value id carries: text
+// stays as stored, a number becomes its decimal text. Order and repeats are kept.
+function toColumnValueIds(
+  picks: readonly unknown[],
+  column: ColumnUniversalId | undefined,
+): ColumnValueId[] {
+  return picks.flatMap((pick) => {
+    if (isColumnValueId(pick)) return [pick];
+    if (column === undefined) return [];
+    if (typeof pick === "string" || (typeof pick === "number" && Number.isFinite(pick)))
+      return [createColumnValueId({ column, value: String(pick) })];
+    return [];
+  });
+}
+
 // Single source of truth for fresh-project defaults, reused by both `init`
 // (new projects) and `upgradeLegacy` (fallbacks for fields absent in V1 state).
 // Mirrors the pre-V3 `.withArgs` / `.withUiState` defaults exactly.
@@ -105,7 +163,7 @@ function defaultData(): BlockData {
 }
 
 export const blockDataModel = new DataModelBuilder({ kind })
-  .from<BlockData>("v1")
+  .from<BlockDataV1>("v1")
   // Fires once per project saved under the V1 model. The `name` arg field is
   // intentionally dropped — nothing read it.
   .upgradeLegacy<LegacyBlockArgs, LegacyUiState>(({ args, uiState }) => {
@@ -115,10 +173,10 @@ export const blockDataModel = new DataModelBuilder({ kind })
       cdRef: args.cdRef,
       cdSubsetCol: args.cdSubsetCol,
       pairingMetadataCol: args.pairingMetadataCol,
-      covariateRefs: args.covariateRefs ?? d.covariateRefs,
+      covariateRefs: args.covariateRefs ?? [],
       contrastFactor: args.contrastFactor,
-      numerators: args.numerators ?? d.numerators,
-      denominators: args.denominators ?? d.denominators,
+      numerators: args.numerators ?? [],
+      denominators: args.denominators ?? [],
       findTcrAbPairs: args.findTcrAbPairs ?? d.findTcrAbPairs,
       thresholdCounts: args.thresholdCounts ?? d.thresholdCounts,
       thresholdSamples: args.thresholdSamples ?? d.thresholdSamples,
@@ -140,26 +198,27 @@ export const blockDataModel = new DataModelBuilder({ kind })
   })
   // v2: split the main table's state per chain. Existing data has only
   // `tableState` (shared); give it a fresh `tableStateBeta`.
-  .migrate<BlockData>("v2", (prev) => ({
+  .migrate<BlockDataV2>("v2", (prev) => ({
     ...prev,
-    tableStateBeta: (prev as Partial<BlockData>).tableStateBeta ?? createPlDataTableStateV2(),
+    tableStateBeta: prev.tableStateBeta ?? createPlDataTableStateV2(),
   }))
   // v3: split the volcano and enriched-clonotypes-heatmap states per chain.
   // Sharing one state across chains broke when a user's custom data-mapping
   // referenced a column absent in the other chain ("inconsistent" on switch).
-  .migrate<BlockData>("v3", (prev) => ({
+  .migrate<BlockDataV3>("v3", (prev) => ({
     ...prev,
-    graphStateBeta: (prev as Partial<BlockData>).graphStateBeta ?? defaultGraphState(),
-    frequenciesHeatmapStateBeta:
-      (prev as Partial<BlockData>).frequenciesHeatmapStateBeta ?? defaultFreqHeatmapState(),
+    graphStateBeta: prev.graphStateBeta ?? defaultGraphState(),
+    frequenciesHeatmapStateBeta: prev.frequenciesHeatmapStateBeta ?? defaultFreqHeatmapState(),
   }))
   // v4: graph-maker 1.9 — let the regulation-direction palette seed both
   // volcanos' grouping colors.
-  .migrate<BlockData>("v4", (prev) => ({
+  .migrate<BlockDataV4>("v4", (prev) => ({
     ...prev,
     graphState: withGroupingColorsReseeded(prev.graphState),
     graphStateBeta: withGroupingColorsReseeded(prev.graphStateBeta),
   }))
+  // v5: columns become result-pool ids, the compared groups column value ids.
+  .migrate<BlockData>("v5", toColumnIds)
   // `params` is absent when a block is created by hand rather than from a
   // template, so every field the kind's contract carries falls back to the same
   // default a hand-created block gets. Fields the contract deliberately omits

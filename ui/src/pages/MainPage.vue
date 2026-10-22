@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import type { PlRef } from "@platforma-sdk/model";
-import { PFrameImpl, plRefsEqual } from "@platforma-sdk/model";
+import type { ColumnUniversalId } from "@platforma-sdk/model";
 import {
   PlAccordionSection,
   PlAgDataTableV2,
@@ -8,20 +7,21 @@ import {
   PlBlockPage,
   PlBtnGhost,
   PlCheckbox,
+  PlColumnValueDropdownMulti,
   PlDropdown,
   PlDropdownMulti,
-  PlDropdownRef,
   PlMaskIcon24,
   PlNumberField,
   PlRow,
   PlSlideModal,
   PlTabs,
   PlTooltip,
+  usePlColumnValueSettings,
   usePlDataTableSettingsV2,
-  useWatchFetch,
 } from "@platforma-sdk/ui-vue";
 import { computed, ref, watch } from "vue";
 import { useApp } from "../app";
+import { useColumnValues } from "../column_values";
 
 const app = useApp();
 
@@ -59,141 +59,107 @@ const currentTableState = computed({
 });
 
 // Update page title by dataset
-function setInput(inputRef?: PlRef) {
+function setInput(inputRef?: ColumnUniversalId) {
   app.model.data.mainRef = inputRef;
   if (inputRef) {
-    const mainLabel = app.model.outputs.inputOptions?.find((o) =>
-      plRefsEqual(o.ref, inputRef),
-    )?.label;
+    const mainLabel = app.model.outputs.inputOptions?.find((o) => o.value === inputRef)?.label;
     if (mainLabel) app.model.data.title = "TCRdisco - " + mainLabel;
   }
 }
 
-const metadataOptions = computed(() => {
-  return (
-    app.model.outputs.metadataOptions?.map((v: { ref: PlRef; label: string }) => ({
-      value: v.ref,
-      label: v.label,
-    })) ?? []
-  );
-});
-
-const metadataLabels = computed(() => {
-  return (
-    app.model.outputs.metadataOptions?.map((v: { ref: PlRef; label: string }) => ({
-      value: v.label,
-      label: v.label,
-    })) ?? []
-  );
-});
+const metadataOptions = computed(() => app.model.outputs.metadataOptions ?? []);
 
 // CD4/8 dropdown: same options as main, but exclude the main dataset
 const cdRefInputOptions = computed(() => {
   const opts = app.model.outputs.inputOptions ?? [];
   const main = app.model.data.mainRef;
   if (!main) return opts;
-  return opts.filter((o) => !plRefsEqual(o.ref, main));
+  return opts.filter((o) => o.value !== main);
 });
 
 const contrastFactorOptions = computed(() => {
-  return app.model.data.covariateRefs.map((ref) => ({
-    value: ref,
-    label: metadataOptions.value.find((m) => m.value.name === ref.name)?.label ?? "",
+  return app.model.data.covariateRefs.map((id) => ({
+    value: id,
+    label: metadataOptions.value.find((m) => m.value === id)?.label ?? "",
   }));
 });
 
-// Get all possible numerator/denominator values
-const numeratorOptions = useWatchFetch(
-  () => app.model.outputs.denominatorOptions,
-  async (pframeHandle) => {
-    if (!pframeHandle) {
-      return undefined;
-    }
-    // Get ID of first pcolumn in the pframe (the only one we will access)
-    const pFrame = new PFrameImpl(pframeHandle);
-    const list = await pFrame.listColumns();
-    const id = list?.[0].columnId;
-    if (!id) {
-      return undefined;
-    }
-    // Get unique values of that first pcolumn
-    const response = await pFrame.getUniqueValues({ columnId: id, filters: [], limit: 1000000 });
-    if (!response) {
-      return undefined;
-    }
-    return [...response.values.data].map((v) => ({ value: String(v), label: String(v) }));
-  },
-);
+/**
+ * What the numerator and denominator pickers offer: the values of the contrast factor column
+ * picked now.
+ */
+const contrastValues = usePlColumnValueSettings({
+  source: () => app.model.outputs.contrastValues,
+  valueColumn: () => app.model.data.contrastFactor,
+});
 
-// Distinct values of the selected CD4/8 column. This is a read-only derivation
-// (output -> local reactive state), NOT a write back to data, so it is not a
-// hairpin — it drives the live UI warning below. The authoritative gate value
-// (data.cdSubsetColValid) is snapshotted separately, only on user gesture.
-const cdValues = useWatchFetch(
-  () => app.model.outputs.cdSubsetOptions,
-  async (pframeHandle) => {
-    if (!pframeHandle) {
-      return undefined;
-    }
-    // Get ID of first pcolumn in the pframe (the only one we will access)
-    const pFrame = new PFrameImpl(pframeHandle);
-    const list = await pFrame.listColumns();
-    const id = list?.[0].columnId;
-    if (!id) {
-      return undefined;
-    }
-    // Get unique values of that first pcolumn
-    const response = await pFrame.getUniqueValues({ columnId: id, filters: [], limit: 1000000 });
-    if (!response) {
-      return undefined;
-    }
-    return [...response.values.data].map((v) => ({ value: String(v), label: String(v) }));
-  },
-);
+const cdSubsetValues = useColumnValues({
+  source: () => app.model.outputs.cdSubsetValues,
+  column: () => app.model.data.cdSubsetCol,
+});
 
-// Whether the loaded CD4/8 column values include a CD4/CD8 label. `undefined`
-// while the values are still loading. Live, local — for the UX warning only.
-const cdColHasSubsets = computed<boolean | undefined>(() => {
-  const vals = cdValues.value;
-  if (!vals) return undefined;
-  return vals.some((v) => {
-    const label = v.label.toLowerCase();
-    return label === "cd4" || label === "cd8";
-  });
+// The CD4/8 check of the values of the selected subset column. `undefined` while
+// no subset column is picked. Read-only derivation (output -> local reactive
+// state), NOT a write back to data, so it is not a hairpin — it drives the live
+// UI warning below. The authoritative gate value (data.cdSubsetColValid) is
+// snapshotted separately, only on user gesture.
+const cdSubsetCheck = computed((): CdSubsetCheck | undefined => {
+  const state = cdSubsetValues.value;
+  if (state === undefined) return undefined;
+  switch (state.type) {
+    case "loading":
+      return { type: "loading" };
+    case "absent":
+      return { type: "unavailable", reason: "The selected column is not available" };
+    case "failed":
+      return { type: "unavailable", reason: state.message };
+  }
+  return {
+    type: "read",
+    hasSubsets: state.values.some((value) => {
+      const label = value.toLowerCase();
+      return label === "cd4" || label === "cd8";
+    }),
+    firstValues: state.values.slice(0, 5),
+  };
+});
+
+// Why the subset column cannot be checked, shown under its picker.
+const cdSubsetColError = computed(() => {
+  const check = cdSubsetCheck.value;
+  return check?.type === "unavailable" ? check.reason : undefined;
 });
 
 // Snapshot the CD4/8 validity into data only in response to the user's column
-// selection. Validity requires an async unique-values fetch, so it can't be
-// written synchronously in the gesture handler; instead the handler arms
-// `awaitingCdValidation` (per-client, never synced) and the watcher below writes
-// once the fetch settles. Because the flag is local, only the client that made
-// the selection writes — no multi-client write race, no output->data watcher.
+// selection. Validity comes from the column values, read after the selection, so
+// it can't be written synchronously in the gesture handler; instead the handler
+// arms `awaitingCdValidation` (per-client, never synced) and the watcher below
+// writes once the check for the new column settles. A column that is gone or
+// cannot be read settles it as invalid. Because the flag is local, only the
+// client that made the selection writes — no multi-client write race.
 const awaitingCdValidation = ref(false);
 
-function onCdSubsetColChange(ref?: PlRef) {
-  app.model.data.cdSubsetCol = ref;
+function onCdSubsetColChange(id?: ColumnUniversalId) {
+  app.model.data.cdSubsetCol = id;
   app.model.data.cdSubsetColValid = false; // close the run gate until re-verified
-  awaitingCdValidation.value = ref !== undefined;
+  awaitingCdValidation.value = id !== undefined;
 }
 
-watch(cdColHasSubsets, (hasSubsets) => {
+watch(cdSubsetCheck, (check) => {
   if (!awaitingCdValidation.value) return; // only the client that just selected
-  if (hasSubsets === undefined) return; // still loading
-  app.model.data.cdSubsetColValid = hasSubsets;
+  if (check === undefined || check.type === "loading") return;
+  app.model.data.cdSubsetColValid = check.type === "read" && check.hasSubsets;
   awaitingCdValidation.value = false;
 });
 
 // Reset numerator/denominator only when the contrast factor genuinely changes.
-// Watch the ref directly, NOT a fresh `[...]` wrapper: the array wrapper makes
+// Watch the id directly, NOT a fresh `[...]` wrapper: the array wrapper makes
 // Vue's Object.is comparison always report a change, so the callback fired on
 // every `data` reconcile/replacement (which V3 does on each sync) — wiping the
 // user's selection even when the contrast factor was untouched or undefined.
-// The plRefsEqual guard additionally covers reconciliation swapping in a
-// deep-equal PlRef with a new object identity.
 watch(
   () => app.model.data.contrastFactor,
-  (newRef, oldRef) => {
-    if (newRef && oldRef && plRefsEqual(newRef, oldRef)) return;
+  () => {
     app.model.data.numerators = [];
     app.model.data.denominators = [];
   },
@@ -204,7 +170,7 @@ watch(
   () => app.model.data.mainRef,
   (mainRef) => {
     const cdRef = app.model.data.cdRef;
-    if (cdRef && mainRef && plRefsEqual(cdRef, mainRef)) {
+    if (cdRef && mainRef && cdRef === mainRef) {
       app.model.data.cdRef = undefined;
     }
   },
@@ -212,6 +178,21 @@ watch(
 
 const requiredError = (v: number | undefined) =>
   v === undefined ? "Value is required" : undefined;
+
+// Internals
+
+/** The CD4/8 check of the subset column, as far as its values are read. */
+type CdSubsetCheck =
+  | { type: "loading" }
+  /** The column is gone, or its values cannot be read. */
+  | { type: "unavailable"; reason: string }
+  | {
+      type: "read";
+      /** Whether any value is "CD4" or "CD8", in any letter case. */
+      hasSubsets: boolean;
+      /** The first values of the column, in natural order, to show when it has no subsets. */
+      firstValues: string[];
+    };
 </script>
 
 <template>
@@ -257,7 +238,7 @@ const requiredError = (v: number | undefined) =>
 
   <PlSlideModal v-model="settingsAreShown">
     <template #title>Settings</template>
-    <PlDropdownRef
+    <PlDropdown
       v-model="app.model.data.mainRef"
       :options="app.model.outputs.inputOptions"
       label="Select main dataset"
@@ -269,7 +250,7 @@ const requiredError = (v: number | undefined) =>
         Select the main dataset containing TCR alpha and beta chain clonotype counts for
         differential abundance analysis.
       </template>
-    </PlDropdownRef>
+    </PlDropdown>
     <PlDropdownMulti
       v-model="app.model.data.covariateRefs"
       :options="metadataOptions"
@@ -295,19 +276,19 @@ const requiredError = (v: number | undefined) =>
         this column.
       </template>
     </PlDropdown>
-    <PlDropdownMulti
+    <PlColumnValueDropdownMulti
       v-model="app.model.data.numerators"
-      :options="numeratorOptions.value"
+      :settings="contrastValues"
       label="Numerator"
       required
     >
       <template #tooltip>
         Select one or more experimental conditions to compare against the baseline (denominator).
       </template>
-    </PlDropdownMulti>
-    <PlDropdownMulti
+    </PlColumnValueDropdownMulti>
+    <PlColumnValueDropdownMulti
       v-model="app.model.data.denominators"
-      :options="numeratorOptions.value"
+      :settings="contrastValues"
       label="Denominator/s"
       required
     >
@@ -317,7 +298,7 @@ const requiredError = (v: number | undefined) =>
         each numerator when compared individually against all selected denominators (excluding cases
         where the numerator matches the denominator) will be considered as enriched.
       </template>
-    </PlDropdownMulti>
+    </PlColumnValueDropdownMulti>
     <!-- Content hidden until you click THRESHOLD PARAMETERS -->
     <PlAccordionSection label="THRESHOLD PARAMETERS">
       <PlRow>
@@ -380,7 +361,7 @@ const requiredError = (v: number | undefined) =>
     <PlDropdown
       v-if="!app.model.outputs.barcodeColPresent && app.model.data.findTcrAbPairs"
       v-model="app.model.data.pairingMetadataCol"
-      :options="metadataLabels"
+      :options="metadataOptions"
       label="Pairing metadata column"
       clearable
     >
@@ -392,7 +373,7 @@ const requiredError = (v: number | undefined) =>
     </PlDropdown>
     <!-- Content hidden until you click -->
     <PlAccordionSection label="CD4/8 subset assignment">
-      <PlDropdownRef
+      <PlDropdown
         v-model="app.model.data.cdRef"
         :options="cdRefInputOptions"
         label="Select CD4/8 dataset (optional)"
@@ -403,11 +384,12 @@ const requiredError = (v: number | undefined) =>
           clonotypes from the main dataset will be assigned to either CD4+ or CD8+ T cell subsets
           based on this dataset.
         </template>
-      </PlDropdownRef>
+      </PlDropdown>
       <PlDropdown
         v-if="app.model.data.cdRef"
         :model-value="app.model.data.cdSubsetCol"
         :options="metadataOptions"
+        :error="cdSubsetColError"
         label="CD4/8 metadata column"
         clearable
         @update:model-value="onCdSubsetColChange"
@@ -420,16 +402,17 @@ const requiredError = (v: number | undefined) =>
         </template>
       </PlDropdown>
       <PlAlert
-        v-if="app.model.data.cdRef && app.model.data.cdSubsetCol && cdColHasSubsets === false"
+        v-if="
+          app.model.data.cdRef &&
+          app.model.data.cdSubsetCol &&
+          cdSubsetCheck?.type === 'read' &&
+          !cdSubsetCheck.hasSubsets
+        "
         type="warn"
       >
         {{
           "Warning: The selected column doen't have any CD4 or CD8 values. please choose a column that has.\
-        First 5 values are: " +
-          cdValues.value
-            ?.slice(0, 5)
-            .map((v) => v.label)
-            .join(", ")
+        First 5 values are: " + cdSubsetCheck.firstValues.join(", ")
         }}
       </PlAlert>
     </PlAccordionSection>
