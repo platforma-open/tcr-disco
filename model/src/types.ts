@@ -23,7 +23,7 @@ export type BlockData = {
   denominators: ColumnValueId[];
   findTcrAbPairs: boolean;
   // A cleared PlNumberField writes `undefined`, so these hold no value mid-edit.
-  // The args lambda refuses that (Run disabled); the workflow only ever sees numbers.
+  // The model's argsIssues refuses that (Run disabled); the workflow only ever sees numbers.
   thresholdCounts: number | undefined;
   thresholdSamples: number | undefined;
   log2FcThreshold: number | undefined;
@@ -33,8 +33,8 @@ export type BlockData = {
   title?: string;
   selectedChain?: "alpha" | "beta";
   // Whether the chosen cdSubsetCol contains CD4/CD8 values. Snapshotted by the
-  // UI on the user's cdSubsetCol selection from the model's check of the column's
-  // values, then read by the args validation. See ui/src/pages/MainPage.vue.
+  // UI on the user's cdSubsetCol selection from its check of the column's values,
+  // then read by the model's argsIssues. See ui/src/pages/MainPage.vue.
   cdSubsetColValid: boolean;
   // Per-chain table state. The main table's columns (and thus the default-filter
   // column ids) differ between topDegPFAlpha and topDegPFBeta, so alpha and beta
@@ -56,7 +56,9 @@ export type BlockData = {
   alignmentModel: PlMultiSequenceAlignmentModel;
 };
 
-// The shape the workflow consumes — analysis fields only (no UI state).
+// The shape the workflow consumes — analysis fields only (no UI state). The model's
+// argsIssues keeps a block from running while a required field is absent, so the
+// workflow always gets the main dataset, the contrast factor and every threshold.
 export type BlockArgs = {
   mainRef?: ColumnUniversalId;
   cdRef?: ColumnUniversalId;
@@ -67,10 +69,10 @@ export type BlockArgs = {
   numerators: ColumnValueId[];
   denominators: ColumnValueId[];
   findTcrAbPairs: boolean;
-  thresholdCounts: number;
-  thresholdSamples: number;
-  log2FcThreshold: number;
-  pAdjThreshold: number;
+  thresholdCounts?: number;
+  thresholdSamples?: number;
+  log2FcThreshold?: number;
+  pAdjThreshold?: number;
 };
 
 // Data as stored at version "v1", frozen snapshot: columns as refs to upstream

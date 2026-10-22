@@ -9,12 +9,13 @@ import {
   PlCheckbox,
   PlDropdown,
   PlDropdownMulti,
-  PlIcon24,
+  PlMaskIcon24,
   PlNumberField,
   PlRow,
   PlSlideModal,
   PlTabs,
   PlTooltip,
+  useColumnValueOptions,
   usePlDataTableSettingsV2,
 } from "@platforma-sdk/ui-vue";
 import { computed, ref, watch } from "vue";
@@ -81,39 +82,84 @@ const contrastFactorOptions = computed(() => {
   }));
 });
 
-/**
- * Values of the contrast factor column, while they describe the contrast factor picked now. The
- * model output follows the pick with a lag; until it catches up the pickers show as loading.
- * A picked value missing from them stays picked and is shown as not available.
- */
-const numeratorOptions = computed(() => {
-  const output = app.model.outputs.contrastValueOptions;
-  const contrastFactor = app.model.data.contrastFactor;
-  if (output === undefined || contrastFactor === undefined) return undefined;
-  return output.computedFor === contrastFactor ? output.options : undefined;
+const contrastValues = useColumnValueOptions({
+  source: () => app.model.outputs.contrastValues,
+  column: () => app.model.data.contrastFactor,
 });
 
-// The model's CD4/8 check of the values of the selected subset column, while it
-// describes the column picked now. `undefined` while the values are still loading
-// or cannot be read. Read-only derivation (output -> local reactive state), NOT a
-// write back to data, so it is not a hairpin — it drives the live UI warning
-// below. The authoritative gate value (data.cdSubsetColValid) is snapshotted
-// separately, only on user gesture.
-const cdSubsetCheck = computed(() => {
-  const output = app.model.outputs.cdSubsetCheck;
-  const cdSubsetCol = app.model.data.cdSubsetCol;
-  if (output === undefined || cdSubsetCol === undefined) return undefined;
-  if (output.computedFor !== cdSubsetCol || output.result.type !== "read") return undefined;
-  return output.result;
+/**
+ * Values of the contrast factor column as options of the numerator and denominator pickers.
+ * `undefined`, shown as loading, while no contrast factor is picked or its values are being read.
+ * A column that is gone or cannot be read offers none, so its picks stay picked and are shown as
+ * not available.
+ */
+const numeratorOptions = computed(() => {
+  const state = contrastValues.value;
+  if (state === undefined) return undefined;
+  switch (state.type) {
+    case "loading":
+      return undefined;
+    case "absent":
+    case "failed":
+      return [];
+    case "read":
+      return state.options;
+  }
+});
+
+// Why the values of the contrast factor column could not be read.
+const numeratorOptionsError = computed(() => {
+  const state = contrastValues.value;
+  return state?.type === "failed" ? state.message : undefined;
+});
+
+const cdSubsetValues = useColumnValueOptions({
+  source: () => app.model.outputs.cdSubsetValues,
+  column: () => app.model.data.cdSubsetCol,
+});
+
+// The CD4/8 check of the values of the selected subset column. `undefined` while
+// no subset column is picked. Read-only derivation (output -> local reactive
+// state), NOT a write back to data, so it is not a hairpin — it drives the live
+// UI warning below. The authoritative gate value (data.cdSubsetColValid) is
+// snapshotted separately, only on user gesture.
+const cdSubsetCheck = computed((): CdSubsetCheck | undefined => {
+  const state = cdSubsetValues.value;
+  if (state === undefined) return undefined;
+  switch (state.type) {
+    case "loading":
+      return { type: "loading" };
+    case "absent":
+      return { type: "unavailable", reason: "The selected column is not available" };
+    case "failed":
+      return { type: "unavailable", reason: state.message };
+    case "read": {
+      const values = state.options.map((option) => option.label);
+      return {
+        type: "read",
+        hasSubsets: values.some((value) => {
+          const label = value.toLowerCase();
+          return label === "cd4" || label === "cd8";
+        }),
+        firstValues: values.slice(0, 5),
+      };
+    }
+  }
+});
+
+// Why the subset column cannot be checked, shown under its picker.
+const cdSubsetColError = computed(() => {
+  const check = cdSubsetCheck.value;
+  return check?.type === "unavailable" ? check.reason : undefined;
 });
 
 // Snapshot the CD4/8 validity into data only in response to the user's column
-// selection. Validity comes from the model's check of the column values, which
-// lags the selection, so it can't be written synchronously in the gesture
-// handler; instead the handler arms `awaitingCdValidation` (per-client, never
-// synced) and the watcher below writes once the check for the new column
-// arrives. Because the flag is local, only the client that made the selection
-// writes — no multi-client write race.
+// selection. Validity comes from the column values, read after the selection, so
+// it can't be written synchronously in the gesture handler; instead the handler
+// arms `awaitingCdValidation` (per-client, never synced) and the watcher below
+// writes once the check for the new column settles. A column that is gone or
+// cannot be read settles it as invalid. Because the flag is local, only the
+// client that made the selection writes — no multi-client write race.
 const awaitingCdValidation = ref(false);
 
 function onCdSubsetColChange(id?: ColumnUniversalId) {
@@ -124,8 +170,8 @@ function onCdSubsetColChange(id?: ColumnUniversalId) {
 
 watch(cdSubsetCheck, (check) => {
   if (!awaitingCdValidation.value) return; // only the client that just selected
-  if (check === undefined) return; // still loading
-  app.model.data.cdSubsetColValid = check.hasSubsets;
+  if (check === undefined || check.type === "loading") return;
+  app.model.data.cdSubsetColValid = check.type === "read" && check.hasSubsets;
   awaitingCdValidation.value = false;
 });
 
@@ -155,6 +201,21 @@ watch(
 
 const requiredError = (v: number | undefined) =>
   v === undefined ? "Value is required" : undefined;
+
+// Internals
+
+/** The CD4/8 check of the subset column, as far as its values are read. */
+type CdSubsetCheck =
+  | { type: "loading" }
+  /** The column is gone, or its values cannot be read. */
+  | { type: "unavailable"; reason: string }
+  | {
+      type: "read";
+      /** Whether any value is "CD4" or "CD8", in any letter case. */
+      hasSubsets: boolean;
+      /** The first values of the column, in natural order, to show when it has no subsets. */
+      firstValues: string[];
+    };
 </script>
 
 <template>
@@ -164,7 +225,7 @@ const requiredError = (v: number | undefined) =>
       <PlBtnGhost @click.stop="showSettings">
         Settings
         <template #append>
-          <PlIcon24 name="settings" />
+          <PlMaskIcon24 name="settings" />
         </template>
       </PlBtnGhost>
     </template>
@@ -241,6 +302,7 @@ const requiredError = (v: number | undefined) =>
     <PlDropdownMulti
       v-model="app.model.data.numerators"
       :options="numeratorOptions"
+      :error="numeratorOptionsError"
       label="Numerator"
       required
     >
@@ -251,6 +313,7 @@ const requiredError = (v: number | undefined) =>
     <PlDropdownMulti
       v-model="app.model.data.denominators"
       :options="numeratorOptions"
+      :error="numeratorOptionsError"
       label="Denominator/s"
       required
     >
@@ -351,6 +414,7 @@ const requiredError = (v: number | undefined) =>
         v-if="app.model.data.cdRef"
         :model-value="app.model.data.cdSubsetCol"
         :options="metadataOptions"
+        :error="cdSubsetColError"
         label="CD4/8 metadata column"
         clearable
         @update:model-value="onCdSubsetColChange"
@@ -364,7 +428,10 @@ const requiredError = (v: number | undefined) =>
       </PlDropdown>
       <PlAlert
         v-if="
-          app.model.data.cdRef && app.model.data.cdSubsetCol && cdSubsetCheck?.hasSubsets === false
+          app.model.data.cdRef &&
+          app.model.data.cdSubsetCol &&
+          cdSubsetCheck?.type === 'read' &&
+          !cdSubsetCheck.hasSubsets
         "
         type="warn"
       >

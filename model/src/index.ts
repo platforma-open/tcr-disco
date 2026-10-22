@@ -8,10 +8,12 @@ import type {
   PlDataTableFilterSpecLeaf,
   PTableColumnId,
   RenderCtxBase,
+  ArgsIssue,
   StringMatcher,
 } from "@platforma-sdk/model";
 import {
   BlockModelV3,
+  createColumnValuesSource,
   createPFrameForGraphs,
   createPlDataTableSheet,
   createPlDataTableV3,
@@ -34,13 +36,11 @@ import {
   toPColumns,
 } from "./columns";
 import { blockDataModel } from "./dataModel";
-import { getCdSubsetCheck, getContrastValueOptions } from "./picked_values";
 import type { BlockArgs, BlockData } from "./types";
 
 export { blockDataModel } from "./dataModel";
 export * from "./types";
 export type { ColumnPickerOption } from "./columns";
-export type { CdSubsetCheck, CdSubsetCheckResult, ContrastValueOptions } from "./picked_values";
 
 export const platforma = BlockModelV3.create({ dataModel: blockDataModel, kind })
 
@@ -63,26 +63,10 @@ export const platforma = BlockModelV3.create({ dataModel: blockDataModel, kind }
     pAdjThreshold: data.pAdjThreshold,
   }))
 
-  // Project the unified data into the workflow's args shape. Validation lives
-  // here (replaces V1 `.argsValid`): throwing marks args invalid and disables
-  // Run. Pure function of `data` only.
+  // Project the unified data into the workflow's args shape, even from an incomplete
+  // configuration: `argsIssues` decides whether the block may run. Pure function of
+  // `data` only.
   .args<BlockArgs>((data) => {
-    if (data.mainRef === undefined) throw new Error("Main dataset is required");
-    if (data.contrastFactor === undefined) throw new Error("Contrast factor is required");
-    if (data.numerators.length === 0) throw new Error("Select at least one numerator");
-    if (data.denominators.length === 0) throw new Error("Select at least one denominator");
-    // CD4/CD8 dataset is optional; when set, its subset column must be chosen and
-    // must actually contain CD4/CD8 values (checked by the model, snapshotted into
-    // data.cdSubsetColValid by the UI on the user's column selection).
-    if (data.cdRef && (data.cdSubsetCol === undefined || !data.cdSubsetColValid))
-      throw new Error("Selected CD4/CD8 subset column must contain CD4 or CD8 values");
-    // Thresholds have defaults, so an empty one means the user cleared the field.
-    // Throwing keeps the run gated until a number is back in it.
-    if (data.thresholdCounts === undefined) throw new Error("Min UMI counts is required");
-    if (data.thresholdSamples === undefined) throw new Error("Min replicates is required");
-    if (data.log2FcThreshold === undefined) throw new Error("Log2(FC) threshold is required");
-    if (data.pAdjThreshold === undefined) throw new Error("Adjusted p-value threshold is required");
-
     return {
       mainRef: data.mainRef,
       cdRef: data.cdRef,
@@ -100,17 +84,49 @@ export const platforma = BlockModelV3.create({ dataModel: blockDataModel, kind }
     };
   })
 
+  // An error disables Run (replaces V1 `.argsValid`).
+  .argsIssues(({ args, data }) => {
+    const issues: ArgsIssue[] = [];
+    const error = (message: string) => issues.push({ severity: "error", message });
+    if (args.mainRef === undefined) error("Main dataset is required");
+    if (args.contrastFactor === undefined) error("Contrast factor is required");
+    if (args.numerators.length === 0) error("Select at least one numerator");
+    if (args.denominators.length === 0) error("Select at least one denominator");
+    // CD4/CD8 dataset is optional; when set, its subset column must be chosen and
+    // must actually contain CD4/CD8 values (checked by the UI from the column's
+    // values, snapshotted into data.cdSubsetColValid on the user's column selection).
+    if (args.cdRef && (args.cdSubsetCol === undefined || !data.cdSubsetColValid))
+      error("Selected CD4/CD8 subset column must contain CD4 or CD8 values");
+    // Thresholds have defaults, so an empty one means the user cleared the field.
+    // The run stays gated until a number is back in it.
+    if (args.thresholdCounts === undefined) error("Min UMI counts is required");
+    if (args.thresholdSamples === undefined) error("Min replicates is required");
+    if (args.log2FcThreshold === undefined) error("Log2(FC) threshold is required");
+    if (args.pAdjThreshold === undefined) error("Adjusted p-value threshold is required");
+    return issues;
+  })
+
   // Allow user to choose Alpha chain, will pick beta if available
   // @TODO: Should we allow single analysis of beta chain?
   .output("inputOptions", (ctx) => getInputOptions(ctx))
 
   .output("metadataOptions", (ctx) => getMetadataOptions(ctx))
 
-  // Options of the numerator and denominator pickers: the values of the contrast factor column.
-  .output("contrastValueOptions", (ctx) => getContrastValueOptions(ctx, ctx.data.contrastFactor))
+  // Where the UI reads the values of the contrast factor column from: the options of the
+  // numerator and denominator pickers. `undefined` until a contrast factor is picked.
+  .output("contrastValues", (ctx) =>
+    ctx.data.contrastFactor === undefined
+      ? undefined
+      : createColumnValuesSource(ctx, ctx.data.contrastFactor),
+  )
 
-  // Whether the picked CD4/CD8 subset column holds CD4 or CD8 values.
-  .output("cdSubsetCheck", (ctx) => getCdSubsetCheck(ctx, ctx.data.cdSubsetCol))
+  // Where the UI reads the values of the CD4/CD8 subset column from, to check that it holds
+  // CD4 or CD8 labels. `undefined` until a subset column is picked.
+  .output("cdSubsetValues", (ctx) =>
+    ctx.data.cdSubsetCol === undefined
+      ? undefined
+      : createColumnValuesSource(ctx, ctx.data.cdSubsetCol),
+  )
 
   // Whether samples of different chains are related by a barcode: a "Barcode ID"
   // metadata column, present in demultiplexed data, or a multiplexing rules column
