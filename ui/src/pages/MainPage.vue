@@ -113,16 +113,15 @@ const cdSubsetCheck = computed((): CdSubsetCheck | undefined => {
       return { type: "unavailable", reason: "The selected column is not available" };
     case "failed":
       return { type: "unavailable", reason: state.message };
-    case "read":
-      return {
-        type: "read",
-        hasSubsets: state.values.some((value) => {
-          const label = value.toLowerCase();
-          return label === "cd4" || label === "cd8";
-        }),
-        firstValues: state.values.slice(0, 5),
-      };
   }
+  return {
+    type: "read",
+    hasSubsets: state.values.some((value) => {
+      const label = value.toLowerCase();
+      return label === "cd4" || label === "cd8";
+    }),
+    firstValues: state.values.slice(0, 5),
+  };
 });
 
 // Why the subset column cannot be checked, shown under its picker.
