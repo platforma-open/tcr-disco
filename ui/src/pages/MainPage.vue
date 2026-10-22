@@ -7,6 +7,7 @@ import {
   PlBlockPage,
   PlBtnGhost,
   PlCheckbox,
+  PlColumnValueDropdownMulti,
   PlDropdown,
   PlDropdownMulti,
   PlMaskIcon24,
@@ -15,11 +16,12 @@ import {
   PlSlideModal,
   PlTabs,
   PlTooltip,
-  useColumnValueOptions,
+  usePlColumnValueSettings,
   usePlDataTableSettingsV2,
 } from "@platforma-sdk/ui-vue";
 import { computed, ref, watch } from "vue";
 import { useApp } from "../app";
+import { useColumnValues } from "../column_values";
 
 const app = useApp();
 
@@ -82,38 +84,16 @@ const contrastFactorOptions = computed(() => {
   }));
 });
 
-const contrastValues = useColumnValueOptions({
-  source: () => app.model.outputs.contrastValues,
-  column: () => app.model.data.contrastFactor,
-});
-
 /**
- * Values of the contrast factor column as options of the numerator and denominator pickers.
- * `undefined`, shown as loading, while no contrast factor is picked or its values are being read.
- * A column that is gone or cannot be read offers none, so its picks stay picked and are shown as
- * not available.
+ * What the numerator and denominator pickers offer: the values of the contrast factor column
+ * picked now.
  */
-const numeratorOptions = computed(() => {
-  const state = contrastValues.value;
-  if (state === undefined) return undefined;
-  switch (state.type) {
-    case "loading":
-      return undefined;
-    case "absent":
-    case "failed":
-      return [];
-    case "read":
-      return state.options;
-  }
+const contrastValues = usePlColumnValueSettings({
+  source: () => app.model.outputs.contrastValues,
+  valueColumn: () => app.model.data.contrastFactor,
 });
 
-// Why the values of the contrast factor column could not be read.
-const numeratorOptionsError = computed(() => {
-  const state = contrastValues.value;
-  return state?.type === "failed" ? state.message : undefined;
-});
-
-const cdSubsetValues = useColumnValueOptions({
+const cdSubsetValues = useColumnValues({
   source: () => app.model.outputs.cdSubsetValues,
   column: () => app.model.data.cdSubsetCol,
 });
@@ -133,17 +113,15 @@ const cdSubsetCheck = computed((): CdSubsetCheck | undefined => {
       return { type: "unavailable", reason: "The selected column is not available" };
     case "failed":
       return { type: "unavailable", reason: state.message };
-    case "read": {
-      const values = state.options.map((option) => option.label);
+    case "read":
       return {
         type: "read",
-        hasSubsets: values.some((value) => {
+        hasSubsets: state.values.some((value) => {
           const label = value.toLowerCase();
           return label === "cd4" || label === "cd8";
         }),
-        firstValues: values.slice(0, 5),
+        firstValues: state.values.slice(0, 5),
       };
-    }
   }
 });
 
@@ -299,21 +277,19 @@ type CdSubsetCheck =
         this column.
       </template>
     </PlDropdown>
-    <PlDropdownMulti
+    <PlColumnValueDropdownMulti
       v-model="app.model.data.numerators"
-      :options="numeratorOptions"
-      :error="numeratorOptionsError"
+      :settings="contrastValues"
       label="Numerator"
       required
     >
       <template #tooltip>
         Select one or more experimental conditions to compare against the baseline (denominator).
       </template>
-    </PlDropdownMulti>
-    <PlDropdownMulti
+    </PlColumnValueDropdownMulti>
+    <PlColumnValueDropdownMulti
       v-model="app.model.data.denominators"
-      :options="numeratorOptions"
-      :error="numeratorOptionsError"
+      :settings="contrastValues"
       label="Denominator/s"
       required
     >
@@ -323,7 +299,7 @@ type CdSubsetCheck =
         each numerator when compared individually against all selected denominators (excluding cases
         where the numerator matches the denominator) will be considered as enriched.
       </template>
-    </PlDropdownMulti>
+    </PlColumnValueDropdownMulti>
     <!-- Content hidden until you click THRESHOLD PARAMETERS -->
     <PlAccordionSection label="THRESHOLD PARAMETERS">
       <PlRow>
