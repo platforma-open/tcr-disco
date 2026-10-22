@@ -109,9 +109,9 @@ export const platforma = BlockModelV3.create({ dataModel: blockDataModel, kind }
 
   // Allow user to choose Alpha chain, will pick beta if available
   // @TODO: Should we allow single analysis of beta chain?
-  .output("inputOptions", (ctx) => getInputOptions(ctx))
+  .output("inputOptions", () => getInputOptions())
 
-  .output("metadataOptions", (ctx) => getMetadataOptions(ctx))
+  .output("metadataOptions", () => getMetadataOptions())
 
   // The values of the contrast factor column, for the numerator and denominator pickers.
   // `undefined` until a contrast factor is picked.
@@ -149,7 +149,7 @@ export const platforma = BlockModelV3.create({ dataModel: blockDataModel, kind }
   // column-name contract requires `[sampleGroupId, sampleId]` axes by S&D spec;
   // the workflow selector enforces the match. A non-conforming upstream would
   // fail the selector and skip synthesis there too.
-  .output("barcodeColPresent", (ctx) => hasBarcodeSource(ctx))
+  .output("barcodeColPresent", () => hasBarcodeSource())
 
   // Run report from workflow (report.txt): empty input or threshold filter warnings.
   .output("reportContent", (ctx): string | undefined => {
@@ -263,9 +263,9 @@ export const platforma = BlockModelV3.create({ dataModel: blockDataModel, kind }
     // clonotype labels, which carry the sample ids.
     const columns = [
       ...pairs.columns,
-      ...getRunSequenceColumns(ctx, "CDR3", pairs.runIds),
-      ...getRunSequenceColumns(ctx, "VGene", pairs.runIds),
-      ...getClonotypeLabelColumns(ctx),
+      ...getRunSequenceColumns("CDR3", pairs.runIds),
+      ...getRunSequenceColumns("VGene", pairs.runIds),
+      ...getClonotypeLabelColumns(),
     ];
 
     return ctx.createPFrame(columns.map((column) => column.id));
@@ -279,7 +279,7 @@ export const platforma = BlockModelV3.create({ dataModel: blockDataModel, kind }
 
     // Scope CDR3 labels to THIS block's clonotyping run(s) (see getPairColumns) —
     // avoids ambiguous X/Y sources when the project has multiple clonotyping runs.
-    return toIdsAndSpecs([...pairs.columns, ...getRunSequenceColumns(ctx, "CDR3", pairs.runIds)]);
+    return toIdsAndSpecs([...pairs.columns, ...getRunSequenceColumns("CDR3", pairs.runIds)]);
   })
 
   // Two chain-scoped pFrames, each independent of selectedChain so a chain switch
@@ -299,7 +299,7 @@ export const platforma = BlockModelV3.create({ dataModel: blockDataModel, kind }
     const forChain = (selectedChain: Chain): PColumnIdAndSpec[] | undefined => {
       const outputName =
         selectedChain === "alpha" ? "mainAlphaFrequenciesPF" : "mainBetaFrequenciesPF";
-      const frequencies = getOutputColumns(ctx, ctx.outputs?.resolve(outputName));
+      const frequencies = getOutputColumns(ctx.outputs?.resolve(outputName));
       if (frequencies === undefined) {
         return undefined;
       }
@@ -308,7 +308,7 @@ export const platforma = BlockModelV3.create({ dataModel: blockDataModel, kind }
       return toIdsAndSpecs([
         ...frequencies.getColumns(),
         // Every sample metadata column, to group and annotate the samples by.
-        ...getMetadataColumns(ctx),
+        ...getMetadataColumns(),
         ...getOptionalOutputColumns(
           ctx,
           selectedChain === "alpha" ? "clonotypeToSubsetAlpha" : "clonotypeToSubsetBeta",
@@ -323,9 +323,9 @@ export const platforma = BlockModelV3.create({ dataModel: blockDataModel, kind }
           selectedChain === "alpha" ? "meanNumeratorFreqAlpha" : "meanNumeratorFreqBeta",
         ),
         // The CDR3 sequence of the selected chain.
-        ...getChainCdr3Columns(ctx, chain),
+        ...getChainCdr3Columns(chain),
         // Per-clonotype V gene, to offer as a Y label part.
-        ...getChainVGeneColumns(ctx, chain),
+        ...getChainVGeneColumns(chain),
       ]);
     };
 
@@ -387,7 +387,7 @@ function buildFreqHeatmapPf(
   chain: Chain,
 ): PFrameHandle | undefined {
   const outputName = chain === "alpha" ? "mainAlphaFrequenciesPF" : "mainBetaFrequenciesPF";
-  const frequencies = getOutputColumns(ctx, ctx.outputs?.resolve(outputName));
+  const frequencies = getOutputColumns(ctx.outputs?.resolve(outputName));
   if (frequencies === undefined) {
     return undefined;
   }
@@ -455,7 +455,6 @@ const PAIR_SEQUENCE_COLUMN_NAMES: StringMatcher[] = [
 // Columns of the differential-abundance results of one chain, once all have arrived.
 function getTopTableColumns(ctx: RenderCtxBase<BlockArgs, BlockData>, chain: Chain) {
   return getOutputColumns(
-    ctx,
     ctx.outputs?.resolve(chain === "alpha" ? "topDegPFAlpha" : "topDegPFBeta"),
   );
 }
@@ -463,10 +462,7 @@ function getTopTableColumns(ctx: RenderCtxBase<BlockArgs, BlockData>, chain: Cha
 // Columns of the predicted pairs, written only when pairing was asked for and
 // both chains are present; `undefined` while absent or still arriving.
 function getOptionalPairsOutput(ctx: RenderCtxBase<BlockArgs, BlockData>) {
-  return getOutputColumns(
-    ctx,
-    ctx.outputs?.resolve({ field: "pairsPF", allowPermanentAbsence: true }),
-  );
+  return getOutputColumns(ctx.outputs?.resolve({ field: "pairsPF", allowPermanentAbsence: true }));
 }
 
 // Columns of an output the workflow writes only for some inputs; none while it is
@@ -476,10 +472,8 @@ function getOptionalOutputColumns(
   field: string,
 ): ColumnRecipe[] {
   return (
-    getOutputColumns(
-      ctx,
-      ctx.outputs?.resolve({ field, allowPermanentAbsence: true }),
-    )?.getColumns() ?? []
+    getOutputColumns(ctx.outputs?.resolve({ field, allowPermanentAbsence: true }))?.getColumns() ??
+    []
   );
 }
 
