@@ -13,7 +13,7 @@ import type {
 } from "@platforma-sdk/model";
 import {
   BlockModelV3,
-  createColumnValuesSource,
+  createColumnValueOptions,
   createPFrameForGraphs,
   createPlDataTableSheet,
   createPlDataTableV3,
@@ -22,6 +22,7 @@ import {
   TreeNodeAccessor,
 } from "@platforma-sdk/model";
 import {
+  createColumnFrame,
   exact,
   getChainCdr3Columns,
   getChainVGeneColumns,
@@ -40,7 +41,7 @@ import type { BlockArgs, BlockData } from "./types";
 
 export { blockDataModel } from "./dataModel";
 export * from "./types";
-export type { ColumnPickerOption } from "./columns";
+export type { ColumnFrame, ColumnPickerOption } from "./columns";
 
 export const platforma = BlockModelV3.create({ dataModel: blockDataModel, kind })
 
@@ -112,20 +113,18 @@ export const platforma = BlockModelV3.create({ dataModel: blockDataModel, kind }
 
   .output("metadataOptions", (ctx) => getMetadataOptions(ctx))
 
-  // Where the UI reads the values of the contrast factor column from: the options of the
-  // numerator and denominator pickers. `undefined` until a contrast factor is picked.
+  // The values of the contrast factor column, for the numerator and denominator pickers.
+  // `undefined` until a contrast factor is picked.
   .output("contrastValues", (ctx) =>
     ctx.data.contrastFactor === undefined
       ? undefined
-      : createColumnValuesSource(ctx, ctx.data.contrastFactor),
+      : createColumnValueOptions({ valueColumn: ctx.data.contrastFactor }),
   )
 
   // Where the UI reads the values of the CD4/CD8 subset column from, to check that it holds
   // CD4 or CD8 labels. `undefined` until a subset column is picked.
   .output("cdSubsetValues", (ctx) =>
-    ctx.data.cdSubsetCol === undefined
-      ? undefined
-      : createColumnValuesSource(ctx, ctx.data.cdSubsetCol),
+    ctx.data.cdSubsetCol === undefined ? undefined : createColumnFrame(ctx, ctx.data.cdSubsetCol),
   )
 
   // Whether samples of different chains are related by a barcode: a "Barcode ID"
