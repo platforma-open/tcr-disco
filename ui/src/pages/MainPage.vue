@@ -10,7 +10,7 @@ import {
   PlColumnValueDropdownMulti,
   PlDropdown,
   PlDropdownMulti,
-  PlMaskIcon24,
+  PlIcon24,
   PlNumberField,
   PlRow,
   PlSlideModal,
@@ -67,21 +67,24 @@ function setInput(inputRef?: ColumnUniversalId) {
   }
 }
 
-const metadataOptions = computed(() => app.model.outputs.metadataOptions ?? []);
+const metadataOptions = computed(() => app.model.outputs.metadataOptions);
 
 // CD4/8 dropdown: same options as main, but exclude the main dataset
 const cdRefInputOptions = computed(() => {
-  const opts = app.model.outputs.inputOptions ?? [];
+  const opts = app.model.outputs.inputOptions;
   const main = app.model.data.mainRef;
-  if (!main) return opts;
+  if (opts === undefined || !main) return opts;
   return opts.filter((o) => o.value !== main);
 });
 
+// The design covariates the result pool still provides. A contrast factor picked from a covariate
+// it no longer provides is not among them and shows as not available.
 const contrastFactorOptions = computed(() => {
-  return app.model.data.covariateRefs.map((id) => ({
-    value: id,
-    label: metadataOptions.value.find((m) => m.value === id)?.label ?? "",
-  }));
+  const options = metadataOptions.value;
+  if (options === undefined) return undefined;
+  return app.model.data.covariateRefs.flatMap(
+    (id) => options.find((option) => option.value === id) ?? [],
+  );
 });
 
 /**
@@ -109,8 +112,6 @@ const cdSubsetCheck = computed((): CdSubsetCheck | undefined => {
   switch (state.type) {
     case "loading":
       return { type: "loading" };
-    case "absent":
-      return { type: "unavailable", reason: "The selected column is not available" };
     case "failed":
       return { type: "unavailable", reason: state.message };
   }
@@ -165,6 +166,20 @@ watch(
   },
 );
 
+// If the user removes the covariate that was selected as contrast factor, the
+// contrast factor is no longer part of the design — clear it. The watcher above
+// then clears numerators/denominators as a side-effect.
+watch(
+  () => app.model.data.covariateRefs,
+  (covariates) => {
+    const current = app.model.data.contrastFactor;
+    if (current === undefined) return;
+    if (!covariates.includes(current)) {
+      app.model.data.contrastFactor = undefined;
+    }
+  },
+);
+
 // Clear CD4/8 selection if user sets main dataset to the same as CD4/8
 watch(
   () => app.model.data.mainRef,
@@ -184,7 +199,7 @@ const requiredError = (v: number | undefined) =>
 /** The CD4/8 check of the subset column, as far as its values are read. */
 type CdSubsetCheck =
   | { type: "loading" }
-  /** The column is gone, or its values cannot be read. */
+  /** The values of the column cannot be read. */
   | { type: "unavailable"; reason: string }
   | {
       type: "read";
@@ -202,7 +217,7 @@ type CdSubsetCheck =
       <PlBtnGhost @click.stop="showSettings">
         Settings
         <template #append>
-          <PlMaskIcon24 name="settings" />
+          <PlIcon24 name="settings" />
         </template>
       </PlBtnGhost>
     </template>

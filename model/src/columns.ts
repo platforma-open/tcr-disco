@@ -3,10 +3,7 @@ import type {
   PColumn,
   PColumnDataUniversal,
   PColumnIdAndSpec,
-  PFrameHandle,
-  PObjectId,
   RelaxedColumnSelector,
-  RenderCtxBase,
   StringMatcher,
   TreeNodeAccessor,
 } from "@platforma-sdk/model";
@@ -14,7 +11,6 @@ import {
   ColumnRecipe,
   ColumnsCollection,
   deriveColumnOptions,
-  extractPObjectId,
   isDataColumn,
 } from "@platforma-sdk/model";
 
@@ -158,32 +154,6 @@ export function toIdsAndSpecs(columns: ColumnRecipe[]): PColumnIdAndSpec[] {
 /** An exact string matcher for a selector. */
 export function exact(value: string): StringMatcher {
   return { type: "exact", value };
-}
-
-/**
- * Where the UI reads the values of a picked column from: a frame of the column alone, while the
- * column is there. `column` is the pick the frame was made for, so the UI can tell one that still
- * describes an earlier pick; `frameColumn` is the column as the frame holds it.
- */
-export type ColumnFrame =
-  | { readonly type: "resolving"; readonly column: ColumnUniversalId }
-  /** The column is gone: a stored id may name a column its upstream block no longer produces. */
-  | { readonly type: "absent"; readonly column: ColumnUniversalId }
-  | {
-      readonly type: "present";
-      readonly column: ColumnUniversalId;
-      readonly frame: PFrameHandle;
-      readonly frameColumn: PObjectId;
-    };
-
-/** A frame of `column` alone, while the column and its frame are there. */
-export function createColumnFrame(ctx: RenderCtxBase, column: ColumnUniversalId): ColumnFrame {
-  const status = ColumnRecipe.getStatus(column);
-  if (status !== "present") return { type: status, column };
-  const frame = ctx.createPFrame([column]);
-  if (frame === undefined) return { type: "resolving", column };
-  // The frame holds a column by the bare id of its leaf.
-  return { type: "present", column, frame, frameColumn: extractPObjectId(column) };
 }
 
 // Internals

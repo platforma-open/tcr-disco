@@ -22,7 +22,6 @@ import {
   TreeNodeAccessor,
 } from "@platforma-sdk/model";
 import {
-  createColumnFrame,
   exact,
   getChainCdr3Columns,
   getChainVGeneColumns,
@@ -41,7 +40,7 @@ import type { BlockArgs, BlockData } from "./types";
 
 export { blockDataModel } from "./dataModel";
 export * from "./types";
-export type { ColumnFrame, ColumnPickerOption } from "./columns";
+export type { ColumnPickerOption } from "./columns";
 
 export const platforma = BlockModelV3.create({ dataModel: blockDataModel, kind })
 
@@ -124,7 +123,9 @@ export const platforma = BlockModelV3.create({ dataModel: blockDataModel, kind }
   // Where the UI reads the values of the CD4/CD8 subset column from, to check that it holds
   // CD4 or CD8 labels. `undefined` until a subset column is picked.
   .output("cdSubsetValues", (ctx) =>
-    ctx.data.cdSubsetCol === undefined ? undefined : createColumnFrame(ctx, ctx.data.cdSubsetCol),
+    ctx.data.cdSubsetCol === undefined
+      ? undefined
+      : createColumnValueOptions({ valueColumn: ctx.data.cdSubsetCol }),
   )
 
   // Whether samples of different chains are related by a barcode: a "Barcode ID"
