@@ -46,16 +46,6 @@ columnIdToRef := func(id) {
 	return ref
 }
 
-// Picked values arrive as column value ids; the analysis and its scripts take the plain values,
-// as text: numeric values of the contrast factor column too.
-pickedValues := func(ids) {
-	values := []
-	for value in columnValue.valuesOf(ids) {
-		values = append(values, string(value))
-	}
-	return values
-}
-
 // Helper function to process results for one chain type
 processChainResults := func(mainSpec, inputType, log2FcThreshold, pAdjThreshold, trace,
 blockId, denominators, topTableFile, daFile, defaultConvMem, defaultConvCpu,
@@ -178,43 +168,50 @@ wf.prepare(func(args) {
 		}, "cdVGene");
 	}
 
-	for covariateRef in args.covariateRefs {
-		bundleBuilder.addSingle(covariateRef)
+	metaRefs := {}
+	i := 0
+	for metaRef in args.covariateRefs {
+		metaRefs["metaRef" + i ] = wf.resolve(json.decode(metaRef), { errIfMissing: true })
+		i = i + 1
 	}
-	bundleBuilder.addSingle(args.contrastFactor)
+	
+	prepared := {
+		columns: bundleBuilder.build(),
+		resolvedContrastFactor: wf.resolve(json.decode(args.contrastFactor)),
+		metaRefs: metaRefs
+	}
 	if args.cdSubsetCol != undefined {
-		bundleBuilder.addSingle(args.cdSubsetCol)
+		prepared.resolvedCdSubsetCol = wf.resolve(json.decode(args.cdSubsetCol))
 	}
 	// The pairing column is read only while pairing is on.
 	if args.findTcrAbPairs && args.pairingMetadataCol != undefined {
-		bundleBuilder.addSingle(args.pairingMetadataCol)
+		prepared.resolvedPairingMetadataCol = wf.resolve(json.decode(args.pairingMetadataCol))
 	}
-
-	return {
-		columns: bundleBuilder.build()
-	}
+	return prepared
 })
 
 wf.body(func(args) {
 	blockId := wf.blockId().getDataAsJson()
 	columns := args.columns
-	numerators := pickedValues(args.numerators)
-	denominators := pickedValues(args.denominators)
+	// The compared groups arrive as column value ids of the contrast factor column; the analysis
+	// works with the plain values they carry.
+	numerators := columnValue.valuesOf(args.numerators)
+	denominators := columnValue.valuesOf(args.denominators)
 	denominatorString := text.join(denominators, "-")
 	cdSubsetCol := undefined
 	// This is needed for cases in which user selects a value and then removes the CD4/8 dataset
 	if args.cdRef != undefined {
-		cdSubsetCol = string(columns.getColumn(args.cdSubsetCol).spec.annotations["pl7.app/label"])
+		cdSubsetCol = string(args.resolvedCdSubsetCol.spec.annotations["pl7.app/label"])
 	}
 	thresholdCounts := args.thresholdCounts
 	thresholdSamples := args.thresholdSamples
 	log2FcThreshold := args.log2FcThreshold
 	pAdjThreshold := args.pAdjThreshold
-	contrastColLabel := columns.getColumn(args.contrastFactor).spec.annotations["pl7.app/label"]
+	contrastColLabel := args.resolvedContrastFactor.spec.annotations["pl7.app/label"]
 	// The metadata table names its columns by their labels.
 	pairingMetadataCol := undefined
 	if args.findTcrAbPairs && args.pairingMetadataCol != undefined {
-		pairingMetadataCol = columns.getColumn(args.pairingMetadataCol).spec.annotations["pl7.app/label"]
+		pairingMetadataCol = args.resolvedPairingMetadataCol.spec.annotations["pl7.app/label"]
 	}
 	// Barcode ID is the default pairing metadata column when we have demultiplexed data
 	if pairingMetadataCol == undefined {
@@ -227,8 +224,8 @@ wf.body(func(args) {
 	defaultConvCpu := 1
 
 	covariates := []
-	for covariateRef in args.covariateRefs {
-		covariates = append(covariates, columns.getColumn(covariateRef))
+	for _, v in args.metaRefs {
+		covariates = append(covariates, v)
 	}
 	// convert PColumns to csv
 	covariatesTsv := xsv.exportFrame(covariates, "tsv", {mem: defaultConvMem, cpu: defaultConvCpu})
