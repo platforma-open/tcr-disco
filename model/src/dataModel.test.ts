@@ -2,6 +2,7 @@ import { kind } from "@platforma-open/milaboratories.tcrdisco-enrichment.kind";
 import {
   createColumnValueId,
   createGlobalPObjectId,
+  createLocalPObjectId,
   createPlDataTableStateV2,
   parseColumnValueId,
 } from "@platforma-sdk/model";
@@ -32,6 +33,7 @@ const storedAtV4 = {
   tableState: createPlDataTableStateV2(),
   graphState: { title: "Volcano plot", template: "dots" },
   graphStateBeta: { title: "Volcano plot", template: "dots" },
+  alignmentModel: { widgets: ["consensus"] },
 };
 
 describe("v5 migration", () => {
@@ -116,6 +118,58 @@ describe("v5 migration", () => {
     expect(migrated.contrastFactor).toBeUndefined();
     expect(migrated.numerators).toEqual([]);
     expect(migrated.denominators).toEqual([]);
+  });
+});
+
+describe("v5 migration of the alignment settings", () => {
+  // A sequence column next to the results, picked relative to the main dataset.
+  const anchored = '{"axes":[{"anchor":"main","idx":1}],"name":"pl7.app/vdj/sequence"}';
+  const result = createLocalPObjectId(["topDegPFAlpha"], "log2foldchange");
+  const sampleAxis = { type: "axis", id: { type: "String", name: "pl7.app/sampleId" } };
+  const migrateAlignment = (alignmentModel: Record<string, unknown>) =>
+    blockDataModel.migrate({ version: "v4", data: { ...storedAtV4, alignmentModel } }).data
+      .alignmentModel;
+
+  test("lists naming an upstream column by an anchored id are reset", () => {
+    expect(
+      migrateAlignment({
+        widgets: ["consensus"],
+        sequenceColumnIds: [result, anchored],
+        labelColumnIds: [sampleAxis, { type: "column", id: anchored }],
+        colorScheme: { type: "markup", columnIds: [anchored] },
+      }),
+    ).toStrictEqual({ widgets: ["consensus"] });
+  });
+
+  test("result columns, axes and color schemes without columns are kept", () => {
+    const alignmentModel = {
+      widgets: ["consensus"],
+      sequenceColumnIds: [result],
+      labelColumnIds: [sampleAxis, { type: "column", id: result }],
+      colorScheme: { type: "markup", columnIds: [result] },
+    };
+    expect(migrateAlignment(alignmentModel)).toStrictEqual(alignmentModel);
+    const plain = { colorScheme: { type: "chemical-properties" } };
+    expect(migrateAlignment(plain)).toStrictEqual(plain);
+  });
+});
+
+describe("kind params", () => {
+  const notAnOutput = createLocalPObjectId(["main"], "pf/abundance");
+
+  test.each(["mainRef", "contrastFactor", "pairingMetadataCol"])(
+    "%s rejects a column id that is not another block's output",
+    (field) => {
+      expect(() => kind.parseInitializationParams({ [field]: notAnOutput })).toThrow(
+        `'${field}' must be`,
+      );
+    },
+  );
+
+  test("covariateRefs rejects a column id that is not another block's output", () => {
+    expect(() =>
+      kind.parseInitializationParams({ covariateRefs: [contrastColumn, notAnOutput] }),
+    ).toThrow("'covariateRefs' must be");
   });
 });
 

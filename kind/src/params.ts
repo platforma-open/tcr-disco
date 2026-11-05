@@ -1,6 +1,6 @@
 import {
-  isColumnUniversalId,
   isColumnValueId,
+  isGlobalPObjectId,
   type ColumnUniversalId,
   type ColumnValueId,
 } from "@milaboratories/pl-model-common";
@@ -118,12 +118,12 @@ function requireColumnValueArray(
     throw new Error(`'${field}' must be an array of column values, written as column value ids.`);
 }
 
-// `isColumnUniversalId` is the SDK's own guard, so a column is recognized the same
-// way here as everywhere else. Ids are placeholders during the pre-flight check that
-// runs before any block exists, so shape is all that can be checked.
+// A column is the result-pool id of another block's output: the only form the
+// workflow resolves. Ids are placeholders during the pre-flight check that runs
+// before any block exists, so shape is all that can be checked.
 function requireColumn(field: string, v: unknown): asserts v is ColumnUniversalId | undefined {
-  if (v !== undefined && !isColumnUniversalId(v))
-    throw new Error(`'${field}' must be an upstream column, written as a column id.`);
+  if (v !== undefined && !isGlobalPObjectId(v))
+    throw new Error(`'${field}' must be an upstream column, written as ${OUTPUT_ID}.`);
 }
 
 function requireColumnArray(
@@ -131,6 +131,8 @@ function requireColumnArray(
   v: unknown,
 ): asserts v is ColumnUniversalId[] | undefined {
   if (v === undefined) return;
-  if (!isArray(v) || !v.every(isColumnUniversalId))
-    throw new Error(`'${field}' must be an array of upstream columns, written as column ids.`);
+  if (!isArray(v) || !v.every(isGlobalPObjectId))
+    throw new Error(`'${field}' must be an array of upstream columns, each ${OUTPUT_ID}.`);
 }
+
+const OUTPUT_ID = "the result-pool id of another block's output";

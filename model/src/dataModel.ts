@@ -1,10 +1,16 @@
 import { kind } from "@platforma-open/milaboratories.tcrdisco-enrichment.kind";
-import type { ColumnUniversalId, ColumnValueId, PlRef } from "@platforma-sdk/model";
+import type {
+  ColumnUniversalId,
+  ColumnValueId,
+  PlMultiSequenceAlignmentModel,
+  PlRef,
+} from "@platforma-sdk/model";
 import {
   createColumnValueId,
   createGlobalPObjectId,
   createPlDataTableStateV2,
   DataModelBuilder,
+  isColumnUniversalId,
   isColumnValueId,
   isPlRef,
 } from "@platforma-sdk/model";
@@ -84,7 +90,8 @@ function withGroupingColorsReseeded(state: BlockData["graphState"]): BlockData["
 // compared groups were plain values of the contrast factor column, so each becomes
 // a value id of that column's new id; without a contrast factor ref they name no
 // column and are dropped. The pairing column was the label of a metadata column,
-// which names no producing block, so it is dropped, to be picked again.
+// which names no producing block, so it is dropped, to be picked again. The
+// alignment settings drop the upstream columns they name by anchored ids.
 function toColumnIds(data: BlockDataV4): BlockData {
   const { mainRef, cdRef, cdSubsetCol, contrastFactor } = data;
   const contrastColumn = isPlRef(contrastFactor) ? plRefToColumnId(contrastFactor) : undefined;
@@ -94,10 +101,31 @@ function toColumnIds(data: BlockDataV4): BlockData {
     cdRef: cdRef === undefined ? undefined : plRefToColumnId(cdRef),
     cdSubsetCol: cdSubsetCol === undefined ? undefined : plRefToColumnId(cdSubsetCol),
     pairingMetadataCol: undefined,
+    alignmentModel: withoutAnchoredColumns(data.alignmentModel),
     covariateRefs: data.covariateRefs.map(plRefToColumnId),
     contrastFactor: contrastFactor === undefined ? undefined : plRefToColumnId(contrastFactor),
     numerators: toColumnValueIds(data.numerators, contrastColumn),
     denominators: toColumnValueIds(data.denominators, contrastColumn),
+  };
+}
+
+// Alignment settings without the upstream columns picked by anchored ids. The
+// sequence, label and markup columns next to the results were once named relative
+// to the main dataset; such an id names no column now. A list holding one is reset
+// and is picked again from its defaults. Columns of this block's results and axes
+// keep their ids.
+function withoutAnchoredColumns(
+  model: PlMultiSequenceAlignmentModel,
+): PlMultiSequenceAlignmentModel {
+  const { sequenceColumnIds, labelColumnIds, colorScheme, ...rest } = model;
+  const markupColumnIds = colorScheme?.type === "markup" ? colorScheme.columnIds : [];
+  return {
+    ...rest,
+    ...(sequenceColumnIds?.every(isColumnUniversalId) && { sequenceColumnIds }),
+    ...(labelColumnIds?.every((id) => id.type === "axis" || isColumnUniversalId(id.id)) && {
+      labelColumnIds,
+    }),
+    ...(colorScheme !== undefined && markupColumnIds.every(isColumnUniversalId) && { colorScheme }),
   };
 }
 
