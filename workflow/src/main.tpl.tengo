@@ -7,6 +7,7 @@ xsv := import("@platforma-sdk/workflow-tengo:pframes.xsv")
 ll := import("@platforma-sdk/workflow-tengo:ll")
 smart := import("@platforma-sdk/workflow-tengo:smart")
 pSpec := import("@platforma-sdk/workflow-tengo:pframes.spec")
+columnValue := import("@platforma-sdk/workflow-tengo:workflow.column-value")
 json := import("json")
 
 tcrAnalysisTpl := assets.importTemplate(":tcr-analysis")
@@ -35,6 +36,16 @@ createJsonPColumnData := func(data) {
 	return smart.createValueResource({ Name: "PColumnData/Json", Version: "1" }, data)
 }
 
+// The upstream output a result-pool column id names, as the ref an anchor is resolved from.
+// A result-pool id is the canonical JSON of that ref.
+columnIdToRef := func(id) {
+	ref := json.decode(id)
+	if !is_map(ref) || ref.__isRef != true {
+		ll.panic("expected a result-pool column id, got %v", id)
+	}
+	return ref
+}
+
 // Helper function to process results for one chain type
 processChainResults := func(mainSpec, inputType, log2FcThreshold, pAdjThreshold, trace,
 blockId, denominators, topTableFile, daFile, defaultConvMem, defaultConvCpu,
@@ -59,11 +70,12 @@ blockId, denominators, topTableFile, daFile, defaultConvMem, defaultConvCpu,
 	}
 }
 
+// Every column the user picked arrives as a result-pool column id.
 wf.prepare(func(args) {
 	bundleBuilder := wf.createPBundleBuilder()
 	
 	// Load mainRef and its associated sequences
-	bundleBuilder.addAnchor("mainAlpha", args.mainRef)
+	bundleBuilder.addAnchor("mainAlpha", columnIdToRef(args.mainRef))
 	bundleBuilder.addSingle({
 		annotations: {
 			"pl7.app/isAbundance": "true",
@@ -129,7 +141,7 @@ wf.prepare(func(args) {
 	// If cdRef is provided, load it and its metadata
 	if args.cdRef != undefined {
 		// Get the CD4/8 dataset and its associated sequences
-		bundleBuilder.addAnchor("cdAlpha", args.cdRef)
+		bundleBuilder.addAnchor("cdAlpha", columnIdToRef(args.cdRef))
 		bundleBuilder.addSingle({
 			axes: [{anchor: "cdAlpha", idx: 0},
 				{anchor: "cdAlpha", idx: 1}],
@@ -159,17 +171,21 @@ wf.prepare(func(args) {
 	metaRefs := {}
 	i := 0
 	for metaRef in args.covariateRefs {
-		metaRefs["metaRef" + i ] = wf.resolve(metaRef, { errIfMissing: true })
+		metaRefs["metaRef" + i ] = wf.resolve(json.decode(metaRef), { errIfMissing: true })
 		i = i + 1
 	}
 	
 	prepared := {
 		columns: bundleBuilder.build(),
-		resolvedContrastFactor: wf.resolve(args.contrastFactor),
+		resolvedContrastFactor: wf.resolve(json.decode(args.contrastFactor)),
 		metaRefs: metaRefs
 	}
 	if args.cdSubsetCol != undefined {
-		prepared.resolvedCdSubsetCol = wf.resolve(args.cdSubsetCol)
+		prepared.resolvedCdSubsetCol = wf.resolve(json.decode(args.cdSubsetCol))
+	}
+	// The pairing column is read only while pairing is on.
+	if args.findTcrAbPairs && args.pairingMetadataCol != undefined {
+		prepared.resolvedPairingMetadataCol = wf.resolve(json.decode(args.pairingMetadataCol))
 	}
 	return prepared
 })
@@ -177,7 +193,10 @@ wf.prepare(func(args) {
 wf.body(func(args) {
 	blockId := wf.blockId().getDataAsJson()
 	columns := args.columns
-	denominators := args.denominators
+	// The compared groups arrive as column value ids of the contrast factor column; the analysis
+	// works with the plain values they carry.
+	numerators := columnValue.valuesOf(args.numerators)
+	denominators := columnValue.valuesOf(args.denominators)
 	denominatorString := text.join(denominators, "-")
 	cdSubsetCol := undefined
 	// This is needed for cases in which user selects a value and then removes the CD4/8 dataset
@@ -189,7 +208,11 @@ wf.body(func(args) {
 	log2FcThreshold := args.log2FcThreshold
 	pAdjThreshold := args.pAdjThreshold
 	contrastColLabel := args.resolvedContrastFactor.spec.annotations["pl7.app/label"]
-	pairingMetadataCol := args.pairingMetadataCol
+	// The metadata table names its columns by their labels.
+	pairingMetadataCol := undefined
+	if args.findTcrAbPairs && args.pairingMetadataCol != undefined {
+		pairingMetadataCol = args.resolvedPairingMetadataCol.spec.annotations["pl7.app/label"]
+	}
 	// Barcode ID is the default pairing metadata column when we have demultiplexed data
 	if pairingMetadataCol == undefined {
 		pairingMetadataCol = "Barcode ID"
@@ -209,7 +232,7 @@ wf.body(func(args) {
 
 	//////////////// Load input data ////////////////
 	// Get the main dataset
-	mainAlpha := columns.getColumn(args.mainRef)
+	mainAlpha := columns.getColumn("mainAlpha")
 	mainAlphaSpec := mainAlpha.spec
 	mainAlphaClonoStructure := mainAlphaSpec.axesSpec[1].domain["pl7.app/vdj/clonotypeKey/structure"]
 	// Get counts block id from mainAlpha key
@@ -352,7 +375,7 @@ wf.body(func(args) {
 	cdAlphaTsv := undefined
 	cdBetaTsv := undefined
 	if args.cdRef != undefined {
-		cdAlpha := columns.getColumn(args.cdRef)
+		cdAlpha := columns.getColumn("cdAlpha")
 		cdAlphaSpec := cdAlpha.spec
 		cdAlphaClonoStructure := cdAlphaSpec.axesSpec[1].domain["pl7.app/vdj/clonotypeKey/structure"]
 		// Get counts block id from mainAlpha key
@@ -428,7 +451,7 @@ wf.body(func(args) {
 	}
 
 	tcrAnalysis := render.create(tcrAnalysisTpl, {
-		numerators: args.numerators,
+		numerators: numerators,
 		denominators: denominators,
 		mainAlphaTsv: mainAlphaTsv,
 		mainBetaTsv: mainBetaTsv,
