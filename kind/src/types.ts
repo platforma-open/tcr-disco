@@ -29,7 +29,7 @@ import type { ColumnUniversalId, ColumnValueId } from "@milaboratories/pl-model-
  * later is additive; removing them is not.
  */
 export type BlockParams = {
-  /** Block label in the project tree. Falls back to "TCRdisco". */
+  /** Block label in the project tree. Falls back to "Miltenyi TCRdisco". */
   title?: string;
 
   /** Main clonotype dataset — the abundance column the analysis runs on. */

@@ -162,7 +162,7 @@ function defaultData(): BlockData {
     thresholdSamples: 3,
     log2FcThreshold: 3,
     pAdjThreshold: 0.05,
-    title: "TCRdisco",
+    title: "Miltenyi TCRdisco",
     selectedChain: "alpha",
     cdSubsetColValid: false,
     tableState: createPlDataTableStateV2(),

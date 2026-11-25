@@ -63,7 +63,7 @@ function setInput(inputRef?: ColumnUniversalId) {
   app.model.data.mainRef = inputRef;
   if (inputRef) {
     const mainLabel = app.model.outputs.inputOptions?.find((o) => o.value === inputRef)?.label;
-    if (mainLabel) app.model.data.title = "TCRdisco - " + mainLabel;
+    if (mainLabel) app.model.data.title = "Miltenyi TCRdisco - " + mainLabel;
   }
 }
 
