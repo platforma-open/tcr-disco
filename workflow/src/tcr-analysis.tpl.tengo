@@ -5,7 +5,6 @@ pt := import("@platforma-sdk/workflow-tengo:pt")
 xsv := import("@platforma-sdk/workflow-tengo:pframes.xsv")
 pframes := import("@platforma-sdk/workflow-tengo:pframes")
 pSpec := import("@platforma-sdk/workflow-tengo:pframes.spec")
-smart := import("@platforma-sdk/workflow-tengo:smart")
 text := import("text")
 json := import("json")
 
