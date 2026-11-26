@@ -346,7 +346,7 @@ export const platforma = BlockModelV3.create({ dataModel: blockDataModel, kind }
 
   .output("isRunning", (ctx): boolean => ctx.outputs?.getIsReadyOrError() === false)
 
-  .title((ctx) => ctx.data.title ?? "TCRdisco")
+  .title((ctx) => ctx.data.title ?? "Miltenyi TCRdisco")
 
   .sections((ctx) => {
     const sections: Array<{ type: "link"; href: `/${string}`; label: string }> = [

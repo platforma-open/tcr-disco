@@ -46,13 +46,13 @@
       "ui": "@platforma-open/milaboratories.tcrdisco-enrichment.ui/dist"
     },
     "meta": {
-      "title": "TCRdisco",
+      "title": "Miltenyi TCRdisco",
       "logo": "file:../logos/block-logo.png",
       "url": "https://github.com/platforma-open/tcr-disco",
       "support": "mailto:support@milaboratories.com",
       "description": "Calculates differential abundances of TCR α/β clonotypes between experimental conditions and enables computational pairing of TCRα and TCRβ chains.",
       "longDescription": "file:../docs/description.md",
-      "changelog": "file:../CHANGELOG.md",
+      "changelog": "file:CHANGELOG.md",
       "tags": [
         "vdj",
         "tcr",

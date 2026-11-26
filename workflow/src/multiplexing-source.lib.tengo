@@ -61,7 +61,7 @@ parseRulesColumn := func(rulesCol) {
         return { ok: false, message: "Multiplexing rules column declares no barcode tags." }
     }
     if len(tags) > 1 {
-        return { ok: false, message: "TCRdisco v1 does not support multiple barcode tags (" + text.join(tags, ", ") + "). Use a single-tag rules column." }
+        return { ok: false, message: "Miltenyi TCRdisco v1 does not support multiple barcode tags (" + text.join(tags, ", ") + "). Use a single-tag rules column." }
     }
     tag := tags[0]
 
@@ -88,7 +88,7 @@ parseRulesColumn := func(rulesCol) {
             return { ok: false, message: "Multiplexing rules cell for group " + groupId + ", sample " + sampleId + " is empty." }
         }
         if len(alts) > 1 {
-            return { ok: false, message: "Multiplexing rules cell for group " + groupId + ", sample " + sampleId + " has multiple alternatives — TCRdisco v1 supports one alternative per sample." }
+            return { ok: false, message: "Multiplexing rules cell for group " + groupId + ", sample " + sampleId + " has multiple alternatives — Miltenyi TCRdisco v1 supports one alternative per sample." }
         }
         firstAlt := alts[0]
         if !is_map(firstAlt) {

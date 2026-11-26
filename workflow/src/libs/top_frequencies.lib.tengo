@@ -1,5 +1,4 @@
 ll := import("@platforma-sdk/workflow-tengo:ll")
-math := import("math")
 
 getColumns := func(countsSpec) {
 	field := "differentialTCRAbundance"

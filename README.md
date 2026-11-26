@@ -1,2 +1,2 @@
 # tcrdisco-enrichment
-TCRdisco enrichment block
+Miltenyi TCRdisco enrichment block

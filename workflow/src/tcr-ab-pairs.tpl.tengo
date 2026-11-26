@@ -1,8 +1,6 @@
 self := import("@platforma-sdk/workflow-tengo:tpl")
 exec := import("@platforma-sdk/workflow-tengo:exec")
 assets := import("@platforma-sdk/workflow-tengo:assets")
-pt := import("@platforma-sdk/workflow-tengo:pt")
-ll := import("@platforma-sdk/workflow-tengo:ll")
 
 tcrAbPairsSoftware := assets.importSoftware("@platforma-open/milaboratories.run-tcrdisco-enrichment.software:tcr-ab-pairs")
 
