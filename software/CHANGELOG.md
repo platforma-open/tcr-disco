@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.run-tcrdisco-enrichment.software
 
+## 1.3.2
+
+### Patch Changes
+
+- 9038c3d: The block is now called Miltenyi TCRdisco. In existing projects, the new name appears after you pick the dataset again.
+
 ## 1.3.1
 
 ### Patch Changes
